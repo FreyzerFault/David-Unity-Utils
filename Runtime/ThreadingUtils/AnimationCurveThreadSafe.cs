@@ -4,16 +4,17 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Utils.Threading
+namespace ThreadingUtils
 {
     [BurstCompile]
     public struct SampledAnimationCurve : IDisposable
     {
-        private NativeArray<float> sampledCurve;
+        private NativeArray<float> _sampledCurve;
 
-        public bool IsEmpty => !sampledCurve.IsCreated || sampledCurve.Length == 0;
+        public bool IsEmpty => !_sampledCurve.IsCreated || _sampledCurve.Length == 0;
 
-        public SampledAnimationCurve(AnimationCurve curve, int samples) : this()
+        public SampledAnimationCurve(AnimationCurve curve, int samples)
+            : this()
         {
             if (curve == null) return;
 
@@ -23,33 +24,37 @@ namespace Utils.Threading
         /// <param name="samples">Must be 2 or higher</param>
         public void Sample(AnimationCurve curve, int samples)
         {
-            if (!sampledCurve.IsCreated || sampledCurve.Length != samples)
+            if (!_sampledCurve.IsCreated || _sampledCurve.Length != samples)
             {
-                sampledCurve.Dispose();
-                sampledCurve = new NativeArray<float>(samples, Allocator.Persistent);
+                _sampledCurve.Dispose();
+                _sampledCurve = new NativeArray<float>(samples, Allocator.Persistent);
             }
 
             var timeFrom = curve.keys[0].time;
             var timeTo = curve.keys[^1].time;
             var timeStep = (timeTo - timeFrom) / (samples - 1);
 
-            for (var i = 0; i < samples; i++) sampledCurve[i] = curve.Evaluate(timeFrom + i * timeStep);
+            for (var i = 0; i < samples; i++) _sampledCurve[i] = curve.Evaluate(timeFrom + i * timeStep);
         }
 
-        public void Dispose() => sampledCurve.Dispose();
+        public void Dispose() => _sampledCurve.Dispose();
 
         /// <param name="time">Must be from 0 to 1</param>
         public float Evaluate(float time)
         {
-            var len = sampledCurve.Length - 1;
-            var clamp01 = time < 0 ? 0 : time > 1 ? 1 : time;
+            var len = _sampledCurve.Length - 1;
+            var clamp01 =
+                time < 0
+                    ? 0
+                    : time > 1
+                        ? 1
+                        : time;
             var floatIndex = clamp01 * len;
             var floorIndex = (int)math.floor(floatIndex);
-            if (floorIndex == len)
-                return sampledCurve[len];
+            if (floorIndex == len) return _sampledCurve[len];
 
-            var lowerValue = sampledCurve[floorIndex];
-            var higherValue = sampledCurve[floorIndex + 1];
+            var lowerValue = _sampledCurve[floorIndex];
+            var higherValue = _sampledCurve[floorIndex + 1];
             return math.lerp(lowerValue, higherValue, math.frac(floatIndex));
         }
     }
@@ -61,7 +66,8 @@ namespace Utils.Threading
 
         public bool IsEmpty => !keys.IsCreated || keys.Length == 0;
 
-        public AnimationCurveThreadSafe(AnimationCurve curve) : this()
+        public AnimationCurveThreadSafe(AnimationCurve curve)
+            : this()
         {
             if (curve == null) return;
 

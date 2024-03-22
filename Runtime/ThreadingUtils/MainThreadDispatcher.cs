@@ -1,21 +1,19 @@
 using System;
 using System.Collections.Concurrent;
-using UnityEngine;
 
-namespace Utils.Threading
+namespace ThreadingUtils
 {
     public class MainThreadDispatcher : SingletonPersistent<MainThreadDispatcher>
     {
+        private const int MaxLowPriorityActionsPerFrame = 10;
         private static readonly ConcurrentQueue<Action> Actions = new();
         private static readonly ConcurrentQueue<Action> LowPriorityActions = new();
-        [SerializeField] private int maxLowPriorityActionsPerFrame = 10;
 
         private void Update()
         {
-            while (Actions.TryDequeue(out var action))
-                action.Invoke();
+            while (Actions.TryDequeue(out var action)) action.Invoke();
 
-            for (var i = 0; i < maxLowPriorityActionsPerFrame; i++)
+            for (var i = 0; i < MaxLowPriorityActionsPerFrame; i++)
                 if (LowPriorityActions.TryDequeue(out var lowPriorityAction))
                     lowPriorityAction.Invoke();
                 else

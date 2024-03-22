@@ -8,10 +8,9 @@ namespace Utils
     {
         public bool autoUpdate = true;
 
-        public Action onValuesUpdated;
+        public Action OnValuesUpdated;
 
-
-        private void Awake() => onValuesUpdated = null;
+        private void Awake() => OnValuesUpdated = null;
 
 #if UNITY_EDITOR
         public void OnValidate() => ValidationUtility.SafeOnValidate(OnUpdateValues);
@@ -19,10 +18,9 @@ namespace Utils
 
         public virtual void OnUpdateValues()
         {
-            if (autoUpdate)
-                NotifyUpdate();
+            if (autoUpdate) NotifyUpdate();
         }
 
-        public void NotifyUpdate() => onValuesUpdated?.Invoke();
+        public void NotifyUpdate() => OnValuesUpdated?.Invoke();
     }
 }
