@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Utils.Camera
+namespace CameraUtils
 {
     public class SwitchCamera : MonoBehaviour
     {
-        public List<UnityEngine.Camera> cameras;
+        public List<Camera> cameras;
 
         private int currentCam;
 

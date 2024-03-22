@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Utils
+namespace ScriptableObjectsUtils
 {
     [ExecuteAlways]
     public abstract class AutoUpdatableSo : ScriptableObject

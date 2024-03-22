@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Utils.Camera
+namespace CameraUtils
 {
     public class CameraManager : MonoBehaviour
     {
-        public List<UnityEngine.Camera> cameras;
+        public List<Camera> cameras;
         public int defaultCameraIndex;
         public int activeCameraIndex;
 
-        public UnityEngine.Camera ActiveCamera
+        public Camera ActiveCamera
         {
             get => cameras[activeCameraIndex];
             set => activeCameraIndex = cameras.IndexOf(value);
@@ -18,7 +18,9 @@ namespace Utils.Camera
         private void Awake()
         {
             if (cameras.Count == 0)
-                cameras = new List<UnityEngine.Camera>(GetComponentsInChildren<UnityEngine.Camera>());
+                cameras = new List<Camera>(
+                    GetComponentsInChildren<Camera>()
+                );
 
             // Camara por defecto activada => 0
             activeCameraIndex = defaultCameraIndex;

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Utils
+namespace DebugUtils
 {
     public static class DebugTimer
     {

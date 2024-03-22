@@ -1,10 +1,11 @@
 using UnityEngine;
 
-public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
+public class Singleton<T> : MonoBehaviour
+    where T : MonoBehaviour
 {
     public static T Instance { get; private set; }
 
-    protected void Awake()
+    protected virtual void Awake()
     {
         if (Instance != null)
         {
@@ -16,9 +17,10 @@ public class Singleton<T> : MonoBehaviour where T : MonoBehaviour
     }
 }
 
-public class SingletonPersistent<T> : Singleton<T> where T : MonoBehaviour
+public class SingletonPersistent<T> : Singleton<T>
+    where T : MonoBehaviour
 {
-    protected new void Awake()
+    protected override void Awake()
     {
         base.Awake();
         DontDestroyOnLoad(gameObject);

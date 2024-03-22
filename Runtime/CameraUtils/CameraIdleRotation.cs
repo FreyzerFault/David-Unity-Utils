@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Utils.Camera
+namespace CameraUtils
 {
     public class CameraIdleRotation : MonoBehaviour
     {

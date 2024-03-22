@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Utils
+namespace ScriptableObjectsUtils
 {
     [ExecuteAlways]
     public abstract class AutoUpdatableSoWithBackup<T> : AutoUpdatableSo where T : AutoUpdatableSoWithBackup<T>
@@ -22,8 +22,7 @@ namespace Utils
 
             if (iAmBackup) return;
 
-            if (backup == null)
-                InstantiateBackup();
+            if (backup == null) InstantiateBackup();
 
             dirty = true;
         }
