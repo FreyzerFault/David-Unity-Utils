@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace CameraUtils
+namespace DavidUtils.CameraUtils
 {
     public class SwitchCamera : MonoBehaviour
     {

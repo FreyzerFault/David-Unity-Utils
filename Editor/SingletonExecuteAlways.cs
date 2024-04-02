@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Editor
+namespace DavidUtils.Editor
 {
     [ExecuteAlways]
     public class SingletonExecuteAlways<T> : Singleton<T>

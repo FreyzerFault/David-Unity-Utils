@@ -1,7 +1,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace ExtensionMethods
+namespace DavidUtils.ExtensionMethods
 {
     public static class ColorExtensions
     {

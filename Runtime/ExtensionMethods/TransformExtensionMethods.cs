@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ExtensionMethods
+namespace DavidUtils.ExtensionMethods
 {
     public static class TransformExtensionMethods
     {
@@ -11,10 +11,15 @@ namespace ExtensionMethods
             return transform;
         }
 
-        public static Transform Billboard(this Transform transform, Transform target)
+        public static Transform Billboard(
+            this Transform transform,
+            Transform target,
+            bool verticalLock = false
+        )
         {
             transform.LookAt(target);
-            transform.LockRotationVertical();
+            if (verticalLock)
+                transform.LockRotationVertical();
             return transform;
         }
     }

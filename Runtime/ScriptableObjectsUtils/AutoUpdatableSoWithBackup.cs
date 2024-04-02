@@ -1,48 +1,54 @@
 using UnityEngine;
 
-namespace ScriptableObjectsUtils
+namespace DavidUtils.ScriptableObjectsUtils
 {
     [ExecuteAlways]
-    public abstract class AutoUpdatableSoWithBackup<T> : AutoUpdatableSo where T : AutoUpdatableSoWithBackup<T>
+    public abstract class AutoUpdatableSoWithBackup<T> : AutoUpdatableSo
+        where T : AutoUpdatableSoWithBackup<T>
     {
-        [HideInInspector] public bool dirty;
-        private T backup;
-        private bool iAmBackup;
+        [HideInInspector]
+        public bool dirty;
+        private T _backup;
+        private bool _iAmBackup;
 
         private void InstantiateBackup()
         {
-            backup = CreateInstance<T>();
-            backup.iAmBackup = true;
+            _backup = CreateInstance<T>();
+            _backup._iAmBackup = true;
             SaveChanges();
         }
 
-        public override void OnUpdateValues()
+        public override void NotifyUpdate()
         {
-            base.OnUpdateValues();
+            base.NotifyUpdate();
 
-            if (iAmBackup) return;
+            if (_iAmBackup)
+                return;
 
-            if (backup == null) InstantiateBackup();
+            if (_backup == null)
+                InstantiateBackup();
 
             dirty = true;
         }
 
         public void SaveChanges()
         {
-            if (iAmBackup || !dirty) return;
+            if (_iAmBackup || !dirty)
+                return;
 
-            CopyValues(this as T, backup);
+            CopyValues(this as T, _backup);
             dirty = false;
         }
 
         public void UndoChanges()
         {
-            if (iAmBackup || !dirty) return;
+            if (_iAmBackup || !dirty)
+                return;
 
-            CopyValues(backup, this as T);
+            CopyValues(_backup, this as T);
             dirty = false;
 
-            if (autoUpdate) base.OnUpdateValues();
+            base.NotifyUpdate();
         }
 
         protected abstract void CopyValues(T from, T to);

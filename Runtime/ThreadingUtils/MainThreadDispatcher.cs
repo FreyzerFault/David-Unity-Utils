@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace ThreadingUtils
+namespace DavidUtils.ThreadingUtils
 {
     public class MainThreadDispatcher : SingletonPersistent<MainThreadDispatcher>
     {

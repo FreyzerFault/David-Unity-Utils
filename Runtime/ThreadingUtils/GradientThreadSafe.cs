@@ -3,7 +3,7 @@ using Unity.Burst;
 using Unity.Collections;
 using UnityEngine;
 
-namespace ThreadingUtils
+namespace DavidUtils.ThreadingUtils
 {
     [BurstCompile]
     public struct GradientThreadSafe : IDisposable

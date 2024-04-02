@@ -1,28 +1,34 @@
 using UnityEngine;
 
-public class Singleton<T> : MonoBehaviour
-    where T : MonoBehaviour
+namespace DavidUtils
 {
-    public static T Instance { get; private set; }
-
-    protected virtual void Awake()
+    public class Singleton<T> : MonoBehaviour
+        where T : MonoBehaviour
     {
-        if (Instance != null)
+        public static T Instance { get; private set; }
+
+        protected virtual void Awake()
         {
-            Destroy(gameObject);
-            return;
+            if (Instance != null)
+            {
+                if (Application.isPlaying)
+                    Destroy(gameObject);
+                else
+                    DestroyImmediate(gameObject);
+                return;
+            }
+
+            Instance = gameObject.GetComponent<T>();
         }
-
-        Instance = gameObject.GetComponent<T>();
     }
-}
 
-public class SingletonPersistent<T> : Singleton<T>
-    where T : MonoBehaviour
-{
-    protected override void Awake()
+    public class SingletonPersistent<T> : Singleton<T>
+        where T : MonoBehaviour
     {
-        base.Awake();
-        DontDestroyOnLoad(gameObject);
+        protected override void Awake()
+        {
+            base.Awake();
+            DontDestroyOnLoad(gameObject);
+        }
     }
 }

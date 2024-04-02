@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor
+namespace DavidUtils.Editor
 {
     [CustomPropertyDrawer(typeof(PowerOfTwoAttribute))]
     public class PowerOfTwoDrawer : PropertyDrawer

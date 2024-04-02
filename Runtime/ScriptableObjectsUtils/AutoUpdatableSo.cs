@@ -1,26 +1,15 @@
 using System;
 using UnityEngine;
 
-namespace ScriptableObjectsUtils
+namespace DavidUtils.ScriptableObjectsUtils
 {
     [ExecuteAlways]
     public abstract class AutoUpdatableSo : ScriptableObject
     {
-        public bool autoUpdate = true;
+        public Action ValuesUpdated;
 
-        public Action OnValuesUpdated;
+        private void Awake() => ValuesUpdated = null;
 
-        private void Awake() => OnValuesUpdated = null;
-
-#if UNITY_EDITOR
-        public void OnValidate() => ValidationUtility.SafeOnValidate(OnUpdateValues);
-#endif
-
-        public virtual void OnUpdateValues()
-        {
-            if (autoUpdate) NotifyUpdate();
-        }
-
-        public void NotifyUpdate() => OnValuesUpdated?.Invoke();
+        public virtual void NotifyUpdate() => ValuesUpdated?.Invoke();
     }
 }
