@@ -11,19 +11,17 @@ namespace DavidUtils.Editor
 
         public override void OnInspectorGUI()
         {
-            AutoUpdatableSo data = (AutoUpdatableSo)target;
+            var data = (AutoUpdatableSo)target;
 
-            if (DrawDefaultInspector() && _autoUpdate)
-                data.NotifyUpdate();
+            if (DrawDefaultInspector() && _autoUpdate) data.NotifyUpdate();
 
             GUILayout.Space(30);
 
             GUILayout.BeginHorizontal();
 
-            if (GUILayout.Button("Update"))
-                data.NotifyUpdate();
+            if (GUILayout.Button("Update")) data.NotifyUpdate();
 
-            GUILayout.Space(150);
+            GUILayout.FlexibleSpace();
 
             _autoUpdate = EditorGUILayout.Toggle("Auto Update", _autoUpdate);
 
