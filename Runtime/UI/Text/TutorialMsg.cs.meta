@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 3032054876994bf1bc98f62d64d2d1a6
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  - spritePC: {instanceID: 0}
+  - spriteGampepad: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
