@@ -39,7 +39,7 @@ namespace DavidUtils
         protected override void Awake()
         {
             base.Awake();
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.parent == null ? gameObject : transform.root.gameObject);
         }
     }
 }

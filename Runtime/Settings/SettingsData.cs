@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using MyBox;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace DavidUtils.Settings
 {
     // Add this to a child class
     [CreateAssetMenu(fileName = "Settings", menuName = "Settings")]
-    public class Settings : ScriptableObject
+    public class SettingsData : ScriptableObject
     {
         public enum SettingType
         {
@@ -21,37 +20,35 @@ namespace DavidUtils.Settings
 
         [SerializeField] public List<Setting> _settings = new();
 
-        private void Awake()
-        {
-            LoadSettings();
-
-            // Cuando carga la escena, carga las settings
-            // Cuando se descarga la escena, guarda las settings
-            SceneManager.sceneLoaded += (_, _) => LoadSettings();
-            SceneManager.sceneUnloaded += _ => SaveSettings();
-            Application.quitting += SaveSettings;
-        }
-
-        private void OnDestroy()
-        {
-            SaveSettings();
-        }
-
         public T GetSetting<T>(string settingName)
         {
             settingName = settingName.ToLower();
-            if (!_settings.Exists(setting => setting.Name == settingName))
-                throw new Exception($"Setting {settingName} not found");
+            if (!HasSetting(settingName)) throw new Exception($"Setting {settingName} not found");
+
             return (T)_settings.Find(setting => setting.Name == settingName).Value;
         }
 
+        public void SetSetting<T>(string settingName, T newValue)
+        {
+            settingName = settingName.ToLower();
+            if (!HasSetting(settingName)) throw new Exception($"Setting {settingName} not found");
+
+            _settings.Find(setting => setting.Name == settingName).Set(newValue);
+        }
+
+        private bool HasSetting(string settingName)
+        {
+            settingName = settingName.ToLower();
+            return _settings.Exists(setting => setting.Name == settingName);
+        }
+
         // LOAD & SAVE Settings to PlayerPrefs
-        private void LoadSettings()
+        public void LoadSettings()
         {
             foreach (var setting in _settings) setting.Load();
         }
 
-        private void SaveSettings()
+        public void SaveSettings()
         {
             foreach (var setting in _settings) setting.Save();
         }
@@ -91,16 +88,42 @@ namespace DavidUtils.Settings
 
             public string Name => name.ToLower();
 
-            public object Value =>
-                type switch
+            public object Value
+            {
+                get =>
+                    type switch
+                    {
+                        SettingType.Int => valueInt,
+                        SettingType.Float => valueFloat,
+                        SettingType.Bool => valueBool,
+                        SettingType.String => valueString,
+                        SettingType.Color => valueColor,
+                        _ => null
+                    };
+                set
                 {
-                    SettingType.Int => valueInt,
-                    SettingType.Float => valueFloat,
-                    SettingType.Bool => valueBool,
-                    SettingType.String => valueString,
-                    SettingType.Color => valueColor,
-                    _ => null
-                };
+                    switch (type)
+                    {
+                        case SettingType.Float:
+                            valueFloat = (float)value;
+                            break;
+                        case SettingType.Int:
+                            valueInt = (int)value;
+                            break;
+                        case SettingType.String:
+                            valueString = (string)value;
+                            break;
+                        case SettingType.Bool:
+                            valueBool = (bool)value;
+                            break;
+                        case SettingType.Color:
+                            valueColor = (Color)value;
+                            break;
+                    }
+                }
+            }
+
+            public void Set<T>(T value) => Value = value;
 
             public object Load()
             {
