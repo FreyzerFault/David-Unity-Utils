@@ -4,32 +4,34 @@ namespace DavidUtils.ExtensionMethods
 {
     public static class RectTransformExtensionMethods
     {
+        // [Width, Height]
         // BotLeft -> TopRight
-        // Also works as REAL [Width, Height] on world coords
-        public static Vector2 Diagonal(this RectTransform rectT)
+        public static Vector2 Size(this RectTransform rectT)
         {
             var corners = rectT.Corners();
-            return corners.TopRight - corners.BottomLeft;
+            return corners.topRight - corners.bottomLeft;
         }
 
-        // Scaled size (real en pantalla)
-        public static float Size(this RectTransform rectT) => rectT.Diagonal().magnitude;
+        public static float Width(this RectTransform rectT) => rectT.Size().x;
+        public static float Height(this RectTransform rectT) => rectT.Size().y;
+
+        public static float Extent(this RectTransform rectT) => rectT.Size().magnitude;
 
         // PIVOT
-        public static Vector2 PivotLocal(this RectTransform rectT) => rectT.Size() * rectT.pivot;
-
+        public static Vector2 PivotLocal(this RectTransform rectT) => rectT.NormalizedToLocalPoint(rectT.pivot);
         public static Vector2 PivotGlobal(this RectTransform rectT) => rectT.position;
 
+        // CORNERS
         public static RectCorners Corners(this RectTransform rectT)
         {
             var corners = new Vector3[4];
             rectT.GetWorldCorners(corners);
             return new RectCorners
             {
-                BottomLeft = corners[0],
-                TopLeft = corners[1],
-                TopRight = corners[2],
-                BottomRight = corners[3]
+                bottomLeft = corners[0],
+                topLeft = corners[1],
+                topRight = corners[2],
+                bottomRight = corners[3]
             };
         }
 
@@ -37,27 +39,27 @@ namespace DavidUtils.ExtensionMethods
         public static Vector2 LocalToNormalizedPoint(
             this RectTransform rectT,
             Vector2 localPoint
-        ) => localPoint / (rectT.rect.size * rectT.localScale);
+        ) => localPoint / rectT.Size();
 
         public static Vector2 NormalizedToLocalPoint(
             this RectTransform rectT,
             Vector2 normalizedPoint
-        ) => normalizedPoint * rectT.rect.size * rectT.localScale;
+        ) => normalizedPoint * rectT.Size();
 
-        public static Vector2 ScreenToLocalPoint(this RectTransform rectT, Vector2 screenPos)
+
+        public static Vector2 ScreenToGlobalPoint(this RectTransform rectT, Vector2 screenPos)
         {
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            RectTransformUtility.ScreenPointToWorldPointInRectangle(
                 rectT,
                 screenPos,
                 null,
-                out var localPos
+                out var worldPos
             );
-            return localPos
-                   // Escalado
-                   * rectT.localScale
-                   // Sumado al pivot para que el punto sea relativo al la esquina inferior izquierda
-                   + rectT.PivotLocal();
+            return worldPos;
         }
+
+        public static Vector2 ScreenToLocalPoint(this RectTransform rectT, Vector2 screenPos)
+            => rectT.ScreenToGlobalPoint(screenPos) - rectT.Corners().bottomLeft;
 
         public static Vector2 ScreenToNormalizedPoint(
             this RectTransform rectT,
@@ -67,10 +69,10 @@ namespace DavidUtils.ExtensionMethods
         // CORNERs global positions
         public struct RectCorners
         {
-            public Vector2 TopLeft;
-            public Vector2 TopRight;
-            public Vector2 BottomLeft;
-            public Vector2 BottomRight;
+            public Vector2 topLeft;
+            public Vector2 topRight;
+            public Vector2 bottomLeft;
+            public Vector2 bottomRight;
         }
     }
 }
