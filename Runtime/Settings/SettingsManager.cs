@@ -4,46 +4,45 @@ using UnityEngine.SceneManagement;
 
 namespace DavidUtils.Settings
 {
-    public class SettingsManager : SingletonPersistent<SettingsManager>
-    {
-        public SettingsData settingsData;
-        public bool saveOnSceneChange = true;
+	public class SettingsManager : SingletonPersistent<SettingsManager>
+	{
+		public SettingsData settingsData;
+		public bool saveOnSceneChange = true;
 
-        public Action OnLoad;
-        public Action OnSave;
+		public Action OnLoad;
+		public Action OnSave;
 
-        private void Awake()
-        {
-            Load();
+		protected override void Awake()
+		{
+			base.Awake();
 
-            if (!saveOnSceneChange) return;
+			Load();
 
-            // Cuando carga la escena, carga las settings
-            // Cuando se descarga la escena, guarda las settings
-            SceneManager.sceneLoaded += (_, _) => Load();
-            SceneManager.sceneUnloaded += _ => Save();
-            Application.quitting += Save;
-        }
+			if (!saveOnSceneChange) return;
 
-        private void OnDestroy()
-        {
-            Save();
-        }
+			// Cuando carga la escena, carga las settings
+			// Cuando se descarga la escena, guarda las settings
+			SceneManager.sceneLoaded += (_, _) => Load();
+			SceneManager.sceneUnloaded += _ => Save();
+			Application.quitting += Save;
+		}
 
-        public T GetSetting<T>(string sName) => settingsData.GetSetting<T>(sName);
+		private void OnDestroy() => Save();
 
-        public void SetSetting<T>(string sName, T value) => settingsData.SetSetting(sName, value);
+		public T GetSetting<T>(string sName) => settingsData.GetSetting<T>(sName);
 
-        public void Save()
-        {
-            settingsData.SaveSettings();
-            OnSave?.Invoke();
-        }
+		public void SetSetting<T>(string sName, T value) => settingsData.SetSetting(sName, value);
 
-        public void Load()
-        {
-            settingsData.LoadSettings();
-            OnLoad?.Invoke();
-        }
-    }
+		public void Save()
+		{
+			settingsData.SaveSettings();
+			OnSave?.Invoke();
+		}
+
+		public void Load()
+		{
+			settingsData.LoadSettings();
+			OnLoad?.Invoke();
+		}
+	}
 }
