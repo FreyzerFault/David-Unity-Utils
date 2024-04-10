@@ -29,7 +29,10 @@ namespace DavidUtils.PlayerControl
 		{
 			if (state == PlayerState.Pause) return;
 			if (_moveInput != Vector3.zero)
+			{
+				OnPlayerMove?.Invoke(_moveInput);
 				HandleMovementInput();
+			}
 		}
 
 		#region STATE
@@ -77,7 +80,6 @@ namespace DavidUtils.PlayerControl
 			_moveInput = value.Get<Vector2>();
 
 			if (_moveInput == Vector3.zero) OnPlayerStop?.Invoke(Position);
-			else OnPlayerMove?.Invoke(_moveInput);
 		}
 
 		#endregion
