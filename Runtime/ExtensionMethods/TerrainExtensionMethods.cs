@@ -42,20 +42,15 @@ namespace DavidUtils.ExtensionMethods
 
         #region BOUNDS
 
-        public static bool OutOfBounds(this Terrain terrain, Vector2 pos)
+        public static Bounds GetBounds(this Terrain terrain)
         {
-            var size = terrain.terrainData.size;
-            var terrainPos = terrain.GetPosition();
+            Vector3 terrainPos = terrain.GetPosition();
+            Vector3 size = terrain.terrainData.size;
 
-            // BOUNDS
-            Vector2 lowerBound = new(terrainPos.x, terrainPos.z);
-            var upperBound = lowerBound + new Vector2(size.x, size.z);
-
-            bool overLowerBound = pos.x > lowerBound.x && pos.y > lowerBound.y,
-                underUpperBound = pos.x < upperBound.x && pos.y < upperBound.y;
-
-            return !(overLowerBound && underUpperBound);
+            return new Bounds(terrainPos + size / 2, size);
         }
+
+        public static bool OutOfBounds(this Terrain terrain, Vector2 pos) => !terrain.GetBounds().Contains(pos);
 
         #endregion
 
