@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3986554410015294028}
   - component: {fileID: 3257079628020858217}
+  - component: {fileID: 2382882499704680658}
   m_Layer: 0
   m_Name: Game Manager
   m_TagString: Untagged
@@ -44,7 +45,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 147e7b0aaf5a4dd44b70c41e397cfab7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  player: {fileID: 0}
   onGameStateChanged:
     m_PersistentCalls:
       m_Calls: []
   state: 0
+--- !u!114 &2382882499704680658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3577080583274233802}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 0d742649862137f4d8f57327ebae7d04, type: 3}
+  m_NotificationBehavior: 0
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents: []
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: 
+  m_DefaultActionMap: Game
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}

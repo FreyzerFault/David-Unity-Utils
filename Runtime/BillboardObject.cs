@@ -6,11 +6,20 @@ namespace DavidUtils
 {
 	public class BillboardObject : MonoBehaviour
 	{
-		private Player _player;
+		protected Player player;
 		public bool verticalLock;
 
-		private void Awake() => _player = FindObjectOfType<Player>();
+		private SpriteRenderer _spriteRenderer;
+		private SpriteRenderer SpriteRenderer =>
+			_spriteRenderer != null ? _spriteRenderer : GetComponent<SpriteRenderer>();
+		protected Sprite Sprite
+		{
+			get => SpriteRenderer.sprite;
+			set => SpriteRenderer.sprite = value;
+		}
 
-		private void Update() => transform.Billboard(_player.transform, verticalLock);
+		protected virtual void Awake() => player = FindObjectOfType<Player>();
+
+		private void Update() => transform.Billboard(player.transform, verticalLock);
 	}
 }

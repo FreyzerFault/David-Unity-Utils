@@ -13,9 +13,10 @@ namespace DavidUtils.PlayerControl
 	// Controla el movimiento en 2D con OnMove
 	public class Player : MonoBehaviour
 	{
-		protected Vector3 Position => transform.position;
-		protected Vector3 Forward => transform.forward;
-		protected Vector3 Right => transform.right;
+		public Vector3 Position => transform.position;
+		public Vector3 Forward => transform.forward;
+		public Vector3 Right => transform.right;
+		public Quaternion Rotation => transform.rotation;
 
 		protected virtual void Awake() => HandleStateChanged(state);
 
@@ -28,11 +29,9 @@ namespace DavidUtils.PlayerControl
 		protected virtual void Update()
 		{
 			if (state == PlayerState.Pause) return;
-			if (_moveInput != Vector3.zero)
-			{
-				OnPlayerMove?.Invoke(_moveInput);
-				HandleMovementInput();
-			}
+			if (moveInput == Vector2.zero) return;
+			OnPlayerMove?.Invoke(moveInput);
+			HandleMovementInput();
 		}
 
 		#region STATE
@@ -64,22 +63,22 @@ namespace DavidUtils.PlayerControl
 
 		#region MOVE
 
-		protected Vector3 _moveInput = Vector3.zero;
+		protected Vector2 moveInput = Vector2.zero;
 		public float speed = 1f;
 
-		public event Action<Vector3> OnPlayerMove;
+		public event Action<Vector2> OnPlayerMove;
 		public event Action<Vector3> OnPlayerStop;
 
 		private void HandleMovementInput() => transform.position +=
-			Forward * (_moveInput.y * Time.deltaTime * speed)
-			+ Right * (_moveInput.x * Time.deltaTime * speed);
+			Forward * (moveInput.y * Time.deltaTime * speed)
+			+ Right * (moveInput.x * Time.deltaTime * speed);
 
 		protected virtual void OnMove(InputValue value)
 		{
 			if (state == PlayerState.Pause) return;
-			_moveInput = value.Get<Vector2>();
+			moveInput = value.Get<Vector2>();
 
-			if (_moveInput == Vector3.zero) OnPlayerStop?.Invoke(Position);
+			if (moveInput == Vector2.zero) OnPlayerStop?.Invoke(Position);
 		}
 
 		#endregion

@@ -11,6 +11,9 @@ namespace DavidUtils.PlayerControl
 			base.Update();
 			if (state == PlayerState.Pause) return;
 			HandleRotationInput();
+
+			// FIX Vertical Rotation on X and Z axis. Only horizontal allowed
+			transform.rotation = Quaternion.Euler(new Vector3(0, transform.rotation.eulerAngles.y, 0));
 		}
 
 		#region STATE
