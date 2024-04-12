@@ -1,46 +1,56 @@
-using System.Collections.Generic;
+using Cinemachine;
 using UnityEngine;
 
 namespace DavidUtils.CameraUtils
 {
-    public class CameraManager : MonoBehaviour
-    {
-        public List<Camera> cameras;
-        public int defaultCameraIndex;
-        public int activeCameraIndex;
+	public class CameraManager : Singleton<CameraManager>
+	{
+		[SerializeField] private CinemachineVirtualCamera[] _cams;
+		[SerializeField] private ICinemachineCamera _activeCam;
 
-        public Camera ActiveCamera
-        {
-            get => cameras[activeCameraIndex];
-            set => activeCameraIndex = cameras.IndexOf(value);
-        }
+		private int _currentCamIndex;
 
-        private void Awake()
-        {
-            if (cameras.Count == 0)
-                cameras = new List<Camera>(
-                    GetComponentsInChildren<Camera>()
-                );
+		protected override void Awake()
+		{
+			var brain = GetComponent<CinemachineBrain>();
+			_activeCam = brain.ActiveVirtualCamera;
+			if (_cams.Length == 0) _cams = FindObjectsOfType<CinemachineVirtualCamera>();
+		}
 
-            // Camara por defecto activada => 0
-            activeCameraIndex = defaultCameraIndex;
-        }
+		private void Start()
+		{
+			ResetCamPriority();
+			ChangeToCam(0);
+		}
 
-        public void SwitchCamera(int i)
-        {
-            if (i >= 0 && i < cameras.Count)
-            {
-                // Desactivo la Anterior
-                ActiveCamera.gameObject.SetActive(false);
+		private void ResetCamPriority()
+		{
+			foreach (CinemachineVirtualCamera cam in _cams) cam.Priority = 10;
+		}
 
-                // Activo la nueva
-                activeCameraIndex = i;
-                ActiveCamera.gameObject.SetActive(true);
-            }
-            else
-            {
-                Debug.LogError("Camera " + i + " no existe");
-            }
-        }
-    }
+		public void NextCam() => ChangeToCam(_currentCamIndex + 1);
+
+		public void ChangeToCam(int index)
+		{
+			if (index >= _cams.Length) return;
+
+			_cams[_currentCamIndex].Priority = 10;
+			_currentCamIndex = index;
+			_cams[index].Priority = 100;
+		}
+
+		private void OnNextCam() => ChangeToCam(_currentCamIndex + 1);
+
+		private void OnCam1() => ChangeToCam(0);
+
+		private void OnCam2() => ChangeToCam(1);
+
+		private void OnCam3() => ChangeToCam(2);
+
+		private void OnCam4() => ChangeToCam(3);
+
+		private void OnCam5() => ChangeToCam(4);
+
+		private void OnCam6() => ChangeToCam(5);
+	}
 }
