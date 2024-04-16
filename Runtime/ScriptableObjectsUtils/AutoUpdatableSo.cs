@@ -8,7 +8,7 @@ namespace DavidUtils.ScriptableObjectsUtils
     {
         public Action ValuesUpdated;
 
-        private void Awake() => ValuesUpdated = null;
+        // protected virtual void Awake() => ValuesUpdated = null;
 
         public virtual void NotifyUpdate() => ValuesUpdated?.Invoke();
     }
