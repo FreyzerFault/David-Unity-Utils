@@ -11,27 +11,23 @@ namespace DavidUtils.Spawning
         {
             base.Awake();
             _terrain = Terrain.activeTerrain;
+            ignoreHeight = true;
         }
 
-        protected override Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
+        public override Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
         {
             if (_terrain == null) return base.SpawnRandom(spawnWithRandomRotation);
-            
-            Vector3 localPosition = box.bounds.GetRandomPointInBounds(offset, ignoreHeight);
-
-            // Local to WORLD Space
-            Vector3 worldPosition = Parent.TransformPoint(localPosition);
-
-            // Can be under terrain:
-            // Clamp min at terrain height + offset
-            float minHeight = _terrain.GetWorldPosition(worldPosition).y + offset.y;
-
-            worldPosition.y = Mathf.Max(worldPosition.y, minHeight);
-            localPosition = Parent.InverseTransformPoint(worldPosition);
 
             return spawnWithRandomRotation 
-                ? Spawn(localPosition, Quaternion.Euler(0, Random.Range(-180, 180), 0)) 
-                : Spawn(localPosition);
+                ? Spawn(GetRandomPosInTerrain(), Quaternion.Euler(0, Random.Range(-180, 180), 0)) 
+                : Spawn(GetRandomPosInTerrain());
+        }
+
+        protected Vector3 GetRandomPosInTerrain()
+        {
+            Vector3 pos = box.bounds.GetRandomPointInBounds(offset, ignoreHeight);
+            pos.y = _terrain.GetInterpolatedHeight(pos) + offset.y;
+            return pos;
         }
     }
 }

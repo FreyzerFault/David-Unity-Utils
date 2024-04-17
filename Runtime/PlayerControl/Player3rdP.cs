@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace DavidUtils.PlayerControl
@@ -6,9 +7,9 @@ namespace DavidUtils.PlayerControl
 	// Adds 3rd Person Control to a Camera
 	public class Player3rdP : Player
 	{
-		protected override void Update()
+		protected override void FixedUpdate()
 		{
-			base.Update();
+			base.FixedUpdate();
 			if (state == PlayerState.Pause) return;
 			HandleRotationInput();
 
@@ -78,5 +79,6 @@ namespace DavidUtils.PlayerControl
 		}
 
 		#endregion
+
 	}
 }

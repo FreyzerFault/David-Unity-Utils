@@ -5,10 +5,16 @@ namespace DavidUtils.Editor
 {
     public class GizmosUtils
     {
-        public static void DrawArrow(Vector3 pos, Vector3 direction, float size = 1)
+        public static void DrawArrow(Vector3 pos, Vector3 direction, Vector3 headOrientation = default, float size = 1)
         {
-            Vector3 tangent = Vector3.Cross(direction, Vector3.up);
             Vector3 arrowVector = direction * size;
+            
+            // If headOrientation is same as direction of arrow, take another
+            if (headOrientation == direction) headOrientation = Quaternion.AngleAxis(90, Vector3.up) * direction;
+            
+            // Axis rotation of head tips
+            Vector3 tangent = Vector3.Cross(direction, headOrientation);
+            
             Gizmos.DrawLineList(
                 new[]
                 {

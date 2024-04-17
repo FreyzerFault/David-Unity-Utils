@@ -7,11 +7,12 @@ namespace DavidUtils.Spawning
 	[RequireComponent(typeof(BoxCollider))]
 	public class SpawnerBox : Spawner
 	{
-		public bool ignoreHeight = false;
-	
-		public Vector3 offset = new Vector3(0, 0, 0);
-
 		protected BoxCollider box;
+		
+		public bool ignoreHeight = false;
+		public Vector3 offset = new Vector3(0, 0, 0);
+		
+		private Vector3 Center => box.bounds.center;
 
 		// Start is called before the first frame update
 		protected override void Awake()
@@ -24,7 +25,7 @@ namespace DavidUtils.Spawning
 			box = GetComponent<BoxCollider>();
 		}
 
-		protected override void Start()
+		protected void Start()
 		{
 			for (var i = 0; i < initialNumItems; i++) 
 				SpawnRandom();
@@ -35,12 +36,12 @@ namespace DavidUtils.Spawning
 
 		// Spawnea el objeto de forma random dentro de la caja
 		// spawnWithRandomRotation = true -> Randomiza la rotacion en el Eje Y
-		protected virtual Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
+		public virtual Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
 		{
 			Vector3 position = box.bounds.GetRandomPointInBounds(offset, ignoreHeight);
 
 			return Spawn(
-				position,
+				position, 
 				spawnWithRandomRotation
 					? Quaternion.Euler(0, Random.Range(-180, 180), 0)
 					: null
@@ -51,10 +52,7 @@ namespace DavidUtils.Spawning
 		protected override Spawneable Spawn(Vector3? position = null, Quaternion? rotation = null)
 		{
 			// Lo spawnwea en el centro si no se ha elegido posicion
-			Spawneable obj = base.Spawn(position ?? GetCenter(), rotation);
-
-			// Ignora colisiones entre el item y la caja del Spawner
-			Physics.IgnoreLayerCollision(LayerMask.NameToLayer("Spawner"), 0);
+			Spawneable obj = base.Spawn(position ?? Center, rotation);
 
 			return obj;
 		}
@@ -65,16 +63,9 @@ namespace DavidUtils.Spawning
 			{
 				yield return new WaitForSeconds(spawnFrequency);
 			
-				for (int i = 0; i < burstSpawn; i++)
+				for (var i = 0; i < burstSpawn; i++)
 					SpawnRandom();	
 			}
-		}
-
-
-		public Vector3 GetCenter()
-		{
-			BoxCollider b = GetComponent<BoxCollider>();
-			return b.center + transform.position;
 		}
 	}
 }

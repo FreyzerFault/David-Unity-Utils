@@ -84,7 +84,7 @@ namespace DavidUtils.ExtensionMethods
 
         public static Vector2 GetNormalizedPosition(this Terrain terrain, Vector3 worldPos)
         {
-            var terrainData = terrain.terrainData;
+            TerrainData terrainData = terrain.terrainData;
             return new Vector2(worldPos.x / terrainData.size.x, worldPos.z / terrainData.size.z);
         }
 

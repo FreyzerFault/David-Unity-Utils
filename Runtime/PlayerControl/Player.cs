@@ -17,8 +17,14 @@ namespace DavidUtils.PlayerControl
 		public Vector3 Forward => transform.forward;
 		public Vector3 Right => transform.right;
 		public Quaternion Rotation => transform.rotation;
+		
+		private Rigidbody _rb;
 
-		protected virtual void Awake() => HandleStateChanged(state);
+		protected virtual void Awake()
+		{
+			_rb = GetComponent<Rigidbody>();
+			HandleStateChanged(state);
+		}
 
 		protected virtual void Start()
 		{
@@ -26,10 +32,14 @@ namespace DavidUtils.PlayerControl
 			GameManager.Instance.onGameStateChanged.AddListener(HandleGameStateChanged);
 		}
 
-		protected virtual void Update()
+		protected virtual void FixedUpdate()
 		{
 			if (state == PlayerState.Pause) return;
-			if (moveInput == Vector2.zero) return;
+			if (moveInput == Vector2.zero)
+			{
+				_rb.velocity = Vector3.zero;
+				return;
+			}
 			OnPlayerMove?.Invoke(moveInput);
 			HandleMovementInput();
 		}
@@ -69,9 +79,11 @@ namespace DavidUtils.PlayerControl
 		public event Action<Vector2> OnPlayerMove;
 		public event Action<Vector3> OnPlayerStop;
 
-		private void HandleMovementInput() => transform.position +=
-			Forward * (moveInput.y * Time.deltaTime * speed)
-			+ Right * (moveInput.x * Time.deltaTime * speed);
+		private void HandleMovementInput()
+		{
+			transform.position += Forward * (moveInput.y * Time.deltaTime * speed)
+			               + Right * (moveInput.x * Time.deltaTime * speed);
+		}
 
 		protected virtual void OnMove(InputValue value)
 		{

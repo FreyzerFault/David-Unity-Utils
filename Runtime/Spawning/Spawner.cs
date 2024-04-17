@@ -21,24 +21,33 @@ namespace DavidUtils.Spawning
 		// POOLING
 		private readonly Stack<Spawneable> _pool = new();
 
+		private IEnumerator spawnCoroutine;
+
 		// Start is called before the first frame update
 		protected virtual void Awake()
 		{
 			// Puebla la Pool con un numero inicial de items
 			LoadPool(initialNumItems);
 		}
-	
-		protected virtual void Start()
+
+		private void OnEnable()
 		{
-			if (spawnFrequency >= 0)
-				StartCoroutine(SpawnCoroutine());
+			if (!(spawnFrequency >= 0)) return;
+			spawnCoroutine = SpawnCoroutine();
+			StartCoroutine(spawnCoroutine);
+		}
+
+		private void OnDisable()
+		{
+			if (spawnCoroutine != null)
+				StopCoroutine(spawnCoroutine);
 		}
 
 		// Carga la pool con un numero de objetos inicial
 		public void LoadPool(int numObjects)
 		{
 			// Spawn Objects
-			for (int i = 0; i < numObjects; i++) 
+			for (var i = 0; i < numObjects; i++) 
 				Generate();
 		}
 
@@ -56,7 +65,7 @@ namespace DavidUtils.Spawning
 
 		// Guarda el objeto en la pool para volverlo a spawnear luego
 		// Esto debe llamarlo el propio objeto que debe heredar de Spawneable
-		public void Pool(Spawneable item)
+		public void Despawn(Spawneable item)
 		{
 			item.gameObject.SetActive(false);
 			_pool.Push(item);
@@ -65,17 +74,12 @@ namespace DavidUtils.Spawning
 		// Destruye todos los objetos del pool
 		public void Clear()
 		{
-			for (int i = 0; i < _pool.Count; i++)
-			{
+			for (var i = 0; i < _pool.Count; i++)
 				Destroy(_pool.Pop());
-			}
 		}
 
 		// Spawnea el objeto sacandolo de la Pool
-		protected virtual Spawneable Spawn(
-			Vector3? position = null,
-			Quaternion? rotation = null
-		)
+		protected virtual Spawneable Spawn(Vector3? position = null, Quaternion? rotation = null)
 		{
 			// Si esta vacio creamos otro
 			if (_pool.Count == 0)
@@ -86,8 +90,8 @@ namespace DavidUtils.Spawning
 			item.gameObject.SetActive(true);
 
 			// To World Space
-			if (position != null)
-				position = Parent.TransformPoint(position.Value);
+			// if (position != null)
+			// 	position = Parent.TransformPoint(position.Value);
 		
 			// Si no se han asignado posicion o rotacion por defecto sera en el centro y su rotacion por defecto
 			item.transform.SetPositionAndRotation(
@@ -108,5 +112,7 @@ namespace DavidUtils.Spawning
 					Spawn();		
 			}
 		}
+
+		protected Quaternion GetRandomRotation() => Quaternion.Euler(0, Random.Range(-180, 180), 0);
 	}
 }
