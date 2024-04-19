@@ -69,15 +69,16 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		public void OnDrawGizmos(Color color = default)
+		public void OnDrawGizmos(Color color = default, float height = 100)
 		{
+			if (vertices == null || vertices.Length == 0) return;
 			var terrain = Terrain.activeTerrain;
 
 			Gizmos.color = color;
 			for (int i = 0, j = vertices.Length - 1; i < vertices.Length; j = i++)
 			{
-				var a = new Vector3(vertices[j].x, 0, vertices[j].y);
-				var b = new Vector3(vertices[i].x, 0, vertices[i].y);
+				var a = new Vector3(vertices[j].x, height, vertices[j].y);
+				var b = new Vector3(vertices[i].x, height, vertices[i].y);
 				a.y = terrain.SampleHeight(a);
 				b.y = terrain.SampleHeight(b);
 
