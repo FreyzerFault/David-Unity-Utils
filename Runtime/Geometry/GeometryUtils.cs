@@ -47,7 +47,7 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		/// <param name="p">Punto fuera o dentro</param>
 		/// <returns>FALSE si esta fuera o si los 3 puntos a,b,c son colineares</returns>
-		public static bool IsInsideCircle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+		public static bool PointInCirle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
 		{
 			Vector2? centro = CentroCirculo(a, b, c);
 
@@ -108,5 +108,62 @@ namespace DavidUtils.Geometry
 			// Solo hace falta el parametro de una recta para encontrar el punto
 			return a + ab * s;
 		}
+		
+		
+		private static Vector2[] GenerateRandomSeeds(int numSeeds)
+		{
+			var seeds = new Vector2[numSeeds];
+			for (var i = 0; i < numSeeds; i++) seeds[i] = new Vector2(Random.value, Random.value);
+			return seeds;
+		}
+
+		public static Vector2[] GenerateRandomSeeds_RegularDistribution(int numSeeds)
+		{
+			var seeds = new Vector2[numSeeds];
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
+			float cellSize = 1f / cellRows;
+
+			int cellRow = 0, cellCol = 0;
+
+			for (var i = 0; i < numSeeds; i++)
+			{
+				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
+				seeds[i] = new Vector2(Random.value * cellSize, Random.value * cellSize) + cellOrigin;
+
+				// Next Row
+				cellRow = (cellRow + 1) % cellRows;
+
+				// Jump Column
+				if (cellRow == cellRows - 1)
+					cellCol = (cellCol + 1) % cellRows;
+			}
+
+			return seeds;
+		}   
+		
+		public static Vector2[] GenerateRandomSeeds_WaveDistribution(int numSeeds)
+		{
+			var seeds = new Vector2[numSeeds];
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
+			float cellSize = 1f / cellRows;
+
+			int cellRow = 0, cellCol = 0;
+
+			for (var i = 0; i < numSeeds; i++)
+			{
+				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
+				seeds[i] = new Vector2(.5f * cellSize, Mathf.Sin(i + Time.deltaTime) * cellSize) + cellOrigin;
+
+				// Next Row
+				cellRow = (cellRow + 1) % cellRows;
+
+				// Jump Column
+				if (cellRow == cellRows - 1)
+					cellCol = (cellCol + 1) % cellRows;
+			}
+
+			return seeds;
+		}   
+
 	}
 }

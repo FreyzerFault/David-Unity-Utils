@@ -1,6 +1,7 @@
 ﻿using System;
 using DavidUtils.ExtensionMethods;
 using JetBrains.Annotations;
+using MyBox;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
@@ -15,61 +16,62 @@ namespace DavidUtils.Geometry
 			VERTEX
 		}
 
-		public readonly Vector3 v1;
-		public readonly Vector3 v2;
-		public readonly Vector3 v3;
+		public Edge[] edges;
+		
+		public Edge E1 => edges[0];
+		public Edge E2 => edges[1];
+		public Edge E3 => edges[2];
+		
+		public Vector3 v1;
+		public Vector3 v2;
+		public Vector3 v3;
 
-		public Vector2 v1xz => v1.ToVector2xz();
-		public Vector2 v2xz => v2.ToVector2xz();
-		public Vector2 v3xz => v3.ToVector2xz();
-
-
-		public Edge e1;
-		public Edge e2;
-		public Edge e3;
+		public Vector2 V1XZ => v1.ToVector2xz();
+		public Vector2 V2XZ => v2.ToVector2xz();
+		public Vector2 V3XZ => v3.ToVector2xz();
+		
+		public Vector3[] Vertices => new[] { v1, v2, v3 };
+		public Vector2[] Vertices2D => new[] { V1XZ, V2XZ, V3XZ };
+			
 		public int index;
 
-		public Triangle(Edge e1, Edge e2, Edge e3, int index = -1)
+		public Triangle(Edge[] edges, int index = -1)
 		{
 			this.index = index;
 
-			this.e1 = e1;
-			this.e2 = e2;
-			this.e3 = e3;
+			this.edges = edges;
 
 			// Los vertices los extraemos de las aristas
-			v1 = e1.begin;
+			v1 = E1.begin;
 
 			// No tienen por que ser todos el begin de las aristas
 			// Si el begin de la 2 coincide con el v1, se elige el end
-			v2 = e2.begin;
-			if (v2 == v1) v2 = e2.end;
+			v2 = E2.begin;
+			if (v2 == v1) v2 = E2.end;
 
 			// Lo mismo para v3, si se repite, elegir el otro vertice
-			v3 = e3.begin;
-			if (v3 == v2 || v3 == v1) v3 = e3.end;
+			v3 = E3.begin;
+			if (v3 == v2 || v3 == v1) v3 = E3.end;
 
 			if (v1 == v2 || v2 == v3 || v3 == v1)
-				throw new Exception(
-					"Alguno de los vertices de el Triangulo esta mal: " +
-					"{" + v1 + ", " + v2 + ", " + v3 + "}"
-				);
+				throw new Exception($"Alguno de los vertices de el Triangulo esta mal: {{{v1}, {v2}, {v3}}}");
 
-			// Y hay que ordenarlos en orden ANTIHORARIO
-			// (si alguno esta a la Derecha de la arista opuesta se hace un Swap de la opuesta):
-			if (GeometryUtils.IsRight(v1, v2, v3)) (v3, v2) = (v2, v3); // SWAP v2 <-> v3
+			EnsureCounterClockwise();
 		}
+
+		public Triangle(Edge e1, Edge e2, Edge e3, int index = -1) : this(new []{e1,e2,e3}, index) { }
 
 		public Triangle(Vector3 v1, Vector3 v2, Vector3 v3, Edge e1, Edge e2, Edge e3, int index = -1)
 		{
 			this.index = index;
 
+			edges = new[] { e1, e2, e3 };
+			
 			this.v1 = v1;
 			this.v2 = v2;
 			this.v3 = v3;
-			this.e1 = e1;
-			this.e2 = e2;
-			this.e3 = e3;
+
+			EnsureCounterClockwise();
 		}
 
 		public Triangle(Vector3 v1, Vector3 v2, Vector3 v3, int index = -1)
@@ -79,9 +81,16 @@ namespace DavidUtils.Geometry
 			this.v1 = v1;
 			this.v2 = v2;
 			this.v3 = v3;
-			e1 = new Edge(v1, v2);
-			e2 = new Edge(v2, v3);
-			e3 = new Edge(v3, v1);
+			edges = new[] { new Edge(v1, v2, this), new Edge(v2, v3, this), new Edge(v3, v1, this) };
+			
+			EnsureCounterClockwise();
+		}
+		
+		private void EnsureCounterClockwise()
+		{
+			// Hay que ordenarlos en orden ANTIHORARIO
+			// (si alguno esta a la Derecha de la arista opuesta se hace un Swap de la opuesta):
+			if (GeometryUtils.IsRight(v1, v2, v3)) (v3, v2) = (v2, v3); // SWAP v2 <-> v3
 		}
 
 		/// <summary>
@@ -93,7 +102,7 @@ namespace DavidUtils.Geometry
 		/// <returns></returns>
 		public Edge GetEdge(Vector3 begin, Vector3 end)
 		{
-			Edge[] edges = { e1, e2, e3 };
+			Edge[] edges = { E1, E2, E3 };
 
 			foreach (Edge edge in edges)
 				if ((edge.begin == begin || edge.begin == end) &&
@@ -120,19 +129,29 @@ namespace DavidUtils.Geometry
 		/// <summary>
 		///     Busca el Vertice que no pertenece a la arista que se pasa
 		/// </summary>
+		/// <param name="opposite">Vertice Opuesto de la Arista</param>
 		/// <param name="edge">Arista opuesta</param>
-		/// <returns>Vertice Opuesto de la Arista</returns>
+		/// <returns>False si no lo encuentra o no tiene (es un borde)</returns>
 		/// <exception cref="Exception">No encuentra el opuesto</exception>
-		public Vector3? GetOppositeVector3(Edge edge)
+		public bool GetOppositeVertex(out Vector3 opposite, Edge edge)
 		{
+			opposite = Vector3.zero;
+			Vector3[] vertices = { v1, v2, v3 };
+			
 			// Buscamos el vertice que no pertenece a la arista (no es ni Begin ni End)
-			Vector3 oppositeVector3;
+			int vIndex = vertices.FirstIndex(vertex => vertex != edge.begin && vertex != edge.end);
+			if (vIndex == -1) return false;
+			
+			opposite = vertices[vIndex];
+			return true;
+		}
+		
+		public Triangle GetOppositeTriangle(Edge edge)
+		{
+			if (edge == E1) return E1.OppositeTri(this);
+			if (edge == E2) return E2.OppositeTri(this);
+			if (edge == E3) return E3.OppositeTri(this);
 
-			if (v1 != edge.begin && v1 != edge.end) return v1;
-			if (v2 != edge.begin && v2 != edge.end) return v2;
-			if (v3 != edge.begin && v3 != edge.end) return v3;
-
-			// El Edge es un BORDE
 			return null;
 		}
 
@@ -153,8 +172,8 @@ namespace DavidUtils.Geometry
 			if (pos == PointTriPosition.COLINEAR)
 			{
 				// Comprobamos en que eje esta de los 3
-				bool colinear1 = Edge.GetPointEdgePosition(p, v1xz, v2xz) == Edge.PointEdgePosition.COLINEAR;
-				bool colinear2 = Edge.GetPointEdgePosition(p, v2xz, v3xz) == Edge.PointEdgePosition.COLINEAR;
+				bool colinear1 = Edge.GetPointEdgePosition(p, V1XZ, V2XZ) == Edge.PointEdgePosition.COLINEAR;
+				bool colinear2 = Edge.GetPointEdgePosition(p, V2XZ, V3XZ) == Edge.PointEdgePosition.COLINEAR;
 
 				// Buscamos la Arista que concuerda con los vertices del Eje en el que esta
 				colinearEdge = colinear1 ? GetEdge(v1, v2) : colinear2 ? GetEdge(v2, v3) : GetEdge(v3, v1);
@@ -175,9 +194,9 @@ namespace DavidUtils.Geometry
 		public PointTriPosition PointInTriangle(Vector2 p)
 		{
 			// Posicion Relativa del Punto a cada Arista (alineada en orden Antihorario)
-			Edge.PointEdgePosition pos1 = Edge.GetPointEdgePosition(p, v1xz, v2xz);
-			Edge.PointEdgePosition pos2 = Edge.GetPointEdgePosition(p, v2xz, v3xz);
-			Edge.PointEdgePosition pos3 = Edge.GetPointEdgePosition(p, v3xz, v1xz);
+			Edge.PointEdgePosition pos1 = Edge.GetPointEdgePosition(p, V1XZ, V2XZ);
+			Edge.PointEdgePosition pos2 = Edge.GetPointEdgePosition(p, V2XZ, V3XZ);
+			Edge.PointEdgePosition pos3 = Edge.GetPointEdgePosition(p, V3XZ, V1XZ);
 
 			// En cuanto este a la derecha de cualquiera de las Aristas, esta FUERA
 			if (pos1 == Edge.PointEdgePosition.RIGHT ||
@@ -193,7 +212,7 @@ namespace DavidUtils.Geometry
 
 			// Si no, puede ser colinear con un eje, o estar en el vertice
 			// Por si acaso comprobamos primero que no sea un vertice
-			if (GeometryUtils.Equals(p, v1xz) || GeometryUtils.Equals(p, v2xz) || GeometryUtils.Equals(p, v3xz))
+			if (GeometryUtils.Equals(p, V1XZ) || GeometryUtils.Equals(p, V2XZ) || GeometryUtils.Equals(p, V3XZ))
 				return PointTriPosition.VERTEX;
 
 			return PointTriPosition.COLINEAR;
@@ -215,7 +234,7 @@ namespace DavidUtils.Geometry
 		{
 			colinearEdge = null;
 
-			Vector2 a = v1xz, b = v2xz, c = v3xz;
+			Vector2 a = V1XZ, b = V2XZ, c = V3XZ;
 
 			float denom1 = (b.y - a.y) * (c.x - a.x) - (b.x - a.x) * (c.y - a.y);
 			float denom2 = c.y - a.y;
@@ -313,10 +332,7 @@ namespace DavidUtils.Geometry
 		/// <param name="intersectionPoint">Punto de Interseccion</param>
 		/// <param name="nextTriangle">El siguiente Triangulo (en la direccion A -> B)</param>
 		/// <returns>false si no hay Interseccion</returns>
-		public bool GetIntersectionPoint(
-			Vector2 a, Vector2 b, out Vector2? intersectionPoint,
-			[CanBeNull] out Triangle nextTriangle
-		)
+		public bool GetIntersectionPoint(Vector2 a, Vector2 b, out Vector2? intersectionPoint, [CanBeNull] out Triangle nextTriangle)
 		{
 			intersectionPoint = null;
 			nextTriangle = null;
@@ -324,24 +340,24 @@ namespace DavidUtils.Geometry
 			if (!Intersect(a, b)) return false;
 
 			// Primer Eje:
-			if (e1.GetIntersectionPoint(a, b, out intersectionPoint))
+			if (E1.GetIntersectionPoint(a, b, out intersectionPoint))
 			{
 				// El siguiente Triangulo es el distinto a este
-				nextTriangle = e1.tIzq == this ? e1.tDer : e1.tIzq;
+				nextTriangle = E1.OppositeTri(this);
 				return true;
 			}
 
 			// Segundo Eje:
-			if (e2.GetIntersectionPoint(a, b, out intersectionPoint))
+			if (E2.GetIntersectionPoint(a, b, out intersectionPoint))
 			{
-				nextTriangle = e2.tIzq == this ? e2.tDer : e2.tIzq;
+				nextTriangle = E2.OppositeTri(this);
 				return true;
 			}
 
 			// Tercer Eje:
-			if (e3.GetIntersectionPoint(a, b, out intersectionPoint))
+			if (E3.GetIntersectionPoint(a, b, out intersectionPoint))
 			{
-				nextTriangle = e3.tIzq == this ? e3.tDer : e3.tIzq;
+				nextTriangle = E3.OppositeTri(this);
 				return true;
 			}
 
@@ -383,33 +399,33 @@ namespace DavidUtils.Geometry
 				Edge farEdge = null;
 
 				// Primer Eje:
-				if (e1.GetIntersectionPoint(a, b, out intersection))
+				if (E1.GetIntersectionPoint(a, b, out intersection))
 				{
-					farEdge = e1;
-					edgeIntersected1 = e1;
+					farEdge = E1;
+					edgeIntersected1 = E1;
 					intersectionPoint1 = intersection;
 					nextPoint = intersection;
 				}
 
 				// Segundo Eje:
-				if (e2.GetIntersectionPoint(a, b, out intersection))
+				if (E2.GetIntersectionPoint(a, b, out intersection))
 					// Si hubo una Interseccion con el Primero => lo asignamos como Segunda Interseccion
 					if (intersectionPoint1 == null)
 					{
 						intersectionPoint1 = intersection;
-						edgeIntersected1 = e2;
+						edgeIntersected1 = E2;
 						nextPoint = intersection;
 					}
 					else
 					{
 						intersectionPoint2 = intersection;
-						edgeIntersected2 = e2;
+						edgeIntersected2 = E2;
 
 						// Si hay 2 Intersecciones => Comprobamos cual esta mas lejos de A
 						if (intersectionPoint2 != null &&
 						    (a - (Vector2)intersectionPoint2).magnitude > (a - (Vector2)intersectionPoint1).magnitude)
 						{
-							farEdge = e2;
+							farEdge = E2;
 							nextPoint = intersectionPoint2;
 						}
 						else
@@ -420,25 +436,25 @@ namespace DavidUtils.Geometry
 
 				// Si aun no hay una Segunda Interseccion, comprobamos la Tercera Arista
 				if (intersectionPoint2 == null)
-					if (e3.GetIntersectionPoint(a, b, out intersection))
+					if (E3.GetIntersectionPoint(a, b, out intersection))
 						// Lo mismo, Si hubo una Interseccion con el Primero => lo asignamos como Segunda Interseccion
 						if (intersectionPoint1 == null)
 						{
 							intersectionPoint1 = intersection;
-							edgeIntersected1 = e3;
+							edgeIntersected1 = E3;
 							nextPoint = intersection;
 						}
 						else
 						{
 							intersectionPoint2 = intersection;
-							edgeIntersected2 = e3;
+							edgeIntersected2 = E3;
 
 							// Si hay 2 Intersecciones => Comprobamos cual esta mas lejos de A
 							if (intersectionPoint2 != null &&
 							    (a - (Vector2)intersectionPoint2).magnitude >
 							    (a - (Vector2)intersectionPoint1).magnitude)
 							{
-								farEdge = e2;
+								farEdge = E2;
 								nextPoint = intersectionPoint2;
 							}
 							else
@@ -451,7 +467,7 @@ namespace DavidUtils.Geometry
 				if (intersectionPoint1 == null) return false;
 
 				// Comprobamos cual es el Eje mas lejano, el cual tendra de vecino el SIGUIENTE TRIANGULO
-				if (farEdge != null) nextTriangle = farEdge.tIzq != this ? farEdge.tIzq : farEdge.tDer;
+				if (farEdge != null) nextTriangle = farEdge.OppositeTri(this);
 
 				return true;
 			}
@@ -461,11 +477,11 @@ namespace DavidUtils.Geometry
 			return false;
 		}
 
-		private Vector3? GetVector3(Vector2 v)
+		private Vector3? GetVertex(Vector2 v)
 		{
-			if (v == v1xz) return v1;
-			if (v == v2xz) return v2;
-			if (v == v3xz) return v3;
+			if (v == V1XZ) return v1;
+			if (v == V2XZ) return v2;
+			if (v == V3XZ) return v3;
 			return null;
 		}
 
@@ -478,9 +494,9 @@ namespace DavidUtils.Geometry
 		/// <returns>Altura del punto en el triangulo</returns>
 		public float GetHeightInterpolation(Vector2 p)
 		{
-			Vector2 a = v1xz;
-			Vector2 b = v2xz;
-			Vector2 c = v3xz;
+			Vector2 a = V1XZ;
+			Vector2 b = V2XZ;
+			Vector2 c = V3XZ;
 
 			// Usamos las coordenadas baricentricas como pesos:
 			float denom = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
@@ -492,7 +508,7 @@ namespace DavidUtils.Geometry
 		}
 
 		public override string ToString() =>
-			"t" + index + " {" + v1 + " -> " + v2 + " -> " + v3 + "} (" + e1 + ", " + e2 + ", " + e3 + ")";
+			"t" + index + " {" + v1 + " -> " + v2 + " -> " + v3 + "} (" + E1 + ", " + E2 + ", " + E3 + ")";
 
 		public override int GetHashCode() => v1.GetHashCode() + v2.GetHashCode() + v3.GetHashCode();
 	}

@@ -12,10 +12,11 @@ namespace DavidUtils.Geometry
 		public readonly Vector3 begin;
 		public readonly Vector3 end;
 		private readonly int index;
-		public Triangle tDer;
 
-		// Izquierda => Antihorario; Derecha => Horario
-		public Triangle tIzq;
+		// [Left, Right] (CCW, CW)
+		public Tuple<Triangle, Triangle> tris;
+		public Triangle LeftTri => tris.Item1;
+		public Triangle RightTri => tris.Item2;
 
 		public Edge(Vector3 begin, Vector3 end, Triangle tIzq = null, Triangle tDer = null, int index = -1)
 		{
@@ -23,27 +24,26 @@ namespace DavidUtils.Geometry
 
 			this.begin = begin;
 			this.end = end;
-			this.tIzq = tIzq;
-			this.tDer = tDer;
+			tris = new Tuple<Triangle, Triangle>(tIzq, tDer);
 		}
 
 		/// <summary>
 		///     El Eje es Frontera siempre que le falte asignarle un Triangulo a la Izquierda o Derecha
 		/// </summary>
-		public bool IsFrontier => tDer == null || tIzq == null;
+		public bool IsFrontier => tris.Item1 == null || tris.Item2 == null;
 
 		/// <summary>
 		///     Asigna un Triangulo segun su posicion como Izquierdo o Derecho
 		/// </summary>
 		public void AssignTriangle(Triangle tri)
 		{
-			Vector3? opposite = tri.GetOppositeVector3(this);
-			if (opposite == null) return;
-			if (GeometryUtils.IsRight(opposite.Value, begin, end))
-				tDer = tri;
-			else
-				tIzq = tri;
+			if (!tri.GetOppositeVertex(out Vector3 opposite, this)) return;
+			tris = GeometryUtils.IsRight(opposite, begin, end) 
+				? new Tuple<Triangle, Triangle>(tris.Item1, tri)
+				: new Tuple<Triangle, Triangle>(tri, tris.Item2);
 		}
+		
+		public Triangle OppositeTri(Triangle tri) => tri == LeftTri ? RightTri : LeftTri;
 
 		/// <summary>
 		///     NEGATIVA => DERECHA; POSITIVA => IZQUIERDA; ~0 => COLINEAR

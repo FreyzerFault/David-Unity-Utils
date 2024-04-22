@@ -6,17 +6,14 @@ namespace DavidUtils.Geometry
 	{
 		public Vector3[] vertices;
 
-		public Quad(Vector3 center, float size, Vector3 normal)
+		public Quad(Vector3 pos, Vector3 extent)
 		{
-			if (normal == default) normal = Vector3.up;
-
-			// Corners depend on normal
 			vertices = new[]
 			{
-				center + Quaternion.AngleAxis(45, normal) * Vector3.right * size / 2,
-				center + Quaternion.AngleAxis(45, normal) * Vector3.forward * size / 2,
-				center + Quaternion.AngleAxis(45, normal) * Vector3.left * size / 2,
-				center + Quaternion.AngleAxis(45, normal) * Vector3.back * size / 2
+				pos,
+				pos + Vector3.Project(extent, Vector3.forward),
+				pos + extent,
+				pos + Vector3.Project(extent, Vector3.right)
 			};
 		}
 	}
