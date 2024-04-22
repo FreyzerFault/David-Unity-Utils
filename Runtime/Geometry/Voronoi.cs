@@ -8,10 +8,10 @@ namespace DavidUtils.Geometry
 {
 	public class Voronoi
 	{
-		private readonly Vector2[] seeds;
-		private readonly Polygon[] _regions;
+		public Vector2[] seeds;
+		public Polygon[] regions;
 
-		private Delaunay _delaunay = new();
+		public Delaunay delaunay = new();
 		private Delaunay.Triangle[] _triangles = Array.Empty<Delaunay.Triangle>();
 
 		private Vector3[] SeedsInWorld => seeds.Select(seed => new Vector3(seed.x, 0, seed.y)).ToArray();
@@ -19,7 +19,7 @@ namespace DavidUtils.Geometry
 		public Voronoi(Vector2[] seeds)
 		{
 			this.seeds = seeds;
-			_regions = new Polygon[seeds.Length];
+			regions = new Polygon[seeds.Length];
 		}
 
 		public Voronoi(int numSeeds)
@@ -27,19 +27,51 @@ namespace DavidUtils.Geometry
 		{
 		}
 		
-		public void GenerateVoronoi()
+		public void GenerateSeeds(int numSeeds = -1)
 		{
-			_delaunay.vertices = seeds;
-			_triangles = _delaunay.Triangulate(seeds);
+			Reset();
+			seeds = GeometryUtils.GenerateRandomSeeds_RegularDistribution(numSeeds == -1 ? seeds.Length : numSeeds);
+			delaunay.vertices = seeds;
 		}
 
-		#region DEBUG
+		public void Reset()
+		{
+			_iteration = 0;
+			_triangles = Array.Empty<Delaunay.Triangle>();
+			delaunay.Reset();
+			regions = Array.Empty<Polygon>();
+		}
+
+		public void GenerateDelaunay()
+		{
+			delaunay.vertices = seeds;
+			_triangles = delaunay.Triangulate(seeds);
+		}
+		
+		public void GenerateVoronoi()
+		{
+			if (_triangles.Length == 0) GenerateDelaunay();
+			
+			// TODO: Implementar Voronoi usando GenerateVoronoi_OneIteration() iterativamente
+		}
+
+		#region PROGRESSIVE RUN
 
 		private int _iteration;
 		
 		public void GenerateVoronoi_OneIteration()
 		{
+			if (_triangles.Length == 0) GenerateDelaunay();
+			
+			// TODO: Implementar Voronoi Iteration
+
+			_iteration++;
 		}
+
+		#endregion
+		
+		
+		#region DEBUG
 
 		public void OnDrawGizmos(Vector3 pos, Vector2 size, Color seedColor = default)
 		{
@@ -49,7 +81,7 @@ namespace DavidUtils.Geometry
 			{
 				Vector2 seedScaled = seed * size;
 				Vector3 seedPos = new Vector3(seedScaled.x, 0, seedScaled.y) + pos;
-				Gizmos.DrawSphere(seedPos, 1f);
+				Gizmos.DrawSphere(seedPos, .1f);
 			}
 
 			// GRID
@@ -60,9 +92,9 @@ namespace DavidUtils.Geometry
 			GizmosExtensions.DrawGrid(cellRows, cellRows, pos, size);
 			
 			// REGIONES
-			Color[] colors = Color.red.GetRainBowColors(_regions.Length);
-			for (var i = 0; i < _regions.Length; i++)
-				_regions[i].OnDrawGizmos(colors[i]);
+			Color[] colors = Color.red.GetRainBowColors(regions.Length);
+			for (var i = 0; i < regions.Length; i++)
+				regions[i].OnDrawGizmos(pos, size, 5, colors[i]);
 		}
 
 		#endregion

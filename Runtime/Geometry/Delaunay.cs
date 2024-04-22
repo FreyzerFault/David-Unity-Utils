@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DebugExtensions;
@@ -7,6 +8,7 @@ using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
+	[Serializable]
 	public class Delaunay
 	{
 		public struct Edge
@@ -95,20 +97,27 @@ namespace DavidUtils.Geometry
 				);
 			}
 			
-			public void OnGizmosDraw(Vector3 worldPos, Vector2 size, Color color = default)
+			public void OnGizmosDraw(Vector3 worldPos, Vector2 size, Color color = default, bool projectedOnTerrain = false)
 			{
-				// Mesh mesh = new Mesh();
-				// mesh.vertices = Vertices.Select(vertex => vertex.ToVector3xz()).Reverse().ToArray();	
-				// mesh.SetNormals(new [] { Vector3.up, Vector3.up, Vector3.up });
-				// mesh.SetIndices(new [] { 0, 1, 2 }, MeshTopology.Triangles, 0);
-				// Gizmos.DrawMesh(mesh, worldPos, Quaternion.identity, size.ToVector3xz());
-				GizmosExtensions.DrawTri(Vertices.Select(vertex => (vertex * size).ToVector3xz() + worldPos).ToArray(), color);
+				Vector3[] verticesInWorld;
+				if (projectedOnTerrain)
+				{
+					Terrain terrain = Terrain.activeTerrain;
+					verticesInWorld = Vertices
+						.Select(vertex => terrain.Project((vertex * size).ToVector3xz() + worldPos)).ToArray();
+				}
+				else
+				{
+					verticesInWorld = Vertices
+						.Select(vertex => (vertex * size).ToVector3xz() + worldPos).ToArray();
+				}
+				GizmosExtensions.DrawTri(verticesInWorld, color);
 			}
 			#endif
 		}
 
-		public Vector2[] vertices = Array.Empty<Vector2>();
-		public List<Triangle> triangles = new();
+		[HideInInspector] public Vector2[] vertices = Array.Empty<Vector2>();
+		[HideInInspector] public List<Triangle> triangles = new();
 		
 		// Vertices almancenados para buscar al final todos los triangulos que lo tengan
 		private Vector2[] superTriangleVertices = Array.Empty<Vector2>();
@@ -119,10 +128,18 @@ namespace DavidUtils.Geometry
 		// points deben estar Normalizados entre [0,1]
 		public Triangle[] Triangulate(Vector2[] points)
 		{
+			Reset();
+			
 			foreach (Vector2 p in points)
 				Triangulate(p);
 			
 			RemoveSuperTriangle();
+			
+			ended = true;
+			
+			removedTris = new List<Triangle>();
+			addedTris = new List<Triangle>();
+			polygon = new List<Edge>();
 
 			return triangles.ToArray();
 		}
@@ -130,13 +147,24 @@ namespace DavidUtils.Geometry
 		public void Run() => triangles = Triangulate(vertices).ToList();
 
 		#region PROGRESIVE RUN
-
-		private int iterations;
+		
+		public int iterations;
+		public bool ended;
 		private List<Triangle> removedTris = new();
 		private List<Triangle> addedTris = new();
 		private List<Edge> polygon = new();
 		
-		public bool Ended => iterations > vertices.Length;
+		
+		public IEnumerator AnimationCoroutine(float delay = 0.1f)
+		{
+			while (!ended)
+			{
+				Run_OnePoint();
+				yield return new WaitForSecondsRealtime(delay);
+			}
+
+			yield return null;
+		}
 		
 		public void Run_OnePoint()
 		{
@@ -151,11 +179,14 @@ namespace DavidUtils.Geometry
 			else
 				Triangulate(vertices[iterations]);
 			iterations++;
+			
+			ended = iterations > vertices.Length;
 		}
 
 		public void Reset()
 		{
 			iterations = 0;
+			ended = false;
 			triangles = new List<Triangle>();
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
@@ -268,8 +299,9 @@ namespace DavidUtils.Geometry
 		#if UNITY_EDITOR
 		#region DEBUG
 
-		public void OnDrawGizmos(Vector3 pos, Vector2 size)
+		public void OnDrawGizmos(Vector3 pos, Vector2 size, bool projectOnTerrain = false)
 		{
+			// VERTICES
 			Gizmos.color = Color.grey;
 			foreach (Vector2 vertex in vertices) 
 				Gizmos.DrawSphere((pos + (vertex * size).ToVector3xz() ), .1f);
@@ -280,10 +312,10 @@ namespace DavidUtils.Geometry
 			for (int i = 0; i < triangles.Count; i++)
 			{
 				Triangle tri = triangles[i];
-				if (Ended)
-					tri.OnGizmosDraw(pos, size, colors[i]);
-				else
-					tri.OnGizmosDrawWire(pos, size, 2, Color.white);
+					tri.OnGizmosDraw(pos, size, colors[i], projectOnTerrain);
+				// if (ended)
+				// else
+				// 	tri.OnGizmosDrawWire(pos, size, 2, Color.white);
 			}
 			
 			// ADDED TRIANGLES

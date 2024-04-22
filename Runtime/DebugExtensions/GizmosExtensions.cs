@@ -95,6 +95,16 @@ namespace DavidUtils.DebugExtensions
             DrawLineThick(vertices.Append(vertices[0]).ToArray(), thickness, color);
         
         
+        public static void DrawPolygon(Vector3[] vertices, Color color = default)
+        {
+            Vector3 mainVertex = vertices[0];
+            for (int i = 1, j = vertices.Length - 1; i < vertices.Length; j = i++)
+            {
+                Vector3 a = vertices[j], b = vertices[i];
+                DrawTri(new Vector3[] { mainVertex, a, b }, color);
+            }
+        }
+
         public static void DrawTri(Vector3[] vertices, Color color = default) => 
             Handles.DrawSolidRectangleWithOutline(vertices.Append(vertices[2]).ToArray(), color, color);
     }

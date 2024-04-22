@@ -30,7 +30,7 @@ namespace DavidUtils.Geometry
         private void Start()
         {
             if (animated)
-                animationCoroutine = StartCoroutine(DelaunayAnimationCoroutine());
+                animationCoroutine = StartCoroutine(_delaunay.AnimationCoroutine(delay));
         }
 
         private void Update()
@@ -38,17 +38,6 @@ namespace DavidUtils.Geometry
             if (Input.GetKeyDown(KeyCode.Space)) _delaunay.Run_OnePoint();
             
             if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
-        }
-
-        private IEnumerator DelaunayAnimationCoroutine()
-        {
-            while (!_delaunay.Ended)
-            {
-                _delaunay.Run_OnePoint();
-                yield return new WaitForSeconds(delay);
-            }
-
-            yield return null;
         }
 
         private void OnDrawGizmos()
