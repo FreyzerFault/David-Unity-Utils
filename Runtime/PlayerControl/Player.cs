@@ -11,20 +11,14 @@ namespace DavidUtils.PlayerControl
 	}
 
 	// Controla el movimiento en 2D con OnMove
-	public class Player : MonoBehaviour
+	public abstract class Player: MonoBehaviour
 	{
 		public Vector3 Position => transform.position;
 		public Vector3 Forward => transform.forward;
 		public Vector3 Right => transform.right;
 		public Quaternion Rotation => transform.rotation;
-		
-		private Rigidbody _rb;
 
-		protected virtual void Awake()
-		{
-			_rb = GetComponent<Rigidbody>();
-			HandleStateChanged(state);
-		}
+		protected virtual void Awake() => HandleStateChanged(state);
 
 		protected virtual void Start()
 		{
@@ -34,18 +28,13 @@ namespace DavidUtils.PlayerControl
 
 		protected virtual void FixedUpdate()
 		{
-			if (state == PlayerState.Pause) return;
-			if (moveInput == Vector2.zero)
-			{
-				_rb.velocity = Vector3.zero;
-				return;
-			}
+			if (state == PlayerState.Pause || moveInput == Vector2.zero) return;
 			OnPlayerMove?.Invoke(moveInput);
 			HandleMovementInput();
 		}
 
 		#region STATE
-
+		
 		public event Action<PlayerState> OnStateChanged;
 		[SerializeField] protected PlayerState state = PlayerState.Playing;
 		public PlayerState State
@@ -59,7 +48,7 @@ namespace DavidUtils.PlayerControl
 			}
 		}
 
-		protected virtual void HandleStateChanged(PlayerState newState) => OnStateChanged?.Invoke(newState);
+		protected void HandleStateChanged(PlayerState newState) => OnStateChanged?.Invoke(newState);
 
 		private void HandleGameStateChanged(GameManager.GameState gameState) => State = gameState switch
 		{
@@ -74,17 +63,14 @@ namespace DavidUtils.PlayerControl
 		#region MOVE
 
 		protected Vector2 moveInput = Vector2.zero;
-		public float speed = 1f;
 
 		public event Action<Vector2> OnPlayerMove;
 		public event Action<Vector3> OnPlayerStop;
 
-		private void HandleMovementInput()
-		{
-			transform.position += Forward * (moveInput.y * Time.deltaTime * speed)
-			               + Right * (moveInput.x * Time.deltaTime * speed);
-		}
+		// Override THIS
+		protected abstract void HandleMovementInput();
 
+		// PLAYER INPUT
 		protected virtual void OnMove(InputValue value)
 		{
 			if (state == PlayerState.Pause) return;

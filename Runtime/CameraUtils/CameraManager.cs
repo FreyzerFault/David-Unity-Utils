@@ -5,16 +5,19 @@ namespace DavidUtils.CameraUtils
 {
 	public class CameraManager : Singleton<CameraManager>
 	{
-		[SerializeField] private CinemachineVirtualCamera[] _cams;
-		[SerializeField] private ICinemachineCamera _activeCam;
-
+		[SerializeField] private CinemachineVirtualCameraBase[] _cams;
+		[SerializeField] private CinemachineVirtualCameraBase _activeCam;
+		
+		public static Camera MainCam => Camera.main;
+		public static CinemachineVirtualCameraBase ActiveCam => Instance._activeCam;
+		
 		private int _currentCamIndex;
 
 		protected override void Awake()
 		{
 			var brain = GetComponent<CinemachineBrain>();
-			_activeCam = brain.ActiveVirtualCamera;
-			if (_cams.Length == 0) _cams = FindObjectsOfType<CinemachineVirtualCamera>();
+			_activeCam = brain.ActiveVirtualCamera as CinemachineVirtualCameraBase;
+			if (_cams.Length == 0) _cams = FindObjectsOfType<CinemachineVirtualCameraBase>();
 		}
 
 		private void Start()
@@ -25,7 +28,7 @@ namespace DavidUtils.CameraUtils
 
 		private void ResetCamPriority()
 		{
-			foreach (CinemachineVirtualCamera cam in _cams) cam.Priority = 10;
+			foreach (CinemachineVirtualCameraBase cam in _cams) cam.Priority = 10;
 		}
 
 		public void NextCam() => ChangeToCam(_currentCamIndex + 1);

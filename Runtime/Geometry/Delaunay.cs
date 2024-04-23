@@ -102,7 +102,7 @@ namespace DavidUtils.Geometry
 
 #if UNITY_EDITOR
 			public void OnGizmosDrawWire(Vector3 worldPos, Vector2 size, float thickness = 1, Color color = default) =>
-				GizmosExtensions.DrawLineThick(
+				GizmosExtensions.DrawTriWire(
 					Vertices.Select(vertex => (vertex * size).ToVector3xz() + worldPos).ToArray(),
 					thickness,
 					color

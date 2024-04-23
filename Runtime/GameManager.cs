@@ -1,6 +1,7 @@
 using DavidUtils.PlayerControl;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 
 namespace DavidUtils
 {
@@ -12,7 +13,7 @@ namespace DavidUtils
 			Paused
 		}
 
-		public Player player;
+		[FormerlySerializedAs("simplePlayer3P")] [FormerlySerializedAs("player3P")] public Player player;
 
 		public UnityEvent<GameState> onGameStateChanged;
 		[SerializeField] private GameState state = GameState.Playing;

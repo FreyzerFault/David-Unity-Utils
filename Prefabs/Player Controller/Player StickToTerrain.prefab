@@ -70,7 +70,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4705381014206389158, guid: 7b5604e84b2992741bb970f4a648a7ab, type: 3}
       propertyPath: m_Name
-      value: Player TestTerrain
+      value: Player StickToTerrain
       objectReference: {fileID: 0}
     - target: {fileID: 4705381014206389158, guid: 7b5604e84b2992741bb970f4a648a7ab, type: 3}
       propertyPath: m_TagString
@@ -78,7 +78,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 0}
-    - {fileID: 4790524023995208053, guid: 7b5604e84b2992741bb970f4a648a7ab, type: 3}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 4645622705100442104, guid: 7b5604e84b2992741bb970f4a648a7ab, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -104,11 +106,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   state: 0
-  speed: 1000
-  camPoint: {fileID: 8306016210250738690}
-  angularSpeed: 10
---- !u!4 &8306016210250738690 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8525576350663802769, guid: 7b5604e84b2992741bb970f4a648a7ab, type: 3}
-  m_PrefabInstance: {fileID: 365929810513941395}
-  m_PrefabAsset: {fileID: 0}
+  turnSmoothTime: 0.05
+  speed: 10
