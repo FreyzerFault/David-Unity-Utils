@@ -75,23 +75,24 @@ namespace DavidUtils.Geometry
 		public void OnDrawGizmosWire(Vector3 pos, Vector2 size, float thickness = 1, Color color = default)
 		{
 			if (vertices == null || vertices.Length == 0) return;
-			
+
 			GizmosExtensions.DrawPolygonWire(
 				vertices.Select(v => pos + (v * size).ToVector3xz()).ToArray(),
 				thickness,
 				color
 			);
 		}
-		
+
 		public void OnDrawGizmos(Vector3 pos, Vector2 size, float thickness = 1, Color color = default)
 		{
 			if (vertices == null || vertices.Length == 0) return;
-			
-			// GizmosExtensions.DrawPolygon(
-			// 	vertices.Select(v => pos + (v * size).ToVector3xz()).ToArray(),
-			// 	thickness,
-			// 	color
-			// );
+
+			// POLYGON
+			GizmosExtensions.DrawPolygon(vertices.Select(v => pos + (v * size).ToVector3xz()).ToArray(), color);
+
+			// CENTROID
+			Gizmos.color = Color.grey;
+			Gizmos.DrawSphere(pos + (centroid * size).ToVector3xz(), 0.1f);
 		}
 
 		#endregion

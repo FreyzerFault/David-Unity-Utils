@@ -37,6 +37,8 @@ namespace DavidUtils.Geometry
 			float g, float h, float i
 		) => a * e * i + g * b * f + c * d * h - c * e * g - i * d * b - a * h * f;
 
+		#region Point In Tests
+
 		/// <summary>
 		///     <para>Comprueba si el punto p esta dentro del Circulo formado por a,b,c</para>
 		///     <para>
@@ -49,7 +51,7 @@ namespace DavidUtils.Geometry
 		/// <returns>FALSE si esta fuera o si los 3 puntos a,b,c son colineares</returns>
 		public static bool PointInCirle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
 		{
-			Vector2? centro = CentroCirculo(a, b, c);
+			Vector2? centro = CircleCenter(a, b, c);
 
 			// Son colineares, no hay circulo
 			if (centro == null) return false;
@@ -60,6 +62,10 @@ namespace DavidUtils.Geometry
 			return false;
 			//return angle(a, b, c) < angle(p, b, c);
 		}
+
+		#endregion
+
+		#region ANGLE
 
 		/// <summary>
 		///     Calculo del angulo entre 2 Vectores (a->b) y (a->c)
@@ -73,11 +79,15 @@ namespace DavidUtils.Geometry
 			return Mathf.Acos(Vector2.Dot(u, v));
 		}
 
+		#endregion
+
+		#region CIRCLES
+
 		/// <summary>
 		///     Calcula el Centro de un Circulo que pasa por 3 puntos (a,b,c)
 		/// </summary>
 		/// <returns>NULL si son colineares</returns>
-		private static Vector2? CentroCirculo(Vector2 a, Vector2 b, Vector2 c)
+		public static Vector2? CircleCenter(Vector2 a, Vector2 b, Vector2 c)
 		{
 			Vector2 abMediatriz = Vector2.Perpendicular(b - a).normalized;
 			Vector2 bcMediatriz = Vector2.Perpendicular(b - c).normalized;
@@ -88,11 +98,16 @@ namespace DavidUtils.Geometry
 			return IntersectionPoint(abMedio, abMedio + abMediatriz, bcMedio, bcMedio + bcMediatriz);
 		}
 
+		#endregion
+
+
+		#region INTERSECTIONS
+
 		/// <summary>
 		///     Calcula la interseccion de dos rectas definidas por los puntos (a,b) y (c,d)
 		/// </summary>
 		/// <returns>NULL si son paralelas</returns>
-		private static Vector2? IntersectionPoint(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		public static Vector2? IntersectionPoint(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
 		{
 			Vector2 ab = b - a;
 			Vector2 cd = d - c;
@@ -103,21 +118,41 @@ namespace DavidUtils.Geometry
 			if (Mathf.Abs(denominador) < Epsilon) return null;
 
 			float s = (cd.x * ac.y - ac.x * cd.y) / denominador;
-			//float t = (ab.x * ac.y - ac.x * ab.y) / denominador;
 
 			// Solo hace falta el parametro de una recta para encontrar el punto
 			return a + ab * s;
 		}
-		
-		
-		private static Vector2[] GenerateRandomSeeds(int numSeeds)
+
+		/// <summary>
+		///     Distancia más corta desde el punto P a la recta definida por los puntos A y B
+		/// </summary>
+		/// <param name="p"></param>
+		/// <param name="a"></param>
+		/// <param name="b"></param>
+		/// <returns>Distancia más corta</returns>
+		public static float DistanceToLine(Vector2 p, Vector2 a, Vector2 b)
+		{
+			Vector2 ab = b - a;
+			Vector2 ap = p - a;
+
+			float s = Vector2.Dot(ap, ab) / ab.sqrMagnitude;
+
+			Vector2 projection = a + ab * s;
+
+			return (p - projection).magnitude;
+		}
+
+		#endregion
+
+
+		public static Vector2[] GenerateSeeds_RandomDistribution(int numSeeds)
 		{
 			var seeds = new Vector2[numSeeds];
 			for (var i = 0; i < numSeeds; i++) seeds[i] = new Vector2(Random.value, Random.value);
 			return seeds;
 		}
 
-		public static Vector2[] GenerateRandomSeeds_RegularDistribution(int numSeeds)
+		public static Vector2[] GenerateSeeds_RegularDistribution(int numSeeds)
 		{
 			var seeds = new Vector2[numSeeds];
 			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
@@ -139,9 +174,9 @@ namespace DavidUtils.Geometry
 			}
 
 			return seeds;
-		}   
-		
-		public static Vector2[] GenerateRandomSeeds_WaveDistribution(int numSeeds)
+		}
+
+		public static Vector2[] GenerateSeeds_WaveDistribution(int numSeeds)
 		{
 			var seeds = new Vector2[numSeeds];
 			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
@@ -152,7 +187,7 @@ namespace DavidUtils.Geometry
 			for (var i = 0; i < numSeeds; i++)
 			{
 				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
-				seeds[i] = new Vector2(.5f * cellSize, Mathf.Sin(i + Time.deltaTime) * cellSize) + cellOrigin;
+				seeds[i] = new Vector2(.5f * cellSize, Mathf.Sin(i) * cellSize) + cellOrigin;
 
 				// Next Row
 				cellRow = (cellRow + 1) % cellRows;
@@ -163,7 +198,6 @@ namespace DavidUtils.Geometry
 			}
 
 			return seeds;
-		}   
-
+		}
 	}
 }
