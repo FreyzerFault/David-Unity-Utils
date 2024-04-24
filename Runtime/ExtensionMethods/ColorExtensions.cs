@@ -50,9 +50,10 @@ namespace DavidUtils.ExtensionMethods
 
         // COLORES Dinamicos
 
-        public static Color[] GetRainBowColors(this Color initColor, int count, float step = 0.1f)
-        {
-            return new Color[count].Select((value, index) => initColor.RotateHue(step * index)).ToArray();
-        }
+        public static Color[] GetRainBowColors(this Color initColor, int count, float step = 0.1f) => 
+            new Color[count].Select((value, index) => initColor.RotateHue(step * index)).ToArray();
+
+        public static Color SetAlpha(this Color color, float newAlpha) =>
+            new Color(color.r, color.g, color.b, newAlpha);
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using DavidUtils.ExtensionMethods;
 using JetBrains.Annotations;
-using MyBox;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
@@ -136,14 +135,16 @@ namespace DavidUtils.Geometry
 		public bool GetOppositeVertex(out Vector3 opposite, Edge edge)
 		{
 			opposite = Vector3.zero;
-			Vector3[] vertices = { v1, v2, v3 };
 			
 			// Buscamos el vertice que no pertenece a la arista (no es ni Begin ni End)
-			int vIndex = vertices.FirstIndex(vertex => vertex != edge.begin && vertex != edge.end);
-			if (vIndex == -1) return false;
-			
-			opposite = vertices[vIndex];
-			return true;
+			foreach (Vector3 vertex in Vertices)
+			{
+				if (vertex == edge.begin || vertex == edge.end) continue;
+				opposite = vertex;
+				return true;
+			}
+
+			return false;
 		}
 		
 		public Triangle GetOppositeTriangle(Edge edge)

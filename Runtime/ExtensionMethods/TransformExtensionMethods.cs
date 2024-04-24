@@ -11,16 +11,16 @@ namespace DavidUtils.ExtensionMethods
             return transform;
         }
 
-        public static Transform Billboard(
+        public static void Billboard(
             this Transform transform,
             Transform target,
             bool verticalLock = false
         )
         {
+            // transform.rotation = Quaternion.LookRotation(target.forward, target.up);
             transform.LookAt(target);
             if (verticalLock)
                 transform.LockRotationVertical();
-            return transform;
         }
     }
 }

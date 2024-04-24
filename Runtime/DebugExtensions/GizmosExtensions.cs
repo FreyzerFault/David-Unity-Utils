@@ -45,26 +45,34 @@ namespace DavidUtils.DebugExtensions
 
         #region QUAD
 
-        public static void DrawQuadWire(Vector3 pos, Vector3 extent, float thickness = 1, Color color = default)
+        public static void DrawQuadWire(Vector3 center, Vector2 size, Quaternion rotation = default, float thickness = 1, Color color = default)
         {
+            Vector2 diagonal1 = Vector2.one * size / 2;
+            Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
+            Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
+            Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
             var vertices = new[]
             {
-                pos,
-                pos + Vector3.Project(extent, Vector3.forward),
-                pos + extent,
-                pos + Vector3.Project(extent, Vector3.right)
+                center - diagonal1Scaled,
+                center - diagonal2Scaled,
+                center + diagonal1Scaled,
+                center + diagonal2Scaled
             };
             DrawLineThick(vertices, thickness, color, true);
         }
 
-        public static void DrawQuad(Vector3 pos, Vector3 extent, Color color = default)
+        public static void DrawQuad(Vector3 center, Vector2 size, Quaternion rotation = default, Color color = default)
         {
+            Vector2 diagonal1 = Vector2.one * size / 2;
+            Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
+            Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
+            Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
             var vertices = new[]
             {
-                pos,
-                pos + Vector3.Project(extent, Vector3.forward),
-                pos + extent,
-                pos + Vector3.Project(extent, Vector3.right)
+                center - diagonal1Scaled,
+                center - diagonal2Scaled,
+                center + diagonal1Scaled,
+                center + diagonal2Scaled
             };
             Handles.DrawSolidRectangleWithOutline(vertices, color, color);
         }
@@ -76,13 +84,14 @@ namespace DavidUtils.DebugExtensions
 
         #region GRID
 
-        public static void DrawGrid(float cellRows, float cellCols, Vector3 pos, Vector2 size) 
+        public static void DrawGrid(float cellRows, float cellCols, Vector3 pos, Vector2 size, Quaternion rotation, float thickness = 1, Color color = default)
         {
-            float cellSize = 1f / cellRows;
+            Vector2 cellSize = size / cellRows;
+            Vector3 posCorner = pos - (Vector2.one * size / 2).ToVector3xz();
 
             for (var y = 0; y < cellRows; y++)
             for (var x = 0; x < cellRows; x++)
-                DrawQuadWire(pos + new Vector3(x * size.x, 0, y * size.y) * cellSize, cellSize * size.ToVector3xz());
+                DrawQuadWire(posCorner + (cellSize * new Vector2(x, y) + Vector2.one * cellSize / 2).ToVector3xz(), cellSize, rotation, thickness, color);
         }
         
         #endregion
@@ -144,7 +153,7 @@ namespace DavidUtils.DebugExtensions
         #region TRIANGLE
         
         public static void DrawTriWire(Vector3[] vertices, float thickness = 1, Color color = default) => 
-            DrawLineThick(vertices, thickness, color);
+            DrawLineThick(vertices, thickness, color, true);
         
         public static void DrawTri(Vector3[] vertices, Color color = default) => 
             Handles.DrawSolidRectangleWithOutline(vertices.Append(vertices[2]).ToArray(), color, color);
@@ -169,26 +178,37 @@ namespace DavidUtils.DebugExtensions
 
         #region CILINDER
 
-        public static void DrawCilinderWire(Vector3 pos, float radius, float height, Quaternion rotation = default, float thickness = 1, Color color = default)
+        public static void DrawCilinderWire(Vector3 center, float radius, float height, Quaternion rotation = default, int sections = 1, float thickness = 1, Color color = default)
         {
             Vector3 up = rotation * Vector3.up;
-            Vector3 right = rotation * Vector3.right;
-            Vector3 back = rotation * Vector3.back;
-            DrawCircleWire(pos, up, radius, thickness, color);
-            DrawCircleWire(pos + up * height, up, radius, thickness, color);
-            DrawQuadWire(pos - right * radius, right * radius * 2 + up * height, thickness, color);
-            DrawQuadWire(pos - back * radius, back * radius * 2 + up * height, thickness, color);
+            var size = new Vector2(radius * 2, height);
+            
+            // BASE
+            Vector3 baseCenter = center - up * height / 2;
+            float sectionHeight = height / sections;
+            for (var i = 0; i < sections; i++) 
+                DrawCircleWire(baseCenter + up * i * sectionHeight, up, radius, thickness / 2, color);
+            // TOP
+            DrawCircleWire(baseCenter + up * height, up, radius, thickness / 2, color);
+            
+            DrawQuadWire(center,  size, rotation, thickness, color);
+            DrawQuadWire(center, size, rotation * Quaternion.AngleAxis(90, Vector3.up), thickness, color);
         }
         
-        public static void DrawCilinder(Vector3 pos, float radius, float height, Quaternion rotation = default, Color color = default)
+        public static void DrawCilinder(Vector3 center, float radius, float height, Quaternion rotation = default, int sections = 1, Color color = default)
         {
             Vector3 up = rotation * Vector3.up;
-            Vector3 right = rotation * Vector3.right;
-            Vector3 back = rotation * Vector3.back;
-            DrawCircle(pos, up, radius, color);
-            DrawCircle(pos, up * height, radius, color);
-            DrawQuad(pos - right * radius, right * radius * 2 + up * height, color);
-            DrawQuad(pos - back * radius, back * radius * 2 + up * height, color);
+            Vector2 size = new Vector2(radius * 2, height);
+            
+            // BASE
+            Vector3 baseCenter = center - up * height / 2;
+            float sectionHeight = height / sections;
+            for (var i = 0; i < sections; i++) 
+                DrawCircle(baseCenter + up * i * sectionHeight, up, radius, color);
+            // TOP
+            DrawCircle(baseCenter + up * height, up, radius, color);
+            DrawQuad(center, size, rotation, color);
+            DrawQuad(center, size, rotation * Quaternion.AngleAxis(90, Vector3.up), color);
         }
 
         #endregion

@@ -13,7 +13,7 @@ namespace DavidUtils
 			Paused
 		}
 
-		[FormerlySerializedAs("simplePlayer3P")] [FormerlySerializedAs("player3P")] public Player player;
+		public Player player;
 
 		public UnityEvent<GameState> onGameStateChanged;
 		[SerializeField] private GameState state = GameState.Playing;
@@ -60,5 +60,8 @@ namespace DavidUtils
 		}
 
 		private void OnPause() => State = State == GameState.Paused ? GameState.Playing : GameState.Paused;
+		
+		
+		public static Player FindPlayer() => Instance.player ?? FindObjectOfType<Player>();
 	}
 }

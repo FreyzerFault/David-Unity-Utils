@@ -23,7 +23,7 @@ namespace DavidUtils.Geometry
 			_seeds = GeometryUtils.GenerateSeeds_WaveDistribution(numSeeds);
 			_delaunay.vertices = _seeds;
 
-			_delaunay.InitializeBoundingBox();
+			_delaunay.GetBoundingBoxTriangles();
 		}
 
 		private void Start()

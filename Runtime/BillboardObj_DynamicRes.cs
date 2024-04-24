@@ -7,7 +7,7 @@ namespace DavidUtils
 	// Swap between different sprites dependant on the player distance to Obj
 	public class BillboardObj_DynamicRes : BillboardObject
 	{
-		private float DistanceToPlayer => Vector3.Distance(transform.position, player.transform.position);
+		private float DistanceToPlayer => Vector3.Distance(transform.position, Player.transform.position);
 
 		[Serializable]
 		public struct SpriteWithRes
@@ -21,9 +21,8 @@ namespace DavidUtils
 		public List<SpriteWithRes> sprites = new();
 		private Dictionary<float, Sprite> _spritesDic = new();
 
-		protected override void Awake()
+		protected virtual void Awake()
 		{
-			base.Awake();
 			_spritesDic = new Dictionary<float, Sprite>(
 				new List<KeyValuePair<float, Sprite>>(
 					sprites.ConvertAll(s => s.ToKeyValuePair())
@@ -31,7 +30,7 @@ namespace DavidUtils
 			);
 		}
 
-		private void Start() => player.OnPlayerMove += HandlePlayerMove;
+		private void Start() => Player.OnPlayerMove += HandlePlayerMove;
 
 		private void HandlePlayerMove(Vector2 moveInput) =>
 			Sprite = GetSpriteByDist(DistanceToPlayer);

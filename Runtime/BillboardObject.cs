@@ -1,3 +1,4 @@
+using DavidUtils.CameraUtils;
 using DavidUtils.DebugExtensions;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.PlayerControl;
@@ -7,7 +8,9 @@ namespace DavidUtils
 {
 	public class BillboardObject : MonoBehaviour
 	{
-		protected Player player;
+		protected static Player Player => GameManager.FindPlayer();
+		protected static Camera Camera => CameraManager.MainCam;
+		
 		public bool verticalLock;
 		
 		public bool showColliderNearPlayer = true;
@@ -22,24 +25,23 @@ namespace DavidUtils
 			set => SpriteRenderer.sprite = value;
 		}
 
-		protected virtual void Awake() => player = FindObjectOfType<Player>();
-
-		private void Update() => transform.Billboard(player.transform, verticalLock);
+		private void Update() => transform.Billboard(Camera.transform, verticalLock);
 
 		private void OnDrawGizmos()
 		{
 			if (!showColliderNearPlayer) return;
 			
-			if (Vector3.Distance(transform.position, player.Position) > 10) return;
+			if (Vector3.Distance(transform.position, Player.Position) > 10) return;
 			
 			var col = GetComponent<Collider>();
 			if (col == null) return;
 
-			Vector3 pos = col.bounds.center + Vector3.down * (col.bounds.size.y / 2);
+			Vector3 pos = col.bounds.center;
 			float radius = col.bounds.size.x / 2; 
 			float height = col.bounds.size.y;
 			Color color = Color.red;
-			GizmosExtensions.DrawCilinderWire(pos, radius, height, transform.rotation, 2, color);
+			// GizmosExtensions.DrawCilinder(pos, radius, height, transform.rotation, 2, color);
+			GizmosExtensions.DrawCilinderWire(pos, radius, height, transform.rotation, 2, 2, color);
 		}
 	}
 }

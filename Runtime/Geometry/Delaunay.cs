@@ -207,7 +207,14 @@ namespace DavidUtils.Geometry
 
 		public void Triangulate(Vector2 point)
 		{
-			if (triangles.Count == 0) InitializeBoundingBox();
+			// Si no hay triangulos, creamos el SuperTriangulo o una Bounding Box
+			if (triangles.Count == 0)
+			{
+				Triangle[] bb = GetBoundingBoxTriangles();
+				
+				triangles.Add(bb[0]);
+				triangles.Add(bb[1]);
+			}
 
 			polygon = new List<Edge>();
 			var neighbours = new List<Triangle>();
@@ -275,17 +282,17 @@ namespace DavidUtils.Geometry
 		// Vertices almancenados para buscar al final todos los triangulos que lo tengan
 		private Vector2[] boundingVertices = Array.Empty<Vector2>();
 
-		public void InitializeBoundingBox()
+		public Triangle[] GetBoundingBoxTriangles()
 		{
 			var t1 = new Triangle(new Vector2(2, -1), new Vector2(-1, 2), new Vector2(-1, -1));
 			var t2 = new Triangle(new Vector2(-1, 2), new Vector2(2, -1), new Vector2(2, 2));
 
 			t1.neighbours[0] = t2;
 			t2.neighbours[0] = t1;
-
-			triangles.Add(t1);
-			triangles.Add(t2);
+			
 			boundingVertices = t1.Vertices.Concat(t2.Vertices).ToArray();
+
+			return new[] { t1, t2 };
 		}
 
 		public void InitializeSuperTriangle()
@@ -326,7 +333,7 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		public void OnDrawGizmos(Vector3 pos, Vector2 size, bool projectOnTerrain = false)
+		public void OnDrawGizmos(Vector3 pos, Vector2 size, bool wire = false, bool projectOnTerrain = false)
 		{
 			// VERTICES
 			Gizmos.color = Color.grey;
@@ -339,7 +346,7 @@ namespace DavidUtils.Geometry
 			for (var i = 0; i < triangles.Count; i++)
 			{
 				Triangle tri = triangles[i];
-				if (ended)
+				if (ended && !wire)
 					tri.OnGizmosDraw(pos, size, colors[i], projectOnTerrain);
 				else
 					tri.OnGizmosDrawWire(pos, size, 2, Color.white);
