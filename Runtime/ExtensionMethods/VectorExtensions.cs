@@ -51,6 +51,10 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector2 ToVector2xz(this Vector3 v) => new(v.x, v.z);
 		public static Vector2 ToVector2xy(this Vector3 v) => new(v.x, v.y);
 
+		public static Vector3 WithX(this Vector3 v, float x) => v = new Vector3(x, v.y, v.z);
+		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
+		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
+
 		#endregion
 
 		#region 2D to 3D

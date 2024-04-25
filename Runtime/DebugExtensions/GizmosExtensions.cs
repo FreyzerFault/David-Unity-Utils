@@ -116,7 +116,7 @@ namespace DavidUtils.DebugExtensions
 
         #region LINES
 
-        public static void DrawLineThick(Vector3 a, Vector3 b, float thickness = DEFAULT_THICKNESS, Color color = default, bool loop = true)
+        public static void DrawLineThick(Vector3 a, Vector3 b, float thickness = DEFAULT_THICKNESS, Color color = default)
         {
             Handles.color = color;
             Handles.DrawLine(a, b, thickness);

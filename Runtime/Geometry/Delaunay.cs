@@ -101,15 +101,30 @@ namespace DavidUtils.Geometry
 				new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
 #if UNITY_EDITOR
-			public void OnGizmosDrawWire(Vector3 worldPos, Vector2 size, float thickness = 1, Color color = default) =>
+			public void OnGizmosDrawWire(Vector3 originPos, Vector2 size, float thickness = 1, Color color = default)
+			{
+				// DEBUG NEIGHBOURS
+				if (IsBorder)
+					for (var i = 0; i < 3; i++)
+					{
+						Triangle tri = neighbours[i];
+						if (tri != null) continue;
+						Edge edge = Edges[i];
+						Vector3 begin = (edge.begin * size).ToVector3xz();
+						Vector3 end = (edge.end * size).ToVector3xz();
+						GizmosExtensions.DrawLineThick(begin, end, 5, Color.red);
+						// HandlesExtensions.DrawLabel(, $"{i}: {text}");
+					}
+
 				GizmosExtensions.DrawTriWire(
-					Vertices.Select(vertex => (vertex * size).ToVector3xz() + worldPos).ToArray(),
+					Vertices.Select(vertex => (vertex * size).ToVector3xz() + originPos).ToArray(),
 					thickness,
 					color
 				);
+			}
 
 			public void OnGizmosDraw(
-				Vector3 worldPos, Vector2 size, Color color = default, bool projectedOnTerrain = false
+				Vector3 originPos, Vector2 size, Color color = default, bool projectedOnTerrain = false
 			)
 			{
 				Vector3[] verticesInWorld;
@@ -117,13 +132,13 @@ namespace DavidUtils.Geometry
 				{
 					var terrain = Terrain.activeTerrain;
 					verticesInWorld = Vertices
-						.Select(vertex => terrain.Project((vertex * size).ToVector3xz() + worldPos))
+						.Select(vertex => terrain.Project((vertex * size).ToVector3xz() + originPos))
 						.ToArray();
 				}
 				else
 				{
 					verticesInWorld = Vertices
-						.Select(vertex => (vertex * size).ToVector3xz() + worldPos)
+						.Select(vertex => (vertex * size).ToVector3xz() + originPos)
 						.ToArray();
 				}
 
@@ -211,7 +226,7 @@ namespace DavidUtils.Geometry
 			if (triangles.Count == 0)
 			{
 				Triangle[] bb = GetBoundingBoxTriangles();
-				
+
 				triangles.Add(bb[0]);
 				triangles.Add(bb[1]);
 			}
@@ -289,7 +304,7 @@ namespace DavidUtils.Geometry
 
 			t1.neighbours[0] = t2;
 			t2.neighbours[0] = t1;
-			
+
 			boundingVertices = t1.Vertices.Concat(t2.Vertices).ToArray();
 
 			return new[] { t1, t2 };

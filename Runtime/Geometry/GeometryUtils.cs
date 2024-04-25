@@ -4,7 +4,7 @@ namespace DavidUtils.Geometry
 {
 	public static class GeometryUtils
 	{
-		public const float Epsilon = 0.001f;
+		public const float Epsilon = 0.01f;
 
 		public static bool Equals(float a, float b) => Mathf.Abs(a - b) < Epsilon;
 		public static bool Equals(Vector2 v1, Vector2 v2) => Mathf.Abs((v1 - v2).magnitude) < Epsilon;
@@ -15,6 +15,9 @@ namespace DavidUtils.Geometry
 		public static bool IsRight(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) < 0;
 
 		public static bool IsRight(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) < 0;
+
+		public static bool IsLeft(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) > 0;
+		public static bool IsLeft(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) > 0;
 
 		/// <summary>
 		///     Area del Triangulo al Cuadrado (para clasificar puntos a la derecha o izquierda de un segmento)
@@ -62,20 +65,20 @@ namespace DavidUtils.Geometry
 			return false;
 			//return angle(a, b, c) < angle(p, b, c);
 		}
-		
+
 		/// <summary>
-		/// Comprueba si el Punto p esta en linea definida por los puntos A,B
+		///     Comprueba si el Punto p esta en linea definida por los puntos A,B
 		/// </summary>
 		/// <returns></returns>
 		public static bool PointOnLine(Vector2 a, Vector2 b, Vector2 p) =>
 			Equals(TriArea2(a, b, p), 0);
-		
+
 		/// <summary>
-		/// Comprueba si el Punto P esta en el segmento A-B
+		///     Comprueba si el Punto P esta en el segmento A-B
 		/// </summary>
 		/// <returns></returns>
-		public static bool PointOnSegment(Vector2 a, Vector2 b, Vector2 p) =>
-			PointOnLine(a,b,p) && (p.x - a.x) * (p.x - b.x) <= 0 && (p.y - a.y) * (p.y - b.y) <= 0;
+		public static bool PointOnSegment(Vector2 p, Vector2 a, Vector2 b) =>
+			PointOnLine(a, b, p) && (p - a).magnitude + (p - b).magnitude <= (a - b).magnitude + Epsilon;
 
 		#endregion
 
@@ -117,132 +120,132 @@ namespace DavidUtils.Geometry
 
 		#region INTERSECTIONS
 
-			#region LINES
+		#region LINES
 
-			/// <summary>
-			///     Calcula la interseccion de dos rectas definidas por los puntos (a,b) y (c,d)
-			/// </summary>
-			/// <returns>NULL si son paralelas</returns>
-			public static Vector2? IntersectionLineLine(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
-			{
-				Vector2 ab = b - a;
-				Vector2 cd = d - c;
-				Vector2 ac = c - a;
+		/// <summary>
+		///     Calcula la interseccion de dos rectas definidas por los puntos (a,b) y (c,d)
+		/// </summary>
+		/// <returns>NULL si son paralelas</returns>
+		public static Vector2? IntersectionLineLine(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		{
+			Vector2 ab = b - a;
+			Vector2 cd = d - c;
+			Vector2 ac = c - a;
 
-				// t = (cd x ac) / (ab x cd)
-				// s = (ab x ap) / (ab x cd)
-				// (x: Cross Product)
-			
-				float denominador = cd.x * ab.y - ab.x * cd.y;
+			// t = (cd x ac) / (ab x cd)
+			// s = (ab x ap) / (ab x cd)
+			// (x: Cross Product)
 
-				// Colinear
-				if (Mathf.Abs(denominador) < Epsilon) return null;
+			float denominador = cd.x * ab.y - ab.x * cd.y;
 
-				float s = (cd.x * ac.y - ac.x * cd.y) / denominador;
+			// Colinear
+			if (Mathf.Abs(denominador) < Epsilon) return null;
 
-				return a + ab * s;
-			}
+			float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
 
-			#endregion
-		
+			return a + ab * t;
+		}
 
-			#region SEGMENTS
+		#endregion
 
-			/// <summary>
-			/// Calcula el Punto de Interseccion entre dos segmentos (a,b) y (c,d)
-			/// Si s y t estan en [0,1] => Interseccion en el segmento
-			/// </summary>
-			/// <returns>null if no intersection, or colinear</returns>
-			public static Vector2? IntersectionSegmentSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
-			{
-				Vector2 ab = b - a;
-				Vector2 cd = d - c;
-				Vector2 ac = c - a;
 
-				// t = (cd x ac) / (ab x cd)
-				// s = (ab x ap) / (ab x cd)
-				// (x: Cross Product)
-			
-				float denominador = cd.x * ab.y - ab.x * cd.y;
+		#region SEGMENTS
 
-				// Colinear
-				if (Mathf.Abs(denominador) < Epsilon) return null;
+		/// <summary>
+		///     Calcula el Punto de Interseccion entre dos segmentos (a,b) y (c,d)
+		///     Si s y t estan en [0,1] => Interseccion en el segmento
+		/// </summary>
+		/// <returns>null if no intersection, or colinear</returns>
+		public static Vector2? IntersectionSegmentSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		{
+			Vector2 ab = b - a;
+			Vector2 cd = d - c;
+			Vector2 ac = c - a;
 
-				float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
-				float s =  (ab.x * ac.y - ac.x * ab.y) / denominador;
-			
-				// Interseccion fuera del segmento, si se extienden intersectarian
-				if (t is < 0 or > 1 || s is < 0 or > 1 ) return null;
-			
-				return a + ab * t;
-			}
+			// t = (cd x ac) / (ab x cd)
+			// s = (ab x ap) / (ab x cd)
+			// (x: Cross Product)
 
-			#endregion
+			float denominador = cd.x * ab.y - ab.x * cd.y;
 
-			#region RAYS
+			// Colinear
+			if (Mathf.Abs(denominador) < Epsilon) return null;
 
-			/// <summary>
-			/// Calcula el Punto de Interseccion de un Rayo (p,dir) sobre la linea definida por (a,b)
-			/// Si s == 0 => La linea pasa por detras del rayo
-			/// </summary>
-			/// <returns></returns>
-			public static Vector2? IntersectionRayLine(Vector2 p, Vector2 dir, Vector2 c, Vector2 d)
-			{
-				Vector2 a = p;
-				Vector2 b = p + dir;
-				Vector2 ab = b - a;
-				Vector2 cd = d - c;
-				Vector2 ac = c - a;
+			float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
+			float s = (ab.x * ac.y - ac.x * ab.y) / denominador;
 
-				// t = (cd x ac) / (ab x cd)
-				// s = (ab x ap) / (ab x cd)
-				// (x: Cross Product)
-			
-				float denominador = cd.x * ab.y - ab.x * cd.y;
+			// Interseccion fuera del segmento, si se extienden intersectarian
+			if (t is < 0 or > 1 || s is < 0 or > 1) return null;
 
-				// Colinear
-				if (Mathf.Abs(denominador) < Epsilon) return null;
+			return a + ab * t;
+		}
 
-				float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
-				float s =  (ab.x * ac.y - ac.x * ab.y) / denominador;
-			
-				// La linea pasa por detras del rayo
-				if (t < 0) return null;
-			
-				return p + dir * s;
-			}
-		
-			/// <summary>
-			/// Calcula el Punto de Interseccion de un Rayo (p,dir) con un segmento (a,b)
-			/// </summary>
-			/// <returns></returns>
-			public static Vector2? IntersectionRaySegment(Vector2 p, Vector2 dir, Vector2 c, Vector2 d)
-			{
-				Vector2 a = p;
-				Vector2 b = p + dir;
-				Vector2 ab = b - a;
-				Vector2 cd = d - c;
-				Vector2 ac = c - a;
+		#endregion
 
-				// t = (cd x ac) / (ab x cd)
-				// s = (ab x ap) / (ab x cd)
-				// (x: Cross Product)
-			
-				float denominador = cd.x * ab.y - ab.x * cd.y;
+		#region RAYS
 
-				// Colinear
-				if (Mathf.Abs(denominador) < Epsilon) return null;
+		/// <summary>
+		///     Calcula el Punto de Interseccion de un Rayo (p,dir) sobre la linea definida por (a,b)
+		///     Si s == 0 => La linea pasa por detras del rayo
+		/// </summary>
+		/// <returns></returns>
+		public static Vector2? IntersectionRayLine(Vector2 p, Vector2 dir, Vector2 c, Vector2 d)
+		{
+			Vector2 a = p;
+			Vector2 b = p + dir;
+			Vector2 ab = b - a;
+			Vector2 cd = d - c;
+			Vector2 ac = c - a;
 
-				float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
-				float s =  (ab.x * ac.y - ac.x * ab.y) / denominador;
-			
-				// El segmento esta detras del rayo o justo el rayo no lo intersecta
-				if (t < 0 || s is < 0 or > 1 ) return null;
-			
-				return p + dir * s;
-			}
+			// t = (cd x ac) / (ab x cd)
+			// s = (ab x ap) / (ab x cd)
+			// (x: Cross Product)
 
-			#endregion
+			float denominador = cd.x * ab.y - ab.x * cd.y;
+
+			// Colinear
+			if (Mathf.Abs(denominador) < Epsilon) return null;
+
+			float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
+			float s = (ab.x * ac.y - ac.x * ab.y) / denominador;
+
+			// La linea pasa por detras del rayo
+			if (t < 0) return null;
+
+			return p + dir * t;
+		}
+
+		/// <summary>
+		///     Calcula el Punto de Interseccion de un Rayo (p,dir) con un segmento (a,b)
+		/// </summary>
+		/// <returns></returns>
+		public static Vector2? IntersectionRaySegment(Vector2 p, Vector2 dir, Vector2 c, Vector2 d)
+		{
+			Vector2 a = p;
+			Vector2 b = p + dir;
+			Vector2 ab = b - a;
+			Vector2 cd = d - c;
+			Vector2 ac = c - a;
+
+			// t = (cd x ac) / (ab x cd)
+			// s = (ab x ap) / (ab x cd)
+			// (x: Cross Product)
+
+			float denominador = cd.x * ab.y - ab.x * cd.y;
+
+			// Colinear
+			if (Mathf.Abs(denominador) < Epsilon) return null;
+
+			float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
+			float s = (ab.x * ac.y - ac.x * ab.y) / denominador;
+
+			// El segmento esta detras del rayo o justo el rayo no lo intersecta
+			if (t < 0 || s is < 0 or > 1) return null;
+
+			return p + dir * t;
+		}
+
+		#endregion
 
 		/// <summary>
 		///     Distancia más corta desde el punto P a la recta definida por los puntos A y B
