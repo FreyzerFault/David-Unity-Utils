@@ -1,5 +1,5 @@
 using DavidUtils.CameraUtils;
-using DavidUtils.DebugExtensions;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.PlayerControl;
 using UnityEngine;
@@ -41,7 +41,7 @@ namespace DavidUtils
 			float height = col.bounds.size.y;
 			Color color = Color.red;
 			// GizmosExtensions.DrawCilinder(pos, radius, height, transform.rotation, 2, color);
-			GizmosExtensions.DrawCilinderWire(pos, radius, height, transform.rotation, 2, 2, color);
+			GizmosExtensions.DrawCilinderWire(radius, height, transform.localToWorldMatrix, 2, 2, color);
 		}
 	}
 }

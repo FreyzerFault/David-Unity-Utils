@@ -1,14 +1,18 @@
 ﻿using System;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
-using UnityEditor;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
-namespace DavidUtils.DebugExtensions
+namespace DavidUtils.DebugUtils
 {
     public static class GizmosExtensions
     {
         private const int DEFAULT_THICKNESS = 5;
+        
+        #if UNITY_EDITOR
         
         #region ARROWS
 
@@ -45,53 +49,72 @@ namespace DavidUtils.DebugExtensions
 
         #region QUAD
 
-        public static void DrawQuadWire(Vector3 center, Vector2 size, Quaternion rotation = default, float thickness = 1, Color color = default)
+        public static Vector3[] QuadVertices(Matrix4x4 matrix) => new[]
         {
-            Vector2 diagonal1 = Vector2.one * size / 2;
-            Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
-            Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
-            Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
-            var vertices = new[]
-            {
-                center - diagonal1Scaled,
-                center - diagonal2Scaled,
-                center + diagonal1Scaled,
-                center + diagonal2Scaled
-            };
-            DrawLineThick(vertices, thickness, color, true);
-        }
+            matrix.MultiplyPoint3x4(new Vector2(0, 0).ToVector3xz()),
+            matrix.MultiplyPoint3x4(new Vector2(1, 0).ToVector3xz()),
+            matrix.MultiplyPoint3x4(new Vector2(1, 1).ToVector3xz()),
+            matrix.MultiplyPoint3x4(new Vector2(0, 1).ToVector3xz())
+        };
 
-        public static void DrawQuad(Vector3 center, Vector2 size, Quaternion rotation = default, Color color = default)
-        {
-            Vector2 diagonal1 = Vector2.one * size / 2;
-            Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
-            Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
-            Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
-            var vertices = new[]
-            {
-                center - diagonal1Scaled,
-                center - diagonal2Scaled,
-                center + diagonal1Scaled,
-                center + diagonal2Scaled
-            };
-            Handles.DrawSolidRectangleWithOutline(vertices, color, color);
-        }
+        public static void DrawQuadWire(Matrix4x4 matrix, float thickness = 1, Color color = default) => 
+            DrawLineThick(QuadVertices(matrix), thickness, color, true);
+
+        public static void DrawQuad(Matrix4x4 matrix, Color color = default, Color outlineColor = default) => 
+            Handles.DrawSolidRectangleWithOutline(QuadVertices(matrix), color, outlineColor);
+
+        // public static void DrawQuadWire(Vector3 center, Vector2 size, Quaternion rotation = default, float thickness = 1, Color color = default)
+        // {
+        //     Vector2 diagonal1 = Vector2.one * size / 2;
+        //     Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
+        //     Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
+        //     Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
+        //     var vertices = new[]
+        //     {
+        //         center - diagonal1Scaled,
+        //         center - diagonal2Scaled,
+        //         center + diagonal1Scaled,
+        //         center + diagonal2Scaled
+        //     };
+        //     DrawLineThick(vertices, thickness, color, true);
+        // }
+
+        // public static void DrawQuad(Vector3 center, Vector2 size, Quaternion rotation = default, Color color = default)
+        // {
+        //     Vector2 diagonal1 = Vector2.one * size / 2;
+        //     Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
+        //     Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
+        //     Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
+        //     var vertices = new[]
+        //     {
+        //         center - diagonal1Scaled,
+        //         center - diagonal2Scaled,
+        //         center + diagonal1Scaled,
+        //         center + diagonal2Scaled
+        //     };
+        //     Handles.DrawSolidRectangleWithOutline(vertices, color, color);
+        // }
         
-        public static void DrawQuad(Vector3[] vertices, Color color = default) => 
-            Handles.DrawSolidRectangleWithOutline(vertices, color, Color.yellow);
+        public static void DrawQuad(Vector3[] vertices, Color color = default, Color outlineColor = default) => 
+            Handles.DrawSolidRectangleWithOutline(vertices, color, outlineColor);
 
         #endregion
 
         #region GRID
 
-        public static void DrawGrid(float cellRows, float cellCols, Vector3 pos, Vector2 size, Quaternion rotation, float thickness = 1, Color color = default)
+        public static void DrawGrid(float cellRows, float cellCols, Matrix4x4 matrix, float thickness = 1, Color color = default)
         {
-            Vector2 cellSize = size / cellRows;
-            Vector3 posCorner = pos - (Vector2.one * size / 2).ToVector3xz();
-
+            Vector2 cellSize = Vector2.one / new Vector2(cellRows, cellCols);
+            
             for (var y = 0; y < cellRows; y++)
             for (var x = 0; x < cellRows; x++)
-                DrawQuadWire(posCorner + (cellSize * new Vector2(x, y) + Vector2.one * cellSize / 2).ToVector3xz(), cellSize, rotation, thickness, color);
+            {
+                DrawQuadWire(
+                    matrix * Matrix4x4.TRS(new Vector3(x * cellSize.x, 0, y * cellSize.y), Quaternion.identity, cellSize.ToVector3xz()),
+                    thickness,
+                    color
+                );
+            }
         }
         
         #endregion
@@ -118,8 +141,8 @@ namespace DavidUtils.DebugExtensions
 
         public static void DrawLineThick(Vector3 a, Vector3 b, float thickness = DEFAULT_THICKNESS, Color color = default)
         {
-            Handles.color = color;
-            Handles.DrawLine(a, b, thickness);
+            using (new Handles.DrawingScope(color)) 
+                Handles.DrawLine(a, b, thickness);
         }
         
         public static void DrawLineThick(Vector3[] points, float thickness = DEFAULT_THICKNESS, Color color = default, bool loop = false)
@@ -144,7 +167,7 @@ namespace DavidUtils.DebugExtensions
             for (int i = 1, j = vertices.Length - 1; i < vertices.Length; j = i++)
             {
                 Vector3 a = vertices[j], b = vertices[i];
-                DrawTri(new Vector3[] { mainVertex, a, b }, color);
+                DrawTri(new[] { mainVertex, a, b }, color);
             }
         }
 
@@ -164,51 +187,59 @@ namespace DavidUtils.DebugExtensions
 
         public static void DrawCircleWire(Vector3 pos, Vector3 normal, float radius, float thickness = 1, Color color = default)
         {
-            Handles.color = color;
-            Handles.DrawWireDisc(pos, normal, radius, thickness);
+            using (new Handles.DrawingScope(color)) 
+                Handles.DrawWireDisc(pos, normal, radius, thickness);
         }
         
         public static void DrawCircle(Vector3 pos, Vector3 normal, float radius, Color color = default)
         {
-            Handles.color = color;
-            Handles.DrawSolidDisc(pos, normal, radius);
+            using (new Handles.DrawingScope(color))
+                Handles.DrawSolidDisc(pos, normal, radius);
         }
 
         #endregion
 
         #region CILINDER
 
-        public static void DrawCilinderWire(Vector3 center, float radius, float height, Quaternion rotation = default, int sections = 1, float thickness = 1, Color color = default)
+        public static void DrawCilinderWire(float radius, float height, Matrix4x4 matrix = default, int sections = 1, float thickness = 1, Color color = default)
         {
-            Vector3 up = rotation * Vector3.up;
-            var size = new Vector2(radius * 2, height);
+            Vector3 center = new Vector3(0,0,0);
+            Vector3 size = new Vector3(radius * 2, height, radius * 2);
             
             // BASE
-            Vector3 baseCenter = center - up * height / 2;
+            Vector3 baseCenter = center - Vector3.up * height / 2;
             float sectionHeight = height / sections;
-            for (var i = 0; i < sections; i++) 
-                DrawCircleWire(baseCenter + up * i * sectionHeight, up, radius, thickness / 2, color);
-            // TOP
-            DrawCircleWire(baseCenter + up * height, up, radius, thickness / 2, color);
+            for (var i = 0; i <= sections; i++) 
+                DrawCircleWire( matrix.MultiplyPoint3x4(baseCenter + Vector3.up * i * sectionHeight),
+                    matrix * Vector3.up,
+                    matrix.lossyScale.x * radius,
+                    thickness / 2,
+                    color
+                );
             
-            DrawQuadWire(center,  size, rotation, thickness, color);
-            DrawQuadWire(center, size, rotation * Quaternion.AngleAxis(90, Vector3.up), thickness, color);
+            DrawQuadWire(matrix * Matrix4x4.Scale(size), thickness, color);
+            DrawQuadWire(matrix * Matrix4x4.Rotate(Quaternion.AngleAxis(90, Vector3.up)), thickness, color);
         }
         
-        public static void DrawCilinder(Vector3 center, float radius, float height, Quaternion rotation = default, int sections = 1, Color color = default)
+        public static void DrawCilinder(float radius, float height, Matrix4x4 matrix = default, int sections = 1, Color color = default)
         {
-            Vector3 up = rotation * Vector3.up;
-            Vector2 size = new Vector2(radius * 2, height);
+            Vector3 center = new Vector3(0,0,0);
+            Vector3 size = new Vector3(radius * 2, height, radius * 2);
             
             // BASE
-            Vector3 baseCenter = center - up * height / 2;
+            Vector3 baseCenter = center - Vector3.up * height / 2;
             float sectionHeight = height / sections;
-            for (var i = 0; i < sections; i++) 
-                DrawCircle(baseCenter + up * i * sectionHeight, up, radius, color);
-            // TOP
-            DrawCircle(baseCenter + up * height, up, radius, color);
-            DrawQuad(center, size, rotation, color);
-            DrawQuad(center, size, rotation * Quaternion.AngleAxis(90, Vector3.up), color);
+            for (var i = 0; i <= sections; i++) 
+                DrawCircle(
+                    matrix.MultiplyPoint3x4(baseCenter + Vector3.up * i * sectionHeight),
+                    matrix * Vector3.up,
+                    matrix.lossyScale.x * radius,
+                    color
+                );
+            
+            // SIDE
+            DrawQuad(matrix * Matrix4x4.Scale(size), color);
+            DrawQuad(matrix * Matrix4x4.Rotate(Quaternion.AngleAxis(90, Vector3.up)), color);
         }
 
         #endregion
@@ -273,5 +304,30 @@ namespace DavidUtils.DebugExtensions
         }
 
         #endregion
+
+
+        #region LABELS
+        
+        public static void DrawLabel(
+            Vector3 position,
+            string text,
+            Color? textColor = null,
+            int fontSize = 12,
+            FontStyle fontStyle = FontStyle.Bold
+        )
+        {
+            Handles.Label(position, text, 
+                new GUIStyle
+                {
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold,
+                    normal = { textColor = Color.white }
+                });
+        }
+
+        #endregion
+        
+        
+        #endif
     }
 }

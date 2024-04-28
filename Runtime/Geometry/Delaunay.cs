@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.DebugExtensions;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
@@ -36,9 +36,9 @@ namespace DavidUtils.Geometry
 			public override int GetHashCode() => HashCode.Combine(begin, end);
 
 #if UNITY_EDITOR
-			public void OnGizmosDraw(Vector3 worldPos, Vector2 size, float thickness = 1, Color color = default) =>
+			public void OnGizmosDraw(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
 				GizmosExtensions.DrawLineThick(
-					Vertices.Select(vertex => (vertex * size).ToVector3xz() + worldPos).ToArray(),
+					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray(),
 					thickness,
 					color
 				);
@@ -63,6 +63,8 @@ namespace DavidUtils.Geometry
 			public Triangle T3 => neighbours[2];
 
 			public bool IsBorder => neighbours.Length != 3 || neighbours.Any(n => n == null);
+
+			public Edge BorderEdge => Edges[neighbours.ToList().FindIndex(t => t == null)];
 
 			public Triangle(
 				Vector2 v1, Vector2 v2, Vector2 v3, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
@@ -101,47 +103,35 @@ namespace DavidUtils.Geometry
 				new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
 #if UNITY_EDITOR
-			public void OnGizmosDrawWire(Vector3 originPos, Vector2 size, float thickness = 1, Color color = default)
+			public void OnGizmosDrawWire(Matrix4x4 matrix, float thickness = 1, Color color = default)
 			{
 				// DEBUG NEIGHBOURS
 				if (IsBorder)
-					for (var i = 0; i < 3; i++)
-					{
-						Triangle tri = neighbours[i];
-						if (tri != null) continue;
-						Edge edge = Edges[i];
-						Vector3 begin = (edge.begin * size).ToVector3xz();
-						Vector3 end = (edge.end * size).ToVector3xz();
-						GizmosExtensions.DrawLineThick(begin, end, 5, Color.red);
-						// HandlesExtensions.DrawLabel(, $"{i}: {text}");
-					}
+				{
+					Edge border = BorderEdge;
+					Vector3 begin = matrix.MultiplyPoint3x4(border.begin.ToVector3xz());
+					Vector3 end = matrix.MultiplyPoint3x4(border.end.ToVector3xz());
+					GizmosExtensions.DrawLineThick(begin, end, thickness, Color.red);
+				}
 
 				GizmosExtensions.DrawTriWire(
-					Vertices.Select(vertex => (vertex * size).ToVector3xz() + originPos).ToArray(),
+					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray(),
 					thickness,
 					color
 				);
 			}
 
-			public void OnGizmosDraw(
-				Vector3 originPos, Vector2 size, Color color = default, bool projectedOnTerrain = false
-			)
+			public void OnGizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
 			{
-				Vector3[] verticesInWorld;
-				if (projectedOnTerrain)
-				{
-					var terrain = Terrain.activeTerrain;
-					verticesInWorld = Vertices
-						.Select(vertex => terrain.Project((vertex * size).ToVector3xz() + originPos))
-						.ToArray();
-				}
-				else
-				{
-					verticesInWorld = Vertices
-						.Select(vertex => (vertex * size).ToVector3xz() + originPos)
-						.ToArray();
-				}
-
+				var terrain = Terrain.activeTerrain;
+				Vector3[] verticesInWorld = Vertices
+					.Select(vertex =>
+					{
+						Vector3 v = matrix.MultiplyPoint3x4(vertex.ToVector3xz());
+						return terrain != null && projectedOnTerrain ? terrain.Project(v) : v; 
+					})
+					.ToArray();
+				
 				GizmosExtensions.DrawTri(verticesInWorld, color);
 			}
 #endif
@@ -299,8 +289,8 @@ namespace DavidUtils.Geometry
 
 		public Triangle[] GetBoundingBoxTriangles()
 		{
-			var t1 = new Triangle(new Vector2(2, -1), new Vector2(-1, 2), new Vector2(-1, -1));
-			var t2 = new Triangle(new Vector2(-1, 2), new Vector2(2, -1), new Vector2(2, 2));
+			var t1 = new Triangle(new Vector2(1.1f, -.1f), new Vector2(-.1f, 1.1f), new Vector2(-.1f, -.1f));
+			var t2 = new Triangle(new Vector2(-.1f, 1.1f), new Vector2(1.1f, -.1f), new Vector2(1.1f, 1.1f));
 
 			t1.neighbours[0] = t2;
 			t2.neighbours[0] = t1;
@@ -348,12 +338,12 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		public void OnDrawGizmos(Vector3 pos, Vector2 size, bool wire = false, bool projectOnTerrain = false)
+		public void OnDrawGizmos(Matrix4x4 matrix, bool wire = false, bool projectOnTerrain = false)
 		{
 			// VERTICES
 			Gizmos.color = Color.grey;
 			foreach (Vector2 vertex in vertices)
-				Gizmos.DrawSphere(pos + (vertex * size).ToVector3xz(), .1f);
+				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
 
 			// DELAUNAY TRIANGULATION
 			Color[] colors = Color.cyan.GetRainBowColors(triangles.Count, 0.02f);
@@ -362,22 +352,22 @@ namespace DavidUtils.Geometry
 			{
 				Triangle tri = triangles[i];
 				if (ended && !wire)
-					tri.OnGizmosDraw(pos, size, colors[i], projectOnTerrain);
+					tri.OnGizmosDraw(matrix, colors[i], projectOnTerrain);
 				else
-					tri.OnGizmosDrawWire(pos, size, 2, Color.white);
+					tri.OnGizmosDrawWire(matrix, 2, Color.white);
 			}
 
 			// ADDED TRIANGLES
 			colors = Color.cyan.GetRainBowColors(addedTris.Count, 0.02f);
-			foreach (Triangle t in addedTris) t.OnGizmosDraw(pos, size);
+			foreach (Triangle t in addedTris) t.OnGizmosDrawWire(matrix, 3, Color.white);
 			for (var i = 0; i < addedTris.Count; i++)
-				addedTris[i].OnGizmosDraw(pos + Vector3.down, size, colors[i]);
+				addedTris[i].OnGizmosDraw(matrix, colors[i]);
 
 			// DELETED TRIANGLES
-			foreach (Triangle t in removedTris) t.OnGizmosDrawWire(pos, size, 2, Color.red);
+			foreach (Triangle t in removedTris) t.OnGizmosDrawWire(matrix, 3, Color.red);
 
 			// POLYGON
-			foreach (Edge e in polygon) e.OnGizmosDraw(pos, size, 2, Color.green);
+			foreach (Edge e in polygon) e.OnGizmosDraw(matrix, 3, Color.green);
 		}
 
 		#endregion

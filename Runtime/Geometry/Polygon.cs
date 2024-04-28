@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using DavidUtils.DebugExtensions;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
@@ -68,45 +68,49 @@ namespace DavidUtils.Geometry
 		}
 
 		#endregion
-
-		public Vector3 GetWorldPosition(Vector3 origin, Vector2 size) =>
-			origin + (centroid * size).ToVector3xz();
+		
 
 		#region DEBUG
+		#if UNITY_EDITOR
 
-		public void OnDrawGizmosWire(
-			Vector3 pos, Vector2 size, float margin = 1, float thickness = 1, Color color = default
-		)
+		public void OnDrawGizmosWire(Matrix4x4 mTRS, float margin = 0, float thickness = 1, Color color = default)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector2 c = centroid;
+			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS);
+			Vector3 centroidInWorld = ToWorldSpace(mTRS);
+			if (margin != 0) 
+				verticesInWorld = verticesInWorld.Select(v => v + (centroidInWorld - v).normalized * margin).ToArray();
 
-			GizmosExtensions.DrawPolygonWire(
-				vertices.Select(v => pos + ((v - c) * size - (v - c).normalized * margin).ToVector3xz())
-					.ToArray(),
-				thickness,
-				color
-			);
+			GizmosExtensions.DrawPolygonWire(verticesInWorld, thickness, color);
+			DrawGizmosCentroid(centroidInWorld);
 		}
 
-		public void OnDrawGizmos(Vector3 pos, Vector2 size, float margin = 1, Color color = default)
+		public void OnDrawGizmos(Matrix4x4 mTRS, float margin = 0, Color color = default)
 		{
 			if (vertices == null || vertices.Length == 0) return;
+			
+			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS);
+			Vector3 centroidInWorld = ToWorldSpace(mTRS);
+			if (margin != 0) 
+				verticesInWorld = verticesInWorld.Select(v => v + (centroidInWorld - v).normalized * margin).ToArray();
 
-			Vector2 c = centroid;
+			GizmosExtensions.DrawPolygon(verticesInWorld, color);
+			DrawGizmosCentroid(centroidInWorld);
+		}
 
-			// POLYGON
-			GizmosExtensions.DrawPolygon(
-				vertices.Select(v => pos + ((v - c) * size - (v - c).normalized * margin).ToVector3xz()).ToArray(),
-				color
-			);
-
-			// CENTROID
+		private void DrawGizmosCentroid(Vector3 pos)
+		{
 			Gizmos.color = Color.grey;
 			Gizmos.DrawSphere(pos, 0.1f);
 		}
+		
+		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToVector3xz());
+		
+		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) => 
+			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToVector3xz())).ToArray();
 
+		#endif
 		#endregion
 	}
 }

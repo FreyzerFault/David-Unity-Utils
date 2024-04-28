@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace DavidUtils.Geometry
+namespace DavidUtils.Geometry.TestObjects
 {
 	public class DelaunayTest : MonoBehaviour
 	{
@@ -39,6 +39,6 @@ namespace DavidUtils.Geometry
 			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
 		}
 
-		private void OnDrawGizmos() => _delaunay.OnDrawGizmos(transform.position, transform.localScale);
+		private void OnDrawGizmos() => _delaunay.OnDrawGizmos(transform.localToWorldMatrix);
 	}
 }

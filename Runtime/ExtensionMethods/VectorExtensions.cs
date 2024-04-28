@@ -43,6 +43,8 @@ namespace DavidUtils.ExtensionMethods
 			Mathf.InverseLerp(min.y, max.y, p.y),
 			Mathf.InverseLerp(min.z, max.z, p.z)
 		);
+		
+		public static bool IsNormalized(this Vector2 p) => p.x is >= 0 and <= 1 && p.y is >= 0 and <= 1;
 
 		#endregion
 
@@ -61,6 +63,17 @@ namespace DavidUtils.ExtensionMethods
 
 		public static Vector3 ToVector3xz(this Vector2 v) => new(v.x, 0, v.y);
 		public static Vector3 ToVector3xy(this Vector2 v) => new(v.x, v.y, 0);
+
+		#endregion
+
+		#region to 4D for Matrix Transformations
+
+		public static Vector4 ToVector4xy(this Vector2 v) => new(v.x, v.y, 0, 0);
+		public static Vector4 ToVector4xz(this Vector2 v) => new(v.x, 0, v.y, 0);
+		public static Vector4 ToVector4(this Vector3 v) => new(v.x, v.y, v.z, 0);
+		
+		public static Vector2 ToVector2xy(this Vector4 v) => new(v.x, v.y);
+		public static Vector2 ToVector2xz(this Vector4 v) => new(v.x, v.z);
 
 		#endregion
 	}

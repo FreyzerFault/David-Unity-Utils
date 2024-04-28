@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace DavidUtils.Geometry
+namespace DavidUtils.Geometry.TestObjects
 {
 	public class VoronoiTest : MonoBehaviour
 	{
@@ -40,7 +40,7 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		private void OnDrawGizmos() => voronoi.OnDrawGizmos(transform.position, transform.localScale);
+		private void OnDrawGizmos() => voronoi.OnDrawGizmos(transform.localToWorldMatrix);
 
 		#endregion
 	}
