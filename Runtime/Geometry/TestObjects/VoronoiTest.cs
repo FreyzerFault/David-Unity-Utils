@@ -38,10 +38,14 @@ namespace DavidUtils.Geometry.TestObjects
 
 		private void Initialize() => voronoi.Reset();
 
+#if UNITY_EDITOR
+
 		#region DEBUG
 
 		private void OnDrawGizmos() => voronoi.OnDrawGizmos(transform.localToWorldMatrix);
 
 		#endregion
+
+#endif
 	}
 }

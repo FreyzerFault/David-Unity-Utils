@@ -2,9 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
+#if UNITY_EDITOR
+using DavidUtils.DebugUtils;
+#endif
 
 namespace DavidUtils.Geometry
 {
@@ -125,13 +127,15 @@ namespace DavidUtils.Geometry
 			{
 				var terrain = Terrain.activeTerrain;
 				Vector3[] verticesInWorld = Vertices
-					.Select(vertex =>
-					{
-						Vector3 v = matrix.MultiplyPoint3x4(vertex.ToVector3xz());
-						return terrain != null && projectedOnTerrain ? terrain.Project(v) : v; 
-					})
+					.Select(
+						vertex =>
+						{
+							Vector3 v = matrix.MultiplyPoint3x4(vertex.ToVector3xz());
+							return terrain != null && projectedOnTerrain ? terrain.Project(v) : v;
+						}
+					)
 					.ToArray();
-				
+
 				GizmosExtensions.DrawTri(verticesInWorld, color);
 			}
 #endif

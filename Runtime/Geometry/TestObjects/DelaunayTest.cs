@@ -39,6 +39,8 @@ namespace DavidUtils.Geometry.TestObjects
 			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
 		}
 
+#if UNITY_EDITOR
 		private void OnDrawGizmos() => _delaunay.OnDrawGizmos(transform.localToWorldMatrix);
+#endif
 	}
 }

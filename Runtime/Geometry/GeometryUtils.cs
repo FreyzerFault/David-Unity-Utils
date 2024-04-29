@@ -313,7 +313,7 @@ namespace DavidUtils.Geometry
 			for (var i = 0; i < numSeeds; i++)
 			{
 				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
-				seeds[i] = new Vector2(.5f * cellSize, Mathf.Sin(i) * cellSize) + cellOrigin;
+				seeds[i] = new Vector2(.5f * cellSize, (Mathf.Sin(i) + 1) / 2 * cellSize) + cellOrigin;
 
 				// Next Row
 				cellRow = (cellRow + 1) % cellRows;

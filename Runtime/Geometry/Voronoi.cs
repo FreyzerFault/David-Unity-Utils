@@ -2,11 +2,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
 using UnityEngine;
 using Random = UnityEngine.Random;
+
+#if UNITY_EDITOR
+using DavidUtils.DebugUtils;
+#endif
 
 namespace DavidUtils.Geometry
 {
@@ -129,7 +132,7 @@ namespace DavidUtils.Geometry
 
 					Delaunay.Edge borderEdge = tri.Edges[i];
 					if (borderEdge.begin != seed && borderEdge.end != seed) continue;
-					
+
 					Vector2 m = (borderEdge.begin + borderEdge.end) / 2;
 
 					// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz con el Rayo [c -> m]
@@ -224,7 +227,7 @@ namespace DavidUtils.Geometry
 				Run_OneIteration();
 				yield return new WaitForSecondsRealtime(delay);
 			}
-			
+
 			drawDelaunayTriangulation = false;
 		}
 
@@ -258,7 +261,8 @@ namespace DavidUtils.Geometry
 
 
 		#region DEBUG
-		#if UNITY_EDITOR
+
+#if UNITY_EDITOR
 
 		private Vector3 MousePos => Input.mousePosition;
 
@@ -307,7 +311,7 @@ namespace DavidUtils.Geometry
 		{
 			if (!drawGrid) return;
 
-			if (seedDistribution == SeedDistribution.Random)	
+			if (seedDistribution == SeedDistribution.Random)
 			{
 				// Surrounding Bound only
 				GizmosExtensions.DrawQuadWire(matrix, 5, color);
@@ -326,16 +330,14 @@ namespace DavidUtils.Geometry
 
 			Vector3 pos = matrix.GetPosition();
 			Vector2 size = matrix.lossyScale.ToVector2xz();
-			
+
 			// Region Polygons
 			Color[] colors = Color.red.GetRainBowColors(regions.Count);
 			for (var i = 0; i < regions.Count; i++)
-			{
 				if (wire)
 					regions[i].OnDrawGizmosWire(matrix, regionMargin, 5, colors[i]);
 				else
 					regions[i].OnDrawGizmos(matrix, regionMargin, colors[i]);
-			}
 
 			// MOUSE to COORDS in VORONOI Bounding Box
 			bool mouseOverVoronoi = MouseInputUtils.MouseInArea_CenitalView(pos, size, out Vector2 normPos);
@@ -344,17 +346,18 @@ namespace DavidUtils.Geometry
 			Gizmos.color = Color.magenta;
 			Gizmos.DrawSphere((normPos * size).ToVector3xz() + pos, .01f);
 
-			// Dibujar solo si el raton esta encima
-			if (!mouseOverVoronoi) return;
-			
-			Polygon regionSelected = regions.First(r => r.Contains_RayCast(normPos));
+			// Dibujar solo si el raton esta encima o esta animandose y es la ultima region añadida
+			if (!mouseOverVoronoi && Ended) return;
+
+			Polygon regionSelected = Ended ? regions.First(r => r.Contains_RayCast(normPos)) : regions.Last();
+
 			var bounds = new Bounds2D(Vector2.zero, Vector2.one);
-				
+
 			// Triangulos usados para generar la region
 			foreach (Delaunay.Triangle t in delaunay.FindTrianglesAroundVertex(regionSelected.centroid))
 			{
 				t.OnGizmosDrawWire(matrix, 8, Color.blue);
-					
+
 				// Circuncentros de cada triangulo
 				Vector2? circumcenter = t.GetCircumcenter();
 				if (!circumcenter.HasValue) continue;
@@ -369,7 +372,7 @@ namespace DavidUtils.Geometry
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
 			}
 		}
-		
+
 		public bool MouseInRegion(out int regionIndex, Vector3 originPos, Vector2 size)
 		{
 			regionIndex = -1;
@@ -383,8 +386,9 @@ namespace DavidUtils.Geometry
 
 			return false;
 		}
-		
-		#endif
+
+#endif
+
 		#endregion
 	}
 }
