@@ -94,5 +94,33 @@ namespace DavidUtils.Geometry
 				.Select(i => i.Value)
 				.OrderBy(i => (i - p).sqrMagnitude);
 		}
+
+		public Vector2[] CropPolygon(Vector2[] polygonVertices)
+		{
+			List<Vector2> croppedPolygon = new();
+			for (var i = 0; i < polygonVertices.Length; i++)
+			{
+				Vector2 vertex = polygonVertices[i];
+
+				// Si está dentro, conservamos el vertice
+				if (Contains(vertex))
+				{
+					croppedPolygon.Add(vertex);
+					continue;
+				}
+
+				// Si esta fuera de la Bounding Box, buscamos la interseccion de sus aristas con la BB
+				Vector2 prev = polygonVertices[(i - 1 + polygonVertices.Length) % polygonVertices.Length];
+				Vector2 next = polygonVertices[(i + 1) % polygonVertices.Length];
+				Vector2[] i1 = Intersections_Segment(prev, vertex).ToArray();
+				Vector2[] i2 = Intersections_Segment(vertex, next).ToArray();
+
+				// Añadimos las intersecciones en vez del vertice si las hay
+				croppedPolygon.AddRange(i1);
+				croppedPolygon.AddRange(i2);
+			}
+
+			return croppedPolygon.ToArray();
+		}
 	}
 }

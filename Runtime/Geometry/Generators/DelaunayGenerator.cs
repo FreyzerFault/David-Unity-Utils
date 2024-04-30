@@ -2,9 +2,9 @@
 using System.Linq;
 using UnityEngine;
 
-namespace DavidUtils.Geometry.TestObjects
+namespace DavidUtils.Geometry.Generators
 {
-	public class DelaunayTest : MonoBehaviour
+	public class DelaunayGenerator : MonoBehaviour
 	{
 		public int numSeeds = 10;
 		private Vector2[] _seeds = Array.Empty<Vector2>();

@@ -98,8 +98,14 @@ namespace DavidUtils.Geometry
 			}
 
 			// MEDIATRIZ para encontrar el circuncentro, vértice buscado en Voronoi
-			public Vector2? GetCircumcenter() =>
-				GeometryUtils.CircleCenter(v1, v2, v3);
+			public Vector2 GetCircumcenter()
+			{
+				Vector2? c = GeometryUtils.CircleCenter(v1, v2, v3);
+				if (c.HasValue) return c.Value;
+
+				// Son colineares
+				return (v1 + v2 + v3) / 3;
+			}
 
 			public static Triangle SuperTriangle =>
 				new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));

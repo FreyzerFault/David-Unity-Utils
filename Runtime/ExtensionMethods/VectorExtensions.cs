@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace DavidUtils.ExtensionMethods
@@ -43,7 +44,7 @@ namespace DavidUtils.ExtensionMethods
 			Mathf.InverseLerp(min.y, max.y, p.y),
 			Mathf.InverseLerp(min.z, max.z, p.z)
 		);
-		
+
 		public static bool IsNormalized(this Vector2 p) => p.x is >= 0 and <= 1 && p.y is >= 0 and <= 1;
 
 		#endregion
@@ -71,9 +72,25 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector4 ToVector4xy(this Vector2 v) => new(v.x, v.y, 0, 0);
 		public static Vector4 ToVector4xz(this Vector2 v) => new(v.x, 0, v.y, 0);
 		public static Vector4 ToVector4(this Vector3 v) => new(v.x, v.y, v.z, 0);
-		
+
 		public static Vector2 ToVector2xy(this Vector4 v) => new(v.x, v.y);
 		public static Vector2 ToVector2xz(this Vector4 v) => new(v.x, v.z);
+
+		#endregion
+
+		#region SORTING
+
+		// Ordena los puntos por angulo respecto a un centroide
+		public static Vector2[] SortByAngle(this IEnumerable<Vector2> points, Vector2 centroid) =>
+			points.OrderBy(p => Mathf.Atan2(p.y - centroid.y, p.x - centroid.x)).ToArray();
+
+		// Ordena los puntos por angulo respecto a un centroide, con un eje de giro
+		// Utiliza el primer punto como referencia de ángulo 0, por lo que siempre sera el primero
+		public static Vector3[] SortByAngle(this IEnumerable<Vector3> points, Vector3 centroid, Vector3 axis)
+		{
+			Vector3 refPoint = points.First();
+			return points.OrderBy(p => Vector3.SignedAngle(refPoint - centroid, p - centroid, axis)).ToArray();
+		}
 
 		#endregion
 	}

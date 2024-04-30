@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Linq;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
-namespace DavidUtils.Geometry.TestObjects
+namespace DavidUtils.Geometry.Generators
 {
-	public class VoronoiTest : MonoBehaviour
+	public class VoronoiGenerator : MonoBehaviour
 	{
 		public int numSeeds = 10;
 		private readonly Vector2[] _seeds = Array.Empty<Vector2>();
@@ -19,14 +20,13 @@ namespace DavidUtils.Geometry.TestObjects
 		public float delay = 0.1f;
 		private Coroutine animationCoroutine;
 
+		public bool SeedsGenerated => voronoi.seeds?.Length > 0;
+
 		private void Start()
 		{
 			Initialize();
-
-			voronoi.GenerateSeeds(numSeeds);
-
-			if (animated) animationCoroutine = StartCoroutine(voronoi.AnimationCoroutine(delay));
-			else voronoi.GenerateVoronoi();
+			GenerateSeeds();
+			RunVoronoi();
 		}
 
 		private void Update()
@@ -36,7 +36,23 @@ namespace DavidUtils.Geometry.TestObjects
 			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
 		}
 
-		private void Initialize() => voronoi.Reset();
+		public void Initialize() => voronoi.Reset();
+		public void GenerateSeeds() => voronoi.GenerateSeeds(numSeeds);
+
+		public void GenerateNewSeeds()
+		{
+			voronoi.seed = Random.Range(1, int.MaxValue);
+			GenerateSeeds();
+		}
+
+		public void RunVoronoi()
+		{
+			if (animated) animationCoroutine = StartCoroutine(voronoi.AnimationCoroutine(delay));
+			else voronoi.GenerateVoronoi();
+		}
+
+		public void StopGeneration() => StopCoroutine(animationCoroutine);
+
 
 #if UNITY_EDITOR
 
