@@ -1,4 +1,5 @@
-﻿using DavidUtils.Geometry.Generators;
+﻿using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry.Generators;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,7 +15,6 @@ namespace DavidUtils.Editor.Geometry_Generators
 			base.OnInspectorGUI();
 
 			EditorGUILayout.Space();
-
 
 			EditorGUILayout.BeginHorizontal();
 
@@ -35,6 +35,33 @@ namespace DavidUtils.Editor.Geometry_Generators
 			}
 
 			EditorGUILayout.EndHorizontal();
+		}
+
+		private void OnSceneGUI()
+		{
+			var voronoiGen = target as VoronoiGenerator;
+
+			if (voronoiGen == null) return;
+
+			Vector2[] seeds = voronoiGen.voronoi.seeds;
+
+			for (var i = 0; i < seeds.Length; i++)
+			{
+				EditorGUI.BeginChangeCheck();
+
+				Vector2 seed = seeds[i];
+				Vector3 pos = voronoiGen.transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToVector3xz());
+				Quaternion rot = voronoiGen.transform.rotation;
+				Vector3 scale = voronoiGen.transform.localScale;
+				Handles.TransformHandle(ref pos, ref rot, ref scale);
+
+				if (!EditorGUI.EndChangeCheck()) continue;
+
+				Undo.RecordObject(target, "Update Seed");
+				seeds[i] = voronoiGen.transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz();
+				voronoiGen.RunVoronoi();
+				break;
+			}
 		}
 	}
 }

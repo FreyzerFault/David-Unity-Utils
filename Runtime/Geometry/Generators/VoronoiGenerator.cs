@@ -10,7 +10,7 @@ namespace DavidUtils.Geometry.Generators
 		public int numSeeds = 10;
 		private readonly Vector2[] _seeds = Array.Empty<Vector2>();
 
-		[SerializeField] private Voronoi voronoi;
+		public Voronoi voronoi;
 		private Delaunay.Triangle[] _triangles => voronoi.delaunay.triangles.ToArray();
 		private Polygon[] Regions => voronoi.regions.ToArray();
 

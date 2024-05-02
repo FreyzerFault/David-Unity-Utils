@@ -26,6 +26,8 @@ namespace DavidUtils.Geometry
 		[HideInInspector] public Vector2[] seeds;
 		[HideInInspector] public List<Polygon> regions;
 
+		private Bounds2D Bounds => Bounds2D.NormalizedBounds;
+
 		private Delaunay.Triangle[] Triangles => delaunay.triangles.ToArray();
 
 		private Vector3[] SeedsInWorld => seeds.Select(seed => new Vector3(seed.x, 0, seed.y)).ToArray();
@@ -115,7 +117,7 @@ namespace DavidUtils.Geometry
 		{
 			var polygon = new List<Vector2>();
 			Delaunay.Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed);
-			var bounds = new Bounds2D(Vector2.zero, Vector2.one);
+			Bounds2D bounds = Bounds;
 
 			// Obtenemos cada circuncentro CCW
 			// Los ordenamos en sentido antihorario (a partir de su Coord. Polar respecto a la semilla)
@@ -144,6 +146,8 @@ namespace DavidUtils.Geometry
 
 					polygon.AddRange(intersections);
 				}
+
+			if (polygon.Count == 0) return polygon.ToArray();
 
 
 			// Ordenamos los vertices CCW antes de hacer mas modificaciones
@@ -215,6 +219,17 @@ namespace DavidUtils.Geometry
 				$"Se han encontrado {borderEdges.Count} ejes del borde. Algo ha ido mal porque debería ser 2"
 			);
 		}
+
+		public Polygon? GetRegion(Vector2 point) =>
+			point.IsNormalized()
+				? regions[
+					regions
+						.Select((r, i) => new Tuple<int, float>(i, Vector2.Distance(r.centroid, point)))
+						.OrderBy(t => t.Item2)
+						.First()
+						.Item1
+				]
+				: null;
 
 		#region DEBUG
 
@@ -296,25 +311,22 @@ namespace DavidUtils.Geometry
 					regions[i].OnDrawGizmos(matrix, regionMargin, colors[i]);
 
 			// MOUSE to COORDS in VORONOI Bounding Box
-			bool mouseOverVoronoi = MouseInputUtils.MouseInArea_CenitalView(pos, size, out Vector2 normPos);
+			Vector2 mousePosNorm = Bounds.Transform(matrix).NormalizeMousePosition_XZ();
 
 			// Mouse Pos
-			Gizmos.color = Color.magenta;
-			Gizmos.DrawSphere((normPos * size).ToVector3xz() + pos, .01f);
+			MouseInputUtils.DrawGizmos_XZ();
 
 			// Dibujar solo si el raton esta encima o esta animandose y es la ultima region añadida
-			if (!mouseOverVoronoi && Ended) return;
+			if (!mousePosNorm.IsNormalized() && Ended) return;
 
-			Polygon regionSelected = Ended ? regions.FirstOrDefault(r => r.Contains_RayCast(normPos)) : regions.Last();
-
-			if (regionSelected.vertices == null || regionSelected.vertices.Length == 0) return;
-
-			DrawRegionSelected(regionSelected, matrix);
+			Polygon? selectedRegion = GetRegion(mousePosNorm);
+			if (selectedRegion.HasValue)
+				DrawRegionSelected(selectedRegion.Value, matrix);
 		}
 
 		public void DrawRegionSelected(Polygon region, Matrix4x4 matrix)
 		{
-			var bounds = new Bounds2D(Vector2.zero, Vector2.one);
+			Bounds2D bounds = Bounds;
 
 			// Triangulos usados para generar la region
 			foreach (Delaunay.Triangle t in delaunay.FindTrianglesAroundVertex(region.centroid))
