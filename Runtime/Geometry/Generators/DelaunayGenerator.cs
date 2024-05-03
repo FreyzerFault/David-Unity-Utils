@@ -21,7 +21,7 @@ namespace DavidUtils.Geometry.Generators
 		private void Awake()
 		{
 			_seeds = GeometryUtils.GenerateSeeds_WaveDistribution(numSeeds);
-			_delaunay.vertices = _seeds;
+			_delaunay.seeds = _seeds;
 
 			_delaunay.GetBoundingBoxTriangles();
 		}

@@ -68,32 +68,33 @@ namespace DavidUtils.Geometry
 		}
 
 		#endregion
-		
+
 
 		#region DEBUG
-		#if UNITY_EDITOR
 
-		public void OnDrawGizmosWire(Matrix4x4 mTRS, float margin = 0, float thickness = 1, Color color = default)
+#if UNITY_EDITOR
+
+		public void OnDrawGizmosWire(Matrix4x4 mTRS, float scale, float thickness = 1, Color color = default)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS);
 			Vector3 centroidInWorld = ToWorldSpace(mTRS);
-			if (margin != 0) 
-				verticesInWorld = verticesInWorld.Select(v => v + (centroidInWorld - v).normalized * margin).ToArray();
+			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS)
+				.Select(v => centroidInWorld + (v - centroidInWorld) * scale)
+				.ToArray();
 
 			GizmosExtensions.DrawPolygonWire(verticesInWorld, thickness, color);
 			DrawGizmosCentroid(centroidInWorld);
 		}
 
-		public void OnDrawGizmos(Matrix4x4 mTRS, float margin = 0, Color color = default)
+		public void OnDrawGizmos(Matrix4x4 mTRS, float scale, Color color = default)
 		{
 			if (vertices == null || vertices.Length == 0) return;
-			
-			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS);
+
 			Vector3 centroidInWorld = ToWorldSpace(mTRS);
-			if (margin != 0) 
-				verticesInWorld = verticesInWorld.Select(v => v + (centroidInWorld - v).normalized * margin).ToArray();
+			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS)
+				.Select(v => centroidInWorld + (v - centroidInWorld) * scale)
+				.ToArray();
 
 			GizmosExtensions.DrawPolygon(verticesInWorld, color);
 			DrawGizmosCentroid(centroidInWorld);
@@ -104,13 +105,14 @@ namespace DavidUtils.Geometry
 			Gizmos.color = Color.grey;
 			Gizmos.DrawSphere(pos, 0.1f);
 		}
-		
+
 		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToVector3xz());
-		
-		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) => 
+
+		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) =>
 			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToVector3xz())).ToArray();
 
-		#endif
+#endif
+
 		#endregion
 	}
 }

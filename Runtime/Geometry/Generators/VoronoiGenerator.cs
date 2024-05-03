@@ -51,6 +51,12 @@ namespace DavidUtils.Geometry.Generators
 			else voronoi.GenerateVoronoi();
 		}
 
+		public void RerunVoronoi()
+		{
+			Initialize();
+			RunVoronoi();
+		}
+
 		public void StopGeneration() => StopCoroutine(animationCoroutine);
 
 

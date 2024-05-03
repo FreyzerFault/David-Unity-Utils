@@ -5,6 +5,7 @@ using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 #if UNITY_EDITOR
@@ -55,7 +56,7 @@ namespace DavidUtils.Geometry
 			};
 
 			// Las convertimos en vertices para triangularlos con Delaunay primero
-			delaunay.vertices = seeds;
+			delaunay.seeds = seeds;
 		}
 
 		public void Reset()
@@ -67,7 +68,7 @@ namespace DavidUtils.Geometry
 
 		public void GenerateDelaunay()
 		{
-			delaunay.vertices = seeds;
+			delaunay.seeds = seeds;
 			delaunay.Triangulate(seeds);
 		}
 
@@ -105,9 +106,10 @@ namespace DavidUtils.Geometry
 		{
 			if (Ended) return;
 
-			if (Triangles.Length == 0) GenerateDelaunay();
-
-			regions.Add(new Polygon(GenerateRegion(seeds[iteration]), seeds[iteration]));
+			if (!delaunay.ended)
+				delaunay.Run_OnePoint();
+			else
+				regions.Add(new Polygon(GenerateRegion(seeds[iteration]), seeds[iteration]));
 
 			iteration++;
 		}
@@ -120,9 +122,6 @@ namespace DavidUtils.Geometry
 			Bounds2D bounds = Bounds;
 
 			// Obtenemos cada circuncentro CCW
-			// Los ordenamos en sentido antihorario (a partir de su Coord. Polar respecto a la semilla)
-			bool seedInBorder = SeedInBorder(seed, out List<Delaunay.Edge> borderEdges, regionTris);
-
 			polygon.AddRange(regionTris.Select(t => t.GetCircumcenter()));
 
 			// Para que la Region este dentro de unas fronteras
@@ -130,24 +129,35 @@ namespace DavidUtils.Geometry
 
 			// EXTENDER MEDIATRIZ
 			// Si la semilla forma parte del borde
-			if (seedInBorder)
-				// Para cada eje del borde, si el circuncentro de su triangulo no esta fuera de la Bounding Box
-				// Extendemos la mediatriz hasta la Bounding Box hasta que intersecte
-				foreach (Delaunay.Edge borderEdge in borderEdges)
+			if (regionTris.Any(t => t.IsBorder))
+				foreach (Delaunay.Triangle t in regionTris)
 				{
-					Vector2 m = (borderEdge.begin + borderEdge.end) / 2;
-					Vector2 edgeDir = (borderEdge.end - borderEdge.begin).normalized;
+					// Para cada triangulo del borde, si el circuncentro no esta fuera de la Bounding Box
+					// Extendemos la mediatriz de la arista del borde hasta la Bounding Box hasta que intersecte
+					if (bounds.OutOfBounds(t.GetCircumcenter())) continue;
 
-					// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
-					// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
-					// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
-					Vector2[] intersections =
-						bounds.Intersections_Ray(m, new Vector2(edgeDir.y, -edgeDir.x)).ToArray();
+					for (var i = 0; i < 3; i++)
+					{
+						Delaunay.Triangle neigh = t.neighbours[i];
+						if (neigh != null) continue;
 
-					polygon.AddRange(intersections);
+						Delaunay.Edge edge = t.Edges[i];
+						if (edge.Vertices.All(v => v != seed)) continue;
+
+						Vector2 m = (edge.begin + edge.end) / 2;
+						Vector2 edgeDir = (edge.end - edge.begin).normalized;
+
+						// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
+						// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
+						// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
+						Vector2[] intersections =
+							bounds.Intersections_Ray(m, new Vector2(edgeDir.y, -edgeDir.x)).ToArray();
+
+						polygon.AddRange(intersections);
+					}
 				}
 
-			if (polygon.Count == 0) return polygon.ToArray();
+			if (polygon.Count <= 2) return polygon.ToArray();
 
 
 			// Ordenamos los vertices CCW antes de hacer mas modificaciones
@@ -191,9 +201,13 @@ namespace DavidUtils.Geometry
 		///     el vecino)
 		///     Si la semilla es uno de los vertices de ese eje, significa que está en el borde
 		/// </summary>
-		private bool SeedInBorder(Vector2 seed, out List<Delaunay.Edge> borderEdges, Delaunay.Triangle[] tris = null)
+		private bool SeedInBorder(
+			Vector2 seed, out List<Delaunay.Edge> borderEdges, out List<Vector2> circumcenters,
+			Delaunay.Triangle[] tris = null
+		)
 		{
 			borderEdges = new List<Delaunay.Edge>();
+			circumcenters = new List<Vector2>();
 
 			tris ??= delaunay.FindTrianglesAroundVertex(seed);
 
@@ -211,7 +225,7 @@ namespace DavidUtils.Geometry
 					if (borderTri.Edges[i].Vertices.All(v => v != seed)) return false;
 
 					borderEdges.Add(borderTri.Edges[i]);
-					break;
+					circumcenters.Add(borderTri.GetCircumcenter());
 				}
 
 			if (borderEdges.Count == 2) return true;
@@ -237,8 +251,9 @@ namespace DavidUtils.Geometry
 
 		private Vector3 MousePos => Input.mousePosition;
 
-		[Range(0, 1)]
-		public float regionMargin = 0.05f;
+		[FormerlySerializedAs("regionMargin")]
+		[Range(.2f, 1)]
+		public float regionScale = 0.05f;
 
 		public bool drawSeeds = true;
 		public bool drawGrid = true;
@@ -299,16 +314,13 @@ namespace DavidUtils.Geometry
 		{
 			if (!drawRegions || regions is not { Count: > 0 }) return;
 
-			Vector3 pos = matrix.GetPosition();
-			Vector2 size = matrix.lossyScale.ToVector2xz();
-
 			// Region Polygons
 			Color[] colors = Color.red.GetRainBowColors(regions.Count);
 			for (var i = 0; i < regions.Count; i++)
 				if (wire)
-					regions[i].OnDrawGizmosWire(matrix, regionMargin, 5, colors[i]);
+					regions[i].OnDrawGizmosWire(matrix, regionScale, 5, colors[i]);
 				else
-					regions[i].OnDrawGizmos(matrix, regionMargin, colors[i]);
+					regions[i].OnDrawGizmos(matrix, regionScale, colors[i]);
 
 			// MOUSE to COORDS in VORONOI Bounding Box
 			Vector2 mousePosNorm = Bounds.Transform(matrix).NormalizeMousePosition_XZ();
@@ -321,10 +333,10 @@ namespace DavidUtils.Geometry
 
 			Polygon? selectedRegion = GetRegion(mousePosNorm);
 			if (selectedRegion.HasValue)
-				DrawRegionSelected(selectedRegion.Value, matrix);
+				GizmosRegionSelected(selectedRegion.Value, matrix);
 		}
 
-		public void DrawRegionSelected(Polygon region, Matrix4x4 matrix)
+		public void GizmosRegionSelected(Polygon region, Matrix4x4 matrix)
 		{
 			Bounds2D bounds = Bounds;
 

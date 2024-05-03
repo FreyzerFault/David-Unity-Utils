@@ -4,7 +4,7 @@ namespace DavidUtils.Geometry
 {
 	public static class GeometryUtils
 	{
-		public const float Epsilon = 0.01f;
+		public const float Epsilon = 0.001f;
 
 		public static bool Equals(float a, float b) => Mathf.Abs(a - b) < Epsilon;
 		public static bool Equals(Vector2 v1, Vector2 v2) => Mathf.Abs((v1 - v2).magnitude) < Epsilon;
@@ -12,12 +12,12 @@ namespace DavidUtils.Geometry
 		/// <summary>
 		///     AreaTri (p,begin,end) == NEGATIVO => Esta a la Derecha de la Arista (begin -> end)
 		/// </summary>
-		public static bool IsRight(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) < 0;
+		public static bool IsRight(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) < -Epsilon;
 
-		public static bool IsRight(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) < 0;
+		public static bool IsRight(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) < -Epsilon;
 
-		public static bool IsLeft(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) > 0;
-		public static bool IsLeft(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) > 0;
+		public static bool IsLeft(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) > Epsilon;
+		public static bool IsLeft(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) > Epsilon;
 
 		/// <summary>
 		///     Area del Triangulo al Cuadrado (para clasificar puntos a la derecha o izquierda de un segmento)

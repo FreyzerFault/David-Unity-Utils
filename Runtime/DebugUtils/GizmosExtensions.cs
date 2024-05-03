@@ -175,6 +175,7 @@ namespace DavidUtils.DebugUtils
 			Vector3[] points, float thickness = DEFAULT_THICKNESS, Color color = default, bool loop = false
 		)
 		{
+			if (points.Length == 0) return;
 			if (loop) points = points.Append(points[0]).ToArray();
 			var colors = new Color[points.Length];
 			Array.Fill(colors, color);
@@ -188,7 +189,7 @@ namespace DavidUtils.DebugUtils
 		public static void DrawPolygonWire(
 			Vector3[] vertices, float thickness = DEFAULT_THICKNESS, Color color = default
 		) =>
-			DrawLineThick(vertices.Append(vertices[0]).ToArray(), thickness, color);
+			DrawLineThick(vertices.Length == 0 ? vertices : vertices.Append(vertices[0]).ToArray(), thickness, color);
 
 
 		public static void DrawPolygon(Vector3[] vertices, Color color = default)

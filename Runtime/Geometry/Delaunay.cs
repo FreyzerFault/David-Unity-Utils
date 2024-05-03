@@ -66,7 +66,7 @@ namespace DavidUtils.Geometry
 
 			public bool IsBorder => neighbours.Length != 3 || neighbours.Any(n => n == null);
 
-			public Edge BorderEdge => Edges[neighbours.ToList().FindIndex(t => t == null)];
+			public Edge[] BorderEdges => Edges.Where((e, i) => neighbours[i] == null).ToArray();
 
 			public Triangle(
 				Vector2 v1, Vector2 v2, Vector2 v3, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
@@ -111,23 +111,12 @@ namespace DavidUtils.Geometry
 				new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
 #if UNITY_EDITOR
-			public void OnGizmosDrawWire(Matrix4x4 matrix, float thickness = 1, Color color = default)
-			{
-				// DEBUG NEIGHBOURS
-				if (IsBorder)
-				{
-					Edge border = BorderEdge;
-					Vector3 begin = matrix.MultiplyPoint3x4(border.begin.ToVector3xz());
-					Vector3 end = matrix.MultiplyPoint3x4(border.end.ToVector3xz());
-					GizmosExtensions.DrawLineThick(begin, end, thickness, Color.red);
-				}
-
+			public void OnGizmosDrawWire(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
 				GizmosExtensions.DrawTriWire(
 					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray(),
 					thickness,
 					color
 				);
-			}
 
 			public void OnGizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
 			{
@@ -147,7 +136,8 @@ namespace DavidUtils.Geometry
 #endif
 		}
 
-		[HideInInspector] public Vector2[] vertices = Array.Empty<Vector2>();
+		[HideInInspector] public Vector2[] seeds = Array.Empty<Vector2>();
+		[HideInInspector] public List<Vector2> vertices = new();
 		[HideInInspector] public List<Triangle> triangles = new();
 
 		// Algoritmo de Bowyer-Watson
@@ -172,7 +162,7 @@ namespace DavidUtils.Geometry
 			return triangles.ToArray();
 		}
 
-		public void Run() => triangles = Triangulate(vertices).ToList();
+		public void Run() => triangles = Triangulate(seeds).ToList();
 
 		#region PROGRESIVE RUN
 
@@ -195,19 +185,21 @@ namespace DavidUtils.Geometry
 
 		public void Run_OnePoint()
 		{
-			if (iterations > vertices.Length) return;
+			if (iterations > seeds.Length)
+				return;
 
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
 			polygon = new List<Edge>();
 
-			if (iterations == vertices.Length)
+			if (iterations == seeds.Length)
 				RemoveBoundingBox();
 			else
-				Triangulate(vertices[iterations]);
+				Triangulate(seeds[iterations]);
+
 			iterations++;
 
-			ended = iterations > vertices.Length;
+			ended = iterations > seeds.Length;
 		}
 
 		public void Reset()
@@ -215,6 +207,7 @@ namespace DavidUtils.Geometry
 			iterations = 0;
 			ended = false;
 			triangles = new List<Triangle>();
+			vertices = new List<Vector2>();
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
 			polygon = new List<Edge>();
@@ -222,6 +215,9 @@ namespace DavidUtils.Geometry
 
 		public void Triangulate(Vector2 point)
 		{
+			if (vertices.Any(v => Vector2.Distance(v, point) < GeometryUtils.Epsilon)) return;
+			vertices.Add(point);
+
 			// Si no hay triangulos, creamos el SuperTriangulo o una Bounding Box
 			if (triangles.Count == 0)
 			{
@@ -268,7 +264,14 @@ namespace DavidUtils.Geometry
 			}
 
 			// Ordenamos los nuevo triangulos del poligono CCW
-			newTris = newTris.OrderBy(t => Vector2.SignedAngle(Vector2.right, t.v1 - point)).ToArray();
+			newTris = newTris.OrderBy(
+					t =>
+					{
+						Vector2 polarPos = t.v1 - point;
+						return Mathf.Atan2(polarPos.y, polarPos.x);
+					}
+				)
+				.ToArray();
 
 
 			// Asignamos vecinos entre ellos. Como esta ordenado CCW t1 es el siguiente, y t2 el anterior
@@ -299,13 +302,14 @@ namespace DavidUtils.Geometry
 
 		public Triangle[] GetBoundingBoxTriangles()
 		{
-			var t1 = new Triangle(new Vector2(1.1f, -.1f), new Vector2(-.1f, 1.1f), new Vector2(-.1f, -.1f));
-			var t2 = new Triangle(new Vector2(-.1f, 1.1f), new Vector2(1.1f, -.1f), new Vector2(1.1f, 1.1f));
+			var bounds = new Bounds2D(Vector2.one * -.1f, Vector2.one * 1.1f);
+			var t1 = new Triangle(bounds.BR, bounds.TL, bounds.BL);
+			var t2 = new Triangle(bounds.TL, bounds.BR, bounds.TR);
 
 			t1.neighbours[0] = t2;
 			t2.neighbours[0] = t1;
 
-			boundingVertices = t1.Vertices.Concat(t2.Vertices).ToArray();
+			boundingVertices = bounds.Corners;
 
 			return new[] { t1, t2 };
 		}
@@ -317,12 +321,16 @@ namespace DavidUtils.Geometry
 			boundingVertices = superTri.Vertices;
 		}
 
-		// Elimina todos los Triangulos que contengan un vertice del SuperTriangulo
-		// Y reasigna el vecino a de cualquier triangulo vecino que tenga como vecino al triangulo eliminado a null
-		public void RemoveBoundingBox()
+		// Elimina todos los Triangulos que contengan un vertice del SuperTriangulo/s
+		// Reasigna el vecino a de cualquier triangulo vecino que tenga como vecino al triangulo eliminado a null
+		// Y repara el borde
+		public void RemoveBoundingBox() => RemoveBorder(boundingVertices);
+
+		private void RemoveBorder(Vector2[] points)
 		{
-			Triangle[] trisToRemove =
-				triangles.Where(t => t.Vertices.Any(v => boundingVertices.Contains(v))).ToArray();
+			// Cogemos todos los Triangulos que contengan un vertice del SuperTriangulo
+			HashSet<Triangle> trisToRemove = points.SelectMany(FindTrianglesAroundVertex).ToHashSet();
+
 			foreach (Triangle t in trisToRemove)
 			{
 				// Eliminamos las referencias de los vecinos
@@ -336,7 +344,78 @@ namespace DavidUtils.Geometry
 
 				triangles.Remove(t);
 			}
+
+			// Reparamos el borde para que sea CONVEXO
+
+			// Cogemos de cada triangulo que forme parte del borde su arista de borde
+			// y guardamos el indice del triangulo al que pertenece para asignar vecinos despues
+			Border[] borderEdges = Borders;
+
+			// Iteramos los ejes por PARES, para ver si son convexos o no
+			// Si NO es convexo, añadimos un triangulo al borde
+			for (var i = 0; i < borderEdges.Length; i++)
+			{
+				Border border = borderEdges[i];
+				Border nextBorder = borderEdges[(i + 1) % borderEdges.Length];
+
+				// Siendo los ejes v1 - v2, v2 - v3
+				// Es convexo si el vertice intermedio v2 esta a la derecha de la linea v1 - v3
+				Vector2 v1 = border.edge.begin, v2 = border.edge.end, v3 = nextBorder.edge.end;
+				if (!IsConcave(border.edge, nextBorder.edge)) continue;
+
+				var tri = new Triangle(v3, v2, v1);
+				tri.SetNeighbour(nextBorder.tri, 0);
+				tri.SetNeighbour(border.tri, 1);
+				triangles.Add(tri);
+			}
 		}
+
+		private void RemovePointFromBorder(Vector2 point)
+		{
+		}
+
+		private struct Border
+		{
+			public readonly Triangle tri;
+			public readonly Edge edge;
+
+			public Vector2 polarPos => edge.begin - Vector2.one * .5f;
+			public float polarAngle => Mathf.Atan2(polarPos.y, polarPos.x);
+
+			public Border(Triangle tri, Edge edge)
+			{
+				this.tri = tri;
+				this.edge = edge;
+			}
+		}
+
+		// Lista de Aristas que forman el Borde
+		// (Busca las que no tengan triangulo vecino)
+		// Ordenadas CCW por sus coords polares respecto a 0,0
+		private Border[] Borders
+		{
+			get
+			{
+				List<Border> borders = new();
+				foreach (Triangle tri in triangles)
+				{
+					if (!tri.IsBorder) continue;
+
+					Triangle tri1 = tri;
+					borders.AddRange(tri.BorderEdges.Select(e => new Border(tri1, e)));
+				}
+
+				return borders.OrderBy(border => border.polarAngle).ToArray();
+			}
+		}
+
+		// Comprueba si dos aristas son CONCAVAS (el vertice intermedio esta a la Izquierda)
+		// Presupone que se suceden (e1.end == e2.begin)
+		private bool IsConcave(Edge e1, Edge e2) =>
+			GeometryUtils.IsLeft(e1.begin, e2.end, e1.end);
+
+		private bool IsConvex(Edge e1, Edge e2) =>
+			GeometryUtils.IsRight(e1.begin, e2.end, e1.end);
 
 		#endregion
 
@@ -352,7 +431,7 @@ namespace DavidUtils.Geometry
 		{
 			// VERTICES
 			Gizmos.color = Color.grey;
-			foreach (Vector2 vertex in vertices)
+			foreach (Vector2 vertex in seeds)
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
 
 			// DELAUNAY TRIANGULATION
@@ -378,7 +457,16 @@ namespace DavidUtils.Geometry
 
 			// POLYGON
 			foreach (Edge e in polygon) e.OnGizmosDraw(matrix, 3, Color.green);
+
+			// Highlight Border
+			GizmosHightlightBorder(matrix);
 		}
+
+		private void GizmosHightlightBorder(Matrix4x4 matrix) => GizmosExtensions.DrawPolygonWire(
+			Borders.Select(t => t.edge.begin).Select(p => matrix.MultiplyPoint3x4(p.ToVector3xz())).ToArray(),
+			10,
+			Color.red
+		);
 
 		#endregion
 

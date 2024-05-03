@@ -34,6 +34,9 @@ namespace DavidUtils.Editor.Geometry_Generators
 				voronoiGen.RunVoronoi();
 			}
 
+			if (GUILayout.Button("Reset"))
+				voronoiGen.Initialize();
+
 			EditorGUILayout.EndHorizontal();
 		}
 
@@ -53,12 +56,13 @@ namespace DavidUtils.Editor.Geometry_Generators
 				Vector3 pos = voronoiGen.transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToVector3xz());
 				Quaternion rot = voronoiGen.transform.rotation;
 				Vector3 scale = voronoiGen.transform.localScale;
-				Handles.TransformHandle(ref pos, ref rot, ref scale);
+				pos = Handles.PositionHandle(pos, rot);
 
 				if (!EditorGUI.EndChangeCheck()) continue;
 
 				Undo.RecordObject(target, "Update Seed");
 				seeds[i] = voronoiGen.transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz();
+				voronoiGen.RerunVoronoi();
 				voronoiGen.RunVoronoi();
 				break;
 			}
