@@ -1,0 +1,203 @@
+﻿using System;
+using System.Linq;
+using DavidUtils.DebugUtils;
+using DavidUtils.ExtensionMethods;
+using UnityEngine;
+using Random = UnityEngine.Random;
+
+namespace DavidUtils.Geometry.Generators
+{
+	public class SeedsGenerator : MonoBehaviour
+	{
+		public enum SeedsDistribution { Random, Regular, SinWave }
+
+		public int randSeed = 10;
+
+		public int numSeeds = 10;
+		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
+
+		[HideInInspector] public Vector2[] seeds = Array.Empty<Vector2>();
+		public Vector2[] Seeds
+		{
+			get => seeds;
+			set
+			{
+				seeds = value;
+				numSeeds = seeds.Length;
+				OnSeedsUpdated();
+			}
+		}
+
+		public bool SeedsGenerated => seeds?.Length == numSeeds;
+
+		#region TO WORLD COORDS
+
+		protected Vector3[] Seeds3D_XY => Seeds.Select(seed => seed.ToVector3xy()).ToArray();
+		protected Vector3[] Seeds3D_XZ => Seeds.Select(seed => seed.ToVector3xz()).ToArray();
+
+		protected Vector3[] SeedsInWorld_XZ =>
+			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToVector3xz())).ToArray();
+		protected Vector3[] SeedsInWorld_XY =>
+			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToVector3xy())).ToArray();
+
+		#endregion
+
+		protected Bounds2D Bounds => Bounds2D.NormalizedBounds;
+
+		protected virtual void Awake() => GenerateSeeds();
+
+		protected virtual void OnSeedsUpdated()
+		{
+		}
+
+		public void RandomizeSeeds()
+		{
+			randSeed = Random.Range(1, int.MaxValue);
+			GenerateSeeds();
+		}
+
+		protected void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution);
+
+		/// <summary>
+		///     Genera un set de puntos 2D random dentro del rango [0,0] -> [1,1]
+		///     Con distintos tipos de distribución
+		/// </summary>
+		public static Vector2[] GenerateSeeds(
+			int numSeeds, int randSeed = 1, SeedsDistribution seedsDistribution = SeedsDistribution.Regular
+		)
+		{
+			Random.InitState(randSeed);
+
+			return seedsDistribution switch
+			{
+				SeedsDistribution.Random => GenerateSeeds_RandomDistribution(numSeeds),
+				SeedsDistribution.Regular => GenerateSeeds_RegularDistribution(numSeeds),
+				SeedsDistribution.SinWave => GenerateSeeds_WaveDistribution(numSeeds),
+				_ => GenerateSeeds_RegularDistribution(numSeeds)
+			};
+		}
+
+
+		/// <summary>
+		///     Genera un set de puntos 2D random dentro del rango [0,0] -> [1,1]
+		/// </summary>
+		public static Vector2[] GenerateSeeds_RandomDistribution(int numSeeds)
+		{
+			var seeds = new Vector2[numSeeds];
+			for (var i = 0; i < numSeeds; i++) seeds[i] = new Vector2(Random.value, Random.value);
+			return seeds;
+		}
+
+		/// <summary>
+		///     Genera un set de puntos 2D random dentro del rango [0,0] -> [1,1]
+		///     Repartidos equitativamente en una grid NxN
+		///     N = floor(sqrt(numSeeds))
+		///     9 seeds => 3x3; 10 seeds => 3x3, el restante se genera empezando desde 0,0 en adelante
+		/// </summary>
+		public static Vector2[] GenerateSeeds_RegularDistribution(int numSeeds)
+		{
+			var seeds = new Vector2[numSeeds];
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
+			float cellSize = 1f / cellRows;
+
+			int cellRow = 0, cellCol = 0;
+
+			for (var i = 0; i < numSeeds; i++)
+			{
+				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
+				seeds[i] = new Vector2(Random.value * cellSize, Random.value * cellSize) + cellOrigin;
+
+				// Next Row
+				cellRow = (cellRow + 1) % cellRows;
+
+				// Jump Column
+				if (cellRow == cellRows - 1)
+					cellCol = (cellCol + 1) % cellRows;
+			}
+
+			return seeds;
+		}
+
+		/// <summary>
+		///     Genera un set de puntos 2D en el rango [0,0] -> [1,1]
+		///     Forman una onda senoidal en una grid NxN
+		/// </summary>
+		public static Vector2[] GenerateSeeds_WaveDistribution(int numSeeds)
+		{
+			var seeds = new Vector2[numSeeds];
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
+			float cellSize = 1f / cellRows;
+
+			int cellRow = 0, cellCol = 0;
+
+			for (var i = 0; i < numSeeds; i++)
+			{
+				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
+				seeds[i] = new Vector2(.5f * cellSize, (Mathf.Sin(i) + 1) / 2 * cellSize) + cellOrigin;
+
+				// Next Row
+				cellRow = (cellRow + 1) % cellRows;
+
+				// Jump Column
+				if (cellRow == cellRows - 1)
+					cellCol = (cellCol + 1) % cellRows;
+			}
+
+			return seeds;
+		}
+
+		#region DEBUG
+
+		public bool projectOnTerrain = true;
+		public bool drawSeeds = true;
+		public bool drawGrid = true;
+		[HideInInspector] public Color[] colors = Array.Empty<Color>();
+
+		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
+		protected virtual void OnDrawGizmos()
+		{
+			Matrix4x4 matrix = transform.localToWorldMatrix;
+			Color gridColor = Color.blue;
+			if (drawSeeds) DrawSeeds(colors);
+			if (drawGrid)
+				if (seedsDistribution == SeedsDistribution.Random)
+					DrawBoundinBox(matrix, gridColor);
+				else
+					DrawGrid(matrix, gridColor);
+		}
+
+		private void DrawBoundinBox(Matrix4x4 matrix, Color color = default)
+		{
+			if (projectOnTerrain)
+				GizmosExtensions.DrawQuadWire_OnTerrain(matrix, 5, color);
+			else
+				GizmosExtensions.DrawQuadWire(matrix, 5, color);
+		}
+
+		private void DrawGrid(Matrix4x4 matrix, Color color = default)
+		{
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Length));
+			if (projectOnTerrain)
+				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, matrix, 5, color);
+			else
+				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
+		}
+
+		private void DrawSeeds(Color[] colors = null)
+		{
+			Gizmos.color = colors?.Length > 0 ? colors[0] : Color.grey;
+			var terrain = Terrain.activeTerrain;
+			Vector3[] seedsInWorld = projectOnTerrain
+				? SeedsInWorld_XZ.Select(s => terrain.Project(s)).ToArray()
+				: SeedsInWorld_XZ;
+			for (var i = 0; i < seedsInWorld.Length; i++)
+			{
+				if (colors?.Length > 0)
+					Gizmos.color = colors[i];
+				Gizmos.DrawSphere(seedsInWorld[i], 0.1f);
+			}
+		}
+
+		#endregion
+	}
+}

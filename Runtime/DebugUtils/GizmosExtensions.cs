@@ -76,38 +76,6 @@ namespace DavidUtils.DebugUtils
 		public static void DrawQuad(Matrix4x4 matrix, Color color = default, Color outlineColor = default) =>
 			Handles.DrawSolidRectangleWithOutline(QuadVertices(matrix), color, outlineColor);
 
-		// public static void DrawQuadWire(Vector3 center, Vector2 size, Quaternion rotation = default, float thickness = 1, Color color = default)
-		// {
-		//     Vector2 diagonal1 = Vector2.one * size / 2;
-		//     Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
-		//     Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
-		//     Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
-		//     var vertices = new[]
-		//     {
-		//         center - diagonal1Scaled,
-		//         center - diagonal2Scaled,
-		//         center + diagonal1Scaled,
-		//         center + diagonal2Scaled
-		//     };
-		//     DrawLineThick(vertices, thickness, color, true);
-		// }
-
-		// public static void DrawQuad(Vector3 center, Vector2 size, Quaternion rotation = default, Color color = default)
-		// {
-		//     Vector2 diagonal1 = Vector2.one * size / 2;
-		//     Vector2 diagonal2 = new Vector2(-1, 1) * size / 2;
-		//     Vector3 diagonal1Scaled = rotation * diagonal1.ToVector3xy();
-		//     Vector3 diagonal2Scaled = rotation * diagonal2.ToVector3xy();
-		//     var vertices = new[]
-		//     {
-		//         center - diagonal1Scaled,
-		//         center - diagonal2Scaled,
-		//         center + diagonal1Scaled,
-		//         center + diagonal2Scaled
-		//     };
-		//     Handles.DrawSolidRectangleWithOutline(vertices, color, color);
-		// }
-
 		public static void DrawQuad(Vector3[] vertices, Color color = default, Color outlineColor = default) =>
 			Handles.DrawSolidRectangleWithOutline(vertices, color, outlineColor);
 
@@ -417,6 +385,69 @@ namespace DavidUtils.DebugUtils
 
 		#endregion
 
+
+		#region TERRAIN VARIANTS
+
+		public static void DrawLineThick_OnTerrain(
+			Vector3 a, Vector3 b, float thickness = DEFAULT_THICKNESS, Color color = default, Terrain terrain = null
+		)
+		{
+			terrain ??= Terrain.activeTerrain;
+			DrawLineThick(terrain.ProjectPathToTerrain(new[] { a, b }), thickness, color);
+		}
+
+		public static void DrawLineThick_OnTerrain(
+			Vector3[] vertices, float thickness = DEFAULT_THICKNESS, Color color = default, Terrain terrain = null
+		)
+		{
+			terrain ??= Terrain.activeTerrain;
+			DrawLineThick(terrain.ProjectPathToTerrain(vertices), thickness, color);
+		}
+
+		public static void DrawPolygon_OnTerrain(Vector3[] vertices, Color color = default, Terrain terrain = null)
+		{
+			terrain ??= Terrain.activeTerrain;
+			DrawPolygon(terrain.ProjectPathToTerrain(vertices), color);
+		}
+
+		public static void DrawPolygonWire_OnTerrain(
+			Vector3[] vertices, float thickness = DEFAULT_THICKNESS, Color color = default, Terrain terrain = null
+		)
+		{
+			terrain ??= Terrain.activeTerrain;
+			DrawPolygonWire(terrain.ProjectPathToTerrain(vertices), thickness, color);
+		}
+
+		public static void DrawQuadWire_OnTerrain(
+			Matrix4x4 matrix, float thickness = 1, Color color = default, Terrain terrain = null
+		) => DrawPolygonWire_OnTerrain(QuadVertices(matrix), thickness, color, terrain);
+
+		public static void DrawQuad_OnTerrain(
+			Matrix4x4 matrix, Color color = default, Terrain terrain = null
+		) => DrawPolygon_OnTerrain(QuadVertices(matrix), color, terrain);
+
+
+		public static void DrawGrid_OnTerrain(
+			float cellRows, float cellCols, Matrix4x4 matrix, float thickness = 1,
+			Color color = default, Terrain terrain = null
+		)
+		{
+			Vector2 cellSize = Vector2.one / new Vector2(cellRows, cellCols);
+			Matrix4x4 cellScaleMatrix = Matrix4x4.Scale(cellSize.ToVector3xz().WithY(1));
+
+			for (var y = 0; y < cellRows; y++)
+			for (var x = 0; x < cellRows; x++)
+				DrawQuadWire_OnTerrain(
+					matrix
+					* Matrix4x4.Translate(new Vector3(cellSize.x * x, 0, cellSize.y * y))
+					* cellScaleMatrix,
+					thickness,
+					color,
+					terrain
+				);
+		}
+
+		#endregion
 
 #endif
 	}

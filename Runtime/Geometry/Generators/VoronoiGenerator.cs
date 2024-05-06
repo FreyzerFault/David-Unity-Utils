@@ -1,70 +1,73 @@
-﻿using System;
-using System.Linq;
+﻿using System.Collections;
+using DavidUtils.ExtensionMethods;
+using DavidUtils.MouseInput;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry.Generators
 {
-	public class VoronoiGenerator : MonoBehaviour
+	public class VoronoiGenerator : DelaunayGenerator
 	{
-		public int numSeeds = 10;
-		private readonly Vector2[] _seeds = Array.Empty<Vector2>();
-
 		public Voronoi voronoi;
-		private Delaunay.Triangle[] _triangles => voronoi.delaunay.triangles.ToArray();
 		private Polygon[] Regions => voronoi.regions.ToArray();
 
-		private Vector3[] SeedsInWorld => _seeds.Select(seed => new Vector3(seed.x, 0, seed.y)).ToArray();
 
-		public bool animated = true;
-		public float delay = 0.1f;
-		private Coroutine animationCoroutine;
-
-		public bool SeedsGenerated => voronoi.seeds?.Length > 0;
-
-		private void Start()
+		public override void Initialize()
 		{
-			Initialize();
-			GenerateSeeds();
-			RunVoronoi();
+			base.Initialize();
+			voronoi.Seeds = seeds;
 		}
 
-		private void Update()
+		protected override IEnumerator RunCoroutine()
 		{
-			if (Input.GetKeyDown(KeyCode.Space)) voronoi.Run_OneIteration();
-
-			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
+			yield return base.RunCoroutine();
+			if (animated)
+			{
+				yield return voronoi.AnimationCoroutine(delay);
+				drawGrid = false;
+			}
+			else
+			{
+				voronoi.GenerateVoronoi();
+			}
 		}
 
-		public void Initialize() => voronoi.Reset();
-		public void GenerateSeeds() => voronoi.GenerateSeeds(numSeeds);
-
-		public void GenerateNewSeeds()
+		protected override void Run_OneIteration()
 		{
-			voronoi.seed = Random.Range(1, int.MaxValue);
-			GenerateSeeds();
+			if (!delaunay.ended) delaunay.Run_OnePoint();
+			else voronoi.Run_OneIteration();
 		}
-
-		public void RunVoronoi()
-		{
-			if (animated) animationCoroutine = StartCoroutine(voronoi.AnimationCoroutine(delay));
-			else voronoi.GenerateVoronoi();
-		}
-
-		public void RerunVoronoi()
-		{
-			Initialize();
-			RunVoronoi();
-		}
-
-		public void StopGeneration() => StopCoroutine(animationCoroutine);
 
 
 #if UNITY_EDITOR
 
 		#region DEBUG
 
-		private void OnDrawGizmos() => voronoi.OnDrawGizmos(transform.localToWorldMatrix);
+		public bool canSelectRegion = true;
+
+		protected override void OnDrawGizmos()
+		{
+			Matrix4x4 matrix = transform.localToWorldMatrix;
+			base.OnDrawGizmos();
+			voronoi.OnDrawGizmos(matrix, colors);
+
+			// Mientras se Genera, dibujamos detallada la ultima region generada
+			if (!voronoi.Ended) voronoi.DrawRegionGizmos_Detailed(voronoi.regions[^1], matrix, projectOnTerrain);
+
+			if (!canSelectRegion) return;
+
+			// MOUSE to COORDS in VORONOI Bounding Box
+			Vector2 mousePosNorm = (Bounds * matrix).NormalizeMousePosition_XZ();
+
+			// Mouse Pos
+			MouseInputUtils.DrawGizmos_XZ();
+
+			// Dibujar solo si el raton esta encima o esta animandose y es la ultima region añadida
+			if (!mousePosNorm.IsNormalized()) return;
+
+			Polygon? selectedRegion = voronoi.GetRegion(mousePosNorm);
+			if (selectedRegion.HasValue)
+				voronoi.DrawRegionGizmos_Detailed(selectedRegion.Value, matrix);
+		}
 
 		#endregion
 

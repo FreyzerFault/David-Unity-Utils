@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DavidUtils.Editor.Geometry_Generators
 {
-	[CustomEditor(typeof(VoronoiGenerator))]
+	[CustomEditor(typeof(VoronoiGenerator), true)]
 	public class VoronoiGeneratorEditor : UnityEditor.Editor
 	{
 		public override void OnInspectorGUI()
@@ -20,18 +20,12 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 			// Boton para generar Voronoi
 			if (GUILayout.Button("Generate Voronoi"))
-			{
-				voronoiGen.Initialize();
-				if (!voronoiGen.SeedsGenerated)
-					voronoiGen.GenerateSeeds();
-				voronoiGen.RunVoronoi();
-			}
+				voronoiGen.Run();
 
 			if (GUILayout.Button("New Voronoi"))
 			{
-				voronoiGen.Initialize();
-				voronoiGen.GenerateNewSeeds();
-				voronoiGen.RunVoronoi();
+				voronoiGen.RandomizeSeeds();
+				voronoiGen.Run();
 			}
 
 			if (GUILayout.Button("Reset"))
@@ -46,24 +40,23 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 			if (voronoiGen == null) return;
 
-			Vector2[] seeds = voronoiGen.voronoi.seeds;
+			Vector2[] seeds = voronoiGen.voronoi.Seeds;
 
 			for (var i = 0; i < seeds.Length; i++)
 			{
 				EditorGUI.BeginChangeCheck();
 
 				Vector2 seed = seeds[i];
-				Vector3 pos = voronoiGen.transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToVector3xz());
-				Quaternion rot = voronoiGen.transform.rotation;
-				Vector3 scale = voronoiGen.transform.localScale;
-				pos = Handles.PositionHandle(pos, rot);
+				Transform transform = voronoiGen.transform;
+				Vector3 pos = transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToVector3xz());
+				pos = Handles.PositionHandle(pos, transform.rotation);
 
 				if (!EditorGUI.EndChangeCheck()) continue;
 
 				Undo.RecordObject(target, "Update Seed");
-				seeds[i] = voronoiGen.transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz();
-				voronoiGen.RerunVoronoi();
-				voronoiGen.RunVoronoi();
+
+				voronoiGen.voronoi.MoveSeed(i, transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz());
+
 				break;
 			}
 		}

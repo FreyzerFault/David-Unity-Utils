@@ -26,6 +26,14 @@ namespace DavidUtils.Geometry
 				end = b;
 			}
 
+			// Comprueba si dos aristas son CONCAVAS (el vertice intermedio esta a la Izquierda)
+			// Presupone que se suceden (e1.end == e2.begin)
+			public static bool IsConcave(Edge e1, Edge e2) =>
+				GeometryUtils.IsLeft(e1.begin, e2.end, e1.end);
+
+			private static bool IsConvex(Edge e1, Edge e2) =>
+				GeometryUtils.IsRight(e1.begin, e2.end, e1.end);
+
 			// Ignora el la direccion
 			public override bool Equals(object obj)
 			{
@@ -38,12 +46,18 @@ namespace DavidUtils.Geometry
 			public override int GetHashCode() => HashCode.Combine(begin, end);
 
 #if UNITY_EDITOR
-			public void OnGizmosDraw(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
+			public void OnGizmosDraw(
+				Matrix4x4 matrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
+			)
+			{
+				Vector3[] verticesInWorld =
+					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray();
 				GizmosExtensions.DrawLineThick(
-					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray(),
+					projectedOnTerrain ? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) : verticesInWorld,
 					thickness,
 					color
 				);
+			}
 #endif
 		}
 
@@ -110,35 +124,61 @@ namespace DavidUtils.Geometry
 			public static Triangle SuperTriangle =>
 				new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
+
 #if UNITY_EDITOR
-			public void OnGizmosDrawWire(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
-				GizmosExtensions.DrawTriWire(
-					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray(),
-					thickness,
-					color
-				);
+
+			#region DEBUG
+
+			public void OnGizmosDrawWire(
+				Matrix4x4 matrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
+			)
+			{
+				Vector3[] verticesInWorld = Vertices
+					.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz()))
+					.ToArray();
+
+				if (projectedOnTerrain)
+					GizmosExtensions.DrawPolygonWire(
+						Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld),
+						thickness,
+						color
+					);
+				else
+					GizmosExtensions.DrawTriWire(verticesInWorld, thickness, color);
+			}
 
 			public void OnGizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
 			{
-				var terrain = Terrain.activeTerrain;
 				Vector3[] verticesInWorld = Vertices
-					.Select(
-						vertex =>
-						{
-							Vector3 v = matrix.MultiplyPoint3x4(vertex.ToVector3xz());
-							return terrain != null && projectedOnTerrain ? terrain.Project(v) : v;
-						}
-					)
+					.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz()))
 					.ToArray();
 
-				GizmosExtensions.DrawTri(verticesInWorld, color);
+				if (projectedOnTerrain)
+					GizmosExtensions.DrawPolygon(Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld), color);
+				else
+					GizmosExtensions.DrawTri(verticesInWorld, color);
 			}
+
+			#endregion
+
 #endif
 		}
 
-		[HideInInspector] public Vector2[] seeds = Array.Empty<Vector2>();
+		private Vector2[] seeds;
+		public Vector2[] Seeds
+		{
+			get => seeds;
+			set
+			{
+				seeds = value;
+				Reset();
+			}
+		}
+
 		[HideInInspector] public List<Vector2> vertices = new();
 		[HideInInspector] public List<Triangle> triangles = new();
+
+		public Delaunay(Vector2[] seeds = null) => this.seeds = seeds ?? Array.Empty<Vector2>();
 
 		// Algoritmo de Bowyer-Watson
 		// - Por cada punto busca los triangulos cuyo círculo circunscrito contenga al punto
@@ -163,6 +203,36 @@ namespace DavidUtils.Geometry
 		}
 
 		public void Run() => triangles = Triangulate(seeds).ToList();
+
+
+		public Triangle[] FindTrianglesAroundVertex(Vector2 vertex) =>
+			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex))).ToArray();
+
+
+		#region BORDER
+
+		// Lista de Aristas que forman el Borde
+		// (Busca las que no tengan triangulo vecino)
+		// Ordenadas CCW por sus coords polares respecto a 0,0
+		private Border[] Borders
+		{
+			get
+			{
+				List<Border> borders = new();
+				foreach (Triangle tri in triangles)
+				{
+					if (!tri.IsBorder) continue;
+
+					Triangle tri1 = tri;
+					borders.AddRange(tri.BorderEdges.Select(e => new Border(tri1, e)));
+				}
+
+				return borders.OrderBy(border => border.polarAngle).ToArray();
+			}
+		}
+
+		#endregion
+
 
 		#region PROGRESIVE RUN
 
@@ -361,7 +431,7 @@ namespace DavidUtils.Geometry
 				// Siendo los ejes v1 - v2, v2 - v3
 				// Es convexo si el vertice intermedio v2 esta a la derecha de la linea v1 - v3
 				Vector2 v1 = border.edge.begin, v2 = border.edge.end, v3 = nextBorder.edge.end;
-				if (!IsConcave(border.edge, nextBorder.edge)) continue;
+				if (!Edge.IsConcave(border.edge, nextBorder.edge)) continue;
 
 				var tri = new Triangle(v3, v2, v1);
 				tri.SetNeighbour(nextBorder.tri, 0);
@@ -372,6 +442,7 @@ namespace DavidUtils.Geometry
 
 		private void RemovePointFromBorder(Vector2 point)
 		{
+			// TODO
 		}
 
 		private struct Border
@@ -389,74 +460,44 @@ namespace DavidUtils.Geometry
 			}
 		}
 
-		// Lista de Aristas que forman el Borde
-		// (Busca las que no tengan triangulo vecino)
-		// Ordenadas CCW por sus coords polares respecto a 0,0
-		private Border[] Borders
-		{
-			get
-			{
-				List<Border> borders = new();
-				foreach (Triangle tri in triangles)
-				{
-					if (!tri.IsBorder) continue;
-
-					Triangle tri1 = tri;
-					borders.AddRange(tri.BorderEdges.Select(e => new Border(tri1, e)));
-				}
-
-				return borders.OrderBy(border => border.polarAngle).ToArray();
-			}
-		}
-
-		// Comprueba si dos aristas son CONCAVAS (el vertice intermedio esta a la Izquierda)
-		// Presupone que se suceden (e1.end == e2.begin)
-		private bool IsConcave(Edge e1, Edge e2) =>
-			GeometryUtils.IsLeft(e1.begin, e2.end, e1.end);
-
-		private bool IsConvex(Edge e1, Edge e2) =>
-			GeometryUtils.IsRight(e1.begin, e2.end, e1.end);
-
 		#endregion
 
-
-		public Triangle[] FindTrianglesAroundVertex(Vector2 vertex) =>
-			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex))).ToArray();
 
 #if UNITY_EDITOR
 
 		#region DEBUG
 
-		public void OnDrawGizmos(Matrix4x4 matrix, bool wire = false, bool projectOnTerrain = false)
-		{
-			// VERTICES
-			Gizmos.color = Color.grey;
-			foreach (Vector2 vertex in seeds)
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
+		public bool drawGizmos;
+		public bool drawWire = true;
 
-			// DELAUNAY TRIANGULATION
+		public void OnDrawGizmos(Matrix4x4 matrix, bool projectOnTerrain = false)
+		{
+			if (!drawGizmos) return;
+
+			// TRIANGULATION
 			Color[] colors = Color.cyan.GetRainBowColors(triangles.Count, 0.02f);
 
 			for (var i = 0; i < triangles.Count; i++)
 			{
 				Triangle tri = triangles[i];
-				if (ended && !wire)
+
+				if (ended && !drawWire)
 					tri.OnGizmosDraw(matrix, colors[i], projectOnTerrain);
 				else
-					tri.OnGizmosDrawWire(matrix, 2, Color.white);
+					tri.OnGizmosDrawWire(matrix, 2, Color.white, projectOnTerrain);
 			}
 
 			// ADDED TRIANGLES
 			colors = Color.cyan.GetRainBowColors(addedTris.Count, 0.02f);
 			foreach (Triangle t in addedTris) t.OnGizmosDrawWire(matrix, 3, Color.white);
 			for (var i = 0; i < addedTris.Count; i++)
-				addedTris[i].OnGizmosDraw(matrix, colors[i]);
+				addedTris[i].OnGizmosDraw(matrix, colors[i], projectOnTerrain);
 
 			// DELETED TRIANGLES
-			foreach (Triangle t in removedTris) t.OnGizmosDrawWire(matrix, 3, Color.red);
+			foreach (Triangle t in removedTris) t.OnGizmosDrawWire(matrix, 3, Color.red, projectOnTerrain);
 
-			// POLYGON
-			foreach (Edge e in polygon) e.OnGizmosDraw(matrix, 3, Color.green);
+			// Hole POLYGON
+			foreach (Edge e in polygon) e.OnGizmosDraw(matrix, 3, Color.green, projectOnTerrain);
 
 			// Highlight Border
 			GizmosHightlightBorder(matrix);

@@ -17,6 +17,11 @@ namespace DavidUtils.Geometry
 			this.centroid = centroid;
 		}
 
+		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToVector3xz());
+
+		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) =>
+			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToVector3xz())).ToArray();
+
 		#region TESTS
 
 		// TEST Point is inside Polygon
@@ -70,11 +75,13 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
-		#region DEBUG
-
 #if UNITY_EDITOR
 
-		public void OnDrawGizmosWire(Matrix4x4 mTRS, float scale, float thickness = 1, Color color = default)
+		#region DEBUG
+
+		public void OnDrawGizmosWire(
+			Matrix4x4 mTRS, float scale, float thickness = 1, Color color = default, bool projectOnTerrain = false
+		)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
@@ -83,11 +90,13 @@ namespace DavidUtils.Geometry
 				.Select(v => centroidInWorld + (v - centroidInWorld) * scale)
 				.ToArray();
 
-			GizmosExtensions.DrawPolygonWire(verticesInWorld, thickness, color);
-			DrawGizmosCentroid(centroidInWorld);
+			if (projectOnTerrain)
+				GizmosExtensions.DrawPolygonWire_OnTerrain(verticesInWorld, thickness, color);
+			else
+				GizmosExtensions.DrawPolygonWire(verticesInWorld, thickness, color);
 		}
 
-		public void OnDrawGizmos(Matrix4x4 mTRS, float scale, Color color = default)
+		public void OnDrawGizmos(Matrix4x4 mTRS, float scale, Color color = default, bool projectOnTerrain = false)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
@@ -96,23 +105,14 @@ namespace DavidUtils.Geometry
 				.Select(v => centroidInWorld + (v - centroidInWorld) * scale)
 				.ToArray();
 
-			GizmosExtensions.DrawPolygon(verticesInWorld, color);
-			DrawGizmosCentroid(centroidInWorld);
+			if (projectOnTerrain)
+				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color);
+			else
+				GizmosExtensions.DrawPolygon(verticesInWorld, color);
 		}
-
-		private void DrawGizmosCentroid(Vector3 pos)
-		{
-			Gizmos.color = Color.grey;
-			Gizmos.DrawSphere(pos, 0.1f);
-		}
-
-		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToVector3xz());
-
-		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) =>
-			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToVector3xz())).ToArray();
-
-#endif
 
 		#endregion
+
+#endif
 	}
 }

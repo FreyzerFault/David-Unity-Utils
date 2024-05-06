@@ -12,10 +12,12 @@ namespace DavidUtils.Geometry
 
 		public Vector2 min;
 		public Vector2 max;
+		public Vector2 Center => (min + max) / 2;
 
 		public float Width => max.x - min.x;
 		public float Height => max.y - min.y;
 		public Vector2 Size => new(Width, Height);
+		public Vector2 Extent => Size / 2;
 
 		public Vector2 BL => min;
 		public Vector2 BR => new(max.x, min.y);
@@ -33,14 +35,35 @@ namespace DavidUtils.Geometry
 			this.max = max;
 		}
 
+		public Vector2 TransformNormalized(Vector2 normalized) => min + normalized * Size;
+
+		#region TEST INSIDE
+
 		public readonly bool Contains(Vector2 p) => p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
 		public bool OutOfBounds(Vector2 p) => !Contains(p);
 
-		public Bounds2D Transform(Matrix4x4 matrix) =>
-			new(
-				matrix.MultiplyPoint3x4(min.ToVector3xy()).ToVector2xy(),
-				matrix.MultiplyPoint3x4(max.ToVector3xy()).ToVector2xy()
-			);
+		#endregion
+
+
+		#region CORNERS
+
+		/// <summary>
+		///     Esquina de la Bounding Box que comparte ambos lados
+		/// </summary>
+		/// <returns>Posicion de la Esquina</returns>
+		public Vector2 GetCorner(Side side0, Side side1) => side0 switch
+		{
+			Side.Left => side1 == Side.Bottom ? BL : TL,
+			Side.Right => side1 == Side.Bottom ? BR : TR,
+			Side.Top => side1 == Side.Left ? TL : TR,
+			Side.Bottom => side1 == Side.Left ? BL : BR,
+			_ => Vector2.zero
+		};
+
+		#endregion
+
+
+		#region COLLISIONS
 
 		/// <summary>
 		///     Test del Punto P dentro de un Segmento (cualquiera de los 4 lados).
@@ -61,18 +84,10 @@ namespace DavidUtils.Geometry
 			return inBottom || inRight || inTop || inLeft;
 		}
 
-		/// <summary>
-		///     Esquina de la Bounding Box que comparte ambos lados
-		/// </summary>
-		/// <returns>Posicion de la Esquina</returns>
-		public Vector2 GetCorner(Side side0, Side side1) => side0 switch
-		{
-			Side.Left => side1 == Side.Bottom ? BL : TL,
-			Side.Right => side1 == Side.Bottom ? BR : TR,
-			Side.Top => side1 == Side.Left ? TL : TR,
-			Side.Bottom => side1 == Side.Left ? BL : BR,
-			_ => Vector2.zero
-		};
+		#endregion
+
+
+		#region INTERSECTIONS
 
 		/// <summary>
 		///     Interseccion del Segmento AB con los 4 lados del rectangulo
@@ -112,6 +127,11 @@ namespace DavidUtils.Geometry
 				.OrderBy(i => (i - p).sqrMagnitude);
 		}
 
+		/// <summary>
+		///     Convert a Polygon to stay inside the Bounding Box
+		///     Add the intersections of the polygon edges with the BB
+		///     Remove outer vertices
+		/// </summary>
 		public Vector2[] CropPolygon(Vector2[] polygonVertices)
 		{
 			List<Vector2> croppedPolygon = new();
@@ -140,9 +160,34 @@ namespace DavidUtils.Geometry
 			return croppedPolygon.ToArray();
 		}
 
+		#endregion
+
+
+		#region MOUSE PICKING
+
 		public bool MouseInBounds_XY() => Contains(MouseInputUtils.MouseWorldPosition.ToVector2xy());
 		public bool MouseInBounds_XZ() => Contains(MouseInputUtils.MouseWorldPosition.ToVector2xz());
 		public Vector2 NormalizeMousePosition_XY() => (MouseInputUtils.MouseWorldPosition.ToVector2xy() - min) / Size;
 		public Vector2 NormalizeMousePosition_XZ() => (MouseInputUtils.MouseWorldPosition.ToVector2xz() - min) / Size;
+
+		#endregion
+
+
+		#region OPERATORS
+
+		// CONVERSION OPERATOR Bounds <--> Bounds2D
+		public static implicit operator Bounds2D(Bounds bounds) =>
+			new(bounds.min.ToVector2xz(), bounds.max.ToVector2xz());
+
+		public static implicit operator Bounds(Bounds2D bounds) =>
+			new(bounds.Center.ToVector3xz(), bounds.Extent.ToVector3xz());
+
+		public static Bounds2D operator *(Bounds2D bounds, Matrix4x4 matrix) =>
+			new(
+				matrix.MultiplyPoint3x4(bounds.min.ToVector3xy()).ToVector2xy(),
+				matrix.MultiplyPoint3x4(bounds.max.ToVector3xy()).ToVector2xy()
+			);
+
+		#endregion
 	}
 }

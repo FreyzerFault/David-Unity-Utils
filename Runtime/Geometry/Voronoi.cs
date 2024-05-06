@@ -6,8 +6,6 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
 using UnityEngine;
 using UnityEngine.Serialization;
-using Random = UnityEngine.Random;
-
 #if UNITY_EDITOR
 using DavidUtils.DebugUtils;
 #endif
@@ -17,46 +15,41 @@ namespace DavidUtils.Geometry
 	[Serializable]
 	public class Voronoi
 	{
-		public enum SeedDistribution { Random, Regular, SinWave }
+		[HideInInspector] public Delaunay delaunay;
 
-		public int seed = 10;
-		public SeedDistribution seedDistribution = SeedDistribution.Random;
-
-		[HideInInspector] public Delaunay delaunay = new();
-
-		[HideInInspector] public Vector2[] seeds;
 		[HideInInspector] public List<Polygon> regions;
-
-		private Bounds2D Bounds => Bounds2D.NormalizedBounds;
+		[HideInInspector] private Vector2[] seeds;
+		public Vector2[] Seeds
+		{
+			get => seeds;
+			set
+			{
+				seeds = value;
+				Reset();
+			}
+		}
 
 		private Delaunay.Triangle[] Triangles => delaunay.triangles.ToArray();
 
-		private Vector3[] SeedsInWorld => seeds.Select(seed => new Vector3(seed.x, 0, seed.y)).ToArray();
-
-		public Voronoi(Vector2[] seeds)
+		public Voronoi(Vector2[] seeds, Delaunay delaunay = null)
 		{
 			this.seeds = seeds;
 			regions = new List<Polygon>();
+			this.delaunay = delaunay ?? new Delaunay(seeds);
 		}
 
-		public Voronoi(int numSeeds)
-			: this(Array.Empty<Vector2>()) => GenerateSeeds(numSeeds);
-
-		public void GenerateSeeds(int numSeeds = -1)
+		public void MoveSeed(int index, Vector2 newPos)
 		{
-			Reset();
-			Random.InitState(seed);
-			numSeeds = numSeeds == -1 ? seeds.Length : numSeeds;
-			seeds = seedDistribution switch
+			seeds[index] = newPos;
+			if (Ended)
 			{
-				SeedDistribution.Random => GeometryUtils.GenerateSeeds_RandomDistribution(numSeeds),
-				SeedDistribution.Regular => GeometryUtils.GenerateSeeds_RegularDistribution(numSeeds),
-				SeedDistribution.SinWave => GeometryUtils.GenerateSeeds_WaveDistribution(numSeeds),
-				_ => GeometryUtils.GenerateSeeds_RegularDistribution(numSeeds)
-			};
-
-			// Las convertimos en vertices para triangularlos con Delaunay primero
-			delaunay.seeds = seeds;
+				Reset();
+				GenerateVoronoi();
+			}
+			else
+			{
+				Reset();
+			}
 		}
 
 		public void Reset()
@@ -66,11 +59,7 @@ namespace DavidUtils.Geometry
 			delaunay.Reset();
 		}
 
-		public void GenerateDelaunay()
-		{
-			delaunay.seeds = seeds;
-			delaunay.Triangulate(seeds);
-		}
+		public void GenerateDelaunay() => delaunay.Triangulate(seeds);
 
 		public Polygon[] GenerateVoronoi()
 		{
@@ -92,14 +81,14 @@ namespace DavidUtils.Geometry
 
 		public IEnumerator AnimationCoroutine(float delay = 0.1f)
 		{
-			yield return delaunay.AnimationCoroutine(delay);
+			if (!delaunay.ended)
+				yield return delaunay.AnimationCoroutine(delay);
+
 			while (!Ended)
 			{
 				Run_OneIteration();
 				yield return new WaitForSecondsRealtime(delay);
 			}
-
-			drawDelaunayTriangulation = false;
 		}
 
 		public void Run_OneIteration()
@@ -119,7 +108,7 @@ namespace DavidUtils.Geometry
 		{
 			var polygon = new List<Vector2>();
 			Delaunay.Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed);
-			Bounds2D bounds = Bounds;
+			Bounds2D bounds = Bounds2D.NormalizedBounds;
 
 			// Obtenemos cada circuncentro CCW
 			polygon.AddRange(regionTris.Select(t => t.GetCircumcenter()));
@@ -255,107 +244,40 @@ namespace DavidUtils.Geometry
 		[Range(.2f, 1)]
 		public float regionScale = 0.05f;
 
-		public bool drawSeeds = true;
-		public bool drawGrid = true;
-		public bool drawRegions = true;
-		public bool wireRegions;
-		public bool drawDelaunayTriangulation;
-		public bool wireTriangulation = true;
-		public bool projectOnTerrain = true;
+		public bool drawGizmos = true;
+		public bool drawWire;
 
-		public void OnDrawGizmos(Matrix4x4 matrix)
+		public void OnDrawGizmos(Matrix4x4 matrix, Color[] colors = null, bool projectOnTerrain = false)
 		{
-			GizmosSeeds(matrix);
-			GizmosGrid(matrix, Color.grey);
-			GizmosRegions(matrix, wireRegions);
-
-			// DELAUNAY
-			if (drawDelaunayTriangulation)
-				delaunay?.OnDrawGizmos(matrix, wireTriangulation, projectOnTerrain);
-		}
-
-		// Draw Seeds as Spheres
-		private void GizmosSeeds(Matrix4x4 matrix)
-		{
-			if (!drawSeeds) return;
-
-			Color[] colors = Color.red.GetRainBowColors(seeds.Length);
-			Gizmos.color = Color.grey;
-
-			for (var i = 0; i < seeds.Length; i++)
-			{
-				Vector2 s = seeds[i];
-				Color color = colors[i];
-
-				Gizmos.color = color;
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(s.ToVector3xz()), .1f);
-			}
-		}
-
-		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
-		private void GizmosGrid(Matrix4x4 matrix, Color color = default)
-		{
-			if (!drawGrid) return;
-
-			if (seedDistribution == SeedDistribution.Random)
-			{
-				// Surrounding Bound only
-				GizmosExtensions.DrawQuadWire(matrix, 5, color);
-			}
-			else
-			{
-				// GRID
-				int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Length));
-				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
-			}
-		}
-
-		private void GizmosRegions(Matrix4x4 matrix, bool wire = false)
-		{
-			if (!drawRegions || regions is not { Count: > 0 }) return;
+			if (!drawGizmos || regions is not { Count: > 0 }) return;
 
 			// Region Polygons
-			Color[] colors = Color.red.GetRainBowColors(regions.Count);
+			colors ??= Color.red.GetRainBowColors(regions.Count);
 			for (var i = 0; i < regions.Count; i++)
-				if (wire)
-					regions[i].OnDrawGizmosWire(matrix, regionScale, 5, colors[i]);
+				if (drawWire)
+					regions[i].OnDrawGizmosWire(matrix, regionScale, 5, colors[i], projectOnTerrain);
 				else
-					regions[i].OnDrawGizmos(matrix, regionScale, colors[i]);
-
-			// MOUSE to COORDS in VORONOI Bounding Box
-			Vector2 mousePosNorm = Bounds.Transform(matrix).NormalizeMousePosition_XZ();
-
-			// Mouse Pos
-			MouseInputUtils.DrawGizmos_XZ();
-
-			// Dibujar solo si el raton esta encima o esta animandose y es la ultima region añadida
-			if (!mousePosNorm.IsNormalized() && Ended) return;
-
-			Polygon? selectedRegion = GetRegion(mousePosNorm);
-			if (selectedRegion.HasValue)
-				GizmosRegionSelected(selectedRegion.Value, matrix);
+					regions[i].OnDrawGizmos(matrix, regionScale, colors[i], projectOnTerrain);
 		}
 
-		public void GizmosRegionSelected(Polygon region, Matrix4x4 matrix)
+		public void DrawRegionGizmos_Detailed(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false)
 		{
-			Bounds2D bounds = Bounds;
+			Bounds2D bounds = Bounds2D.NormalizedBounds;
 
 			// Triangulos usados para generar la region
 			foreach (Delaunay.Triangle t in delaunay.FindTrianglesAroundVertex(region.centroid))
 			{
-				t.OnGizmosDrawWire(matrix, 8, Color.blue);
+				t.OnGizmosDrawWire(matrix, 8, Color.blue, projectOnTerrain);
 
-				// Circuncentros de cada triangulo
-				Vector2? circumcenter = t.GetCircumcenter();
-				if (!circumcenter.HasValue) continue;
-				Vector2 c = circumcenter.Value;
+				// CIRCUNCENTROS
+				Vector2 c = t.GetCircumcenter();
 
-				Gizmos.color = bounds.OutOfBounds(circumcenter.Value) ? Color.red : Color.green;
+				Gizmos.color = bounds.OutOfBounds(c) ? Color.red : Color.green;
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(c.ToVector3xz()), .05f);
 
 				if (bounds.OutOfBounds(c)) continue;
 
-				// BORDER EDGE
+				// BORDER EDGE 
 				for (var i = 0; i < 3; i++)
 				{
 					if (t.neighbours[i] != null) continue;
@@ -371,19 +293,27 @@ namespace DavidUtils.Geometry
 					// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
 					Vector2[] intersections = bounds.Intersections_Ray(m, new Vector2(edgeDir.y, -edgeDir.x)).ToArray();
 
-					GizmosExtensions.DrawLineThick(
-						matrix.MultiplyPoint3x4(m.ToVector3xz()),
-						matrix.MultiplyPoint3x4(intersections.First().ToVector3xz()),
-						6,
-						Color.red
-					);
+					if (projectOnTerrain)
+						GizmosExtensions.DrawLineThick_OnTerrain(
+							matrix.MultiplyPoint3x4(m.ToVector3xz()),
+							matrix.MultiplyPoint3x4(intersections.First().ToVector3xz()),
+							6,
+							Color.red
+						);
+					else
+						GizmosExtensions.DrawLineThick(
+							matrix.MultiplyPoint3x4(m.ToVector3xz()),
+							matrix.MultiplyPoint3x4(intersections.First().ToVector3xz()),
+							6,
+							Color.red
+						);
 				}
 			}
 
-			// Vertices de la Region
+			// VERTEX in Bounding Box Edges
 			foreach (Vector2 vertex in region.vertices)
 			{
-				Gizmos.color = bounds.PointOnBorder(vertex, out Bounds2D.Side? side) ? Color.red : Color.green;
+				Gizmos.color = bounds.PointOnBorder(vertex, out Bounds2D.Side? _) ? Color.red : Color.green;
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
 			}
 		}
