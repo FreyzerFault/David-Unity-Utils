@@ -90,16 +90,66 @@ namespace DavidUtils.Geometry
 				this.v2 = v2;
 				this.v3 = v3;
 
-				neighbours = new[] { t1, t2, t3 };
+				SetAllNeightbours(new[] { t1, t2, t3 });
 
 				e1 = new Edge { begin = v1, end = v2 };
 				e2 = new Edge { begin = v2, end = v3 };
 				e3 = new Edge { begin = v3, end = v1 };
 			}
 
+			public Triangle(
+				Vector2[] vertices, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
+			) : this(vertices[0], vertices[1], vertices[2], t1, t2, t3)
+			{
+			}
+
+			public Triangle(Vector2[] vertices, Triangle[] neighbours = null)
+				: this(vertices[0], vertices[1], vertices[2])
+			{
+				if (neighbours != null && neighbours.Length > 0)
+					SetAllNeightbours(neighbours);
+			}
+
+			public void MoveVertex(Vector2 vertex, Vector2 newVertex)
+			{
+				if (v1 == vertex)
+				{
+					v1 = newVertex;
+					e3.end = newVertex;
+					e1.begin = newVertex;
+				}
+				else if (v2 == vertex)
+				{
+					v2 = newVertex;
+					e1.end = newVertex;
+					e2.begin = newVertex;
+				}
+				else if (v3 == vertex)
+				{
+					v3 = newVertex;
+					e2.end = newVertex;
+					e3.begin = newVertex;
+				}
+			}
+
+			/// <summary>
+			///     Asigna vecinos de forma recíproca (Al vecino se le asigna este Triangulo como vecino también)
+			/// </summary>
+			public void SetAllNeightbours(Triangle[] newNeighbours)
+			{
+				neighbours = newNeighbours;
+				for (var i = 0; i < newNeighbours.Length; i++)
+					SetNeighbour(newNeighbours[i], i);
+			}
+
+			/// <summary>
+			///     Asigna un vecino de forma recíproca cuya arista que los une es Edges[index]
+			///     (Al vecino se le asigna este Triangulo como vecino también)
+			/// </summary>
 			public void SetNeighbour(Triangle t, int index)
 			{
 				neighbours[index] = t;
+				if (t == null) return;
 
 				// Set the neighbour in the other triangle
 				Edge sharedEdge = Edges[index];
@@ -111,7 +161,11 @@ namespace DavidUtils.Geometry
 				}
 			}
 
-			// MEDIATRIZ para encontrar el circuncentro, vértice buscado en Voronoi
+			public Triangle GetNeighbour(Edge edge) => neighbours[Array.IndexOf(Edges, edge)];
+
+			/// <summary>
+			///     MEDIATRIZ para encontrar el circuncentro, vértice buscado en Voronoi
+			/// </summary>
 			public Vector2 GetCircumcenter()
 			{
 				Vector2? c = GeometryUtils.CircleCenter(v1, v2, v3);
@@ -119,6 +173,21 @@ namespace DavidUtils.Geometry
 
 				// Son colineares
 				return (v1 + v2 + v3) / 3;
+			}
+
+			public Vector2 GetOppositeVertex(Edge edge, out int side)
+			{
+				for (var i = 0; i < 3; i++)
+				{
+					Vector2 vertex = Vertices[i];
+					if (vertex == edge.begin || vertex == edge.end) continue;
+
+					side = i;
+					return vertex;
+				}
+
+				side = 0;
+				return v1;
 			}
 
 			public static Triangle SuperTriangle =>
@@ -180,6 +249,8 @@ namespace DavidUtils.Geometry
 
 		public Delaunay(Vector2[] seeds = null) => this.seeds = seeds ?? Array.Empty<Vector2>();
 
+		public void Run() => triangles = Triangulate(seeds).ToList();
+
 		// Algoritmo de Bowyer-Watson
 		// - Por cada punto busca los triangulos cuyo círculo circunscrito contenga al punto
 		// - Elimina los triangulos invalidos y crea nuevos triangulos con el punto
@@ -202,87 +273,132 @@ namespace DavidUtils.Geometry
 			return triangles.ToArray();
 		}
 
-		public void Run() => triangles = Triangulate(seeds).ToList();
-
 
 		public Triangle[] FindTrianglesAroundVertex(Vector2 vertex) =>
 			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex))).ToArray();
 
-
-		#region BORDER
-
-		// Lista de Aristas que forman el Borde
-		// (Busca las que no tengan triangulo vecino)
-		// Ordenadas CCW por sus coords polares respecto a 0,0
-		private Border[] Borders
+		/// <summary>
+		///     Crea un borde a partir de un vertice.
+		///     Recoge todas las aristas opuestas al vertice de los triangulos a los que pertenece
+		///     Y los ordena CCW
+		/// </summary>
+		private Border[] GetBordersAround(Vector2 centerVertex, IEnumerable<Triangle> trisAround = null)
 		{
-			get
+			trisAround ??= FindTrianglesAroundVertex(centerVertex);
+			Border[] borders = trisAround
+				.SelectMany(
+					t =>
+					{
+						List<Border> borders = new();
+						for (var i = 0; i < 3; i++)
+						{
+							Edge edge = t.Edges[i];
+							Triangle neighbour = t.neighbours[i];
+							if (edge.begin != centerVertex && edge.end != centerVertex)
+								borders.Add(new Border(neighbour, edge));
+						}
+
+						return borders;
+					}
+				)
+				.ToArray();
+
+			return Border.SortByAngle(borders, centerVertex);
+		}
+
+		public void MoveSeed(int index, Vector2 newPos)
+		{
+			Vector2 vertex = seeds[index];
+
+			Triangle[] tris = FindTrianglesAroundVertex(vertex);
+			foreach (Triangle tri in tris)
+				tri.MoveVertex(vertex, newPos);
+
+			seeds[index] = newPos;
+			vertices[index] = newPos;
+
+			// LEGALIZACION
+			// Busca el primer Triangulo ilegal, lo flipea y vuelve a reiniciar la busqueda con los triangulos nuevos
+			// Cuando no haya ningun triangulo ilegal, sale del bucle
+			bool illegal;
+			do
 			{
-				List<Border> borders = new();
-				foreach (Triangle tri in triangles)
+				illegal = false;
+				foreach (Triangle tri in tris)
 				{
-					if (!tri.IsBorder) continue;
+					if (IsLegal(tri, out List<int> illegalSides)) continue;
 
-					Triangle tri1 = tri;
-					borders.AddRange(tri.BorderEdges.Select(e => new Border(tri1, e)));
+					Flip(tri, illegalSides[0]);
+					tris = FindTrianglesAroundVertex(newPos);
+					illegal = true;
+					break;
 				}
-
-				return borders.OrderBy(border => border.polarAngle).ToArray();
-			}
+			} while (illegal);
 		}
 
-		#endregion
-
-
-		#region PROGRESIVE RUN
-
-		[HideInInspector] public int iterations;
-		[HideInInspector] public bool ended;
-		private List<Triangle> removedTris = new();
-		private List<Triangle> addedTris = new();
-		private List<Edge> polygon = new();
-
-		public IEnumerator AnimationCoroutine(float delay = 0.1f)
+		/// <summary>
+		///     Comprueba si el triangulo es legal
+		///     (Alguno de los triangulos vecinos tiene un vértice opuesto
+		///     dentro del circulo circunscrito formado por el triangulo)
+		///     Guarda los indices de los lados ilegales en illegalSides
+		/// </summary>
+		private bool IsLegal(Triangle tri, out List<int> illegalSides)
 		{
-			while (!ended)
+			illegalSides = new List<int>();
+			for (var i = 0; i < 3; i++)
 			{
-				Run_OnePoint();
-				yield return new WaitForSecondsRealtime(delay);
+				Edge edge = tri.Edges[i];
+				Triangle neighbour = tri.neighbours[i];
+				if (neighbour == null) continue;
+				if (GeometryUtils.PointInCirle(neighbour.GetOppositeVertex(edge, out int side), tri.v1, tri.v2, tri.v3))
+					illegalSides.Add(i);
 			}
 
-			yield return null;
+			return illegalSides.Count == 0;
 		}
 
-		public void Run_OnePoint()
+		/// <summary>
+		///     Flipea la arista del triangulo tri.Edges[side]
+		///     Eliminando el triangulo y su vecino, y creando nuevos
+		///     Actualiza los vecinos también
+		/// </summary>
+		private void Flip(Triangle tri, int side)
 		{
-			if (iterations > seeds.Length)
-				return;
+			Edge edge = tri.Edges[side];
+			Triangle neighbour = tri.neighbours[side];
 
-			removedTris = new List<Triangle>();
-			addedTris = new List<Triangle>();
-			polygon = new List<Edge>();
+			Vector2 opposite1 = tri.GetOppositeVertex(edge, out int opSide1);
+			Vector2 opposite2 = neighbour.GetOppositeVertex(edge, out int opSide2);
 
-			if (iterations == seeds.Length)
-				RemoveBoundingBox();
-			else
-				Triangulate(seeds[iterations]);
+			var newTri1 = new Triangle(opposite1, opposite2, edge.end);
+			var newTri2 = new Triangle(opposite2, opposite1, edge.begin);
 
-			iterations++;
+			// NEIGHBOURS
+			newTri1.SetAllNeightbours(new[] { newTri2, neighbour.neighbours[opSide2], tri.neighbours[(side + 1) % 3] });
+			newTri2.SetAllNeightbours(
+				new[] { newTri1, tri.neighbours[(side + 2) % 3], neighbour.neighbours[(opSide2 + 2) % 3] }
+			);
 
-			ended = iterations > seeds.Length;
+			addedTris = new List<Triangle>(new[] { newTri1, newTri2 });
+			removedTris = new List<Triangle>(new[] { tri, neighbour });
+
+			triangles.Remove(tri);
+			triangles.Remove(neighbour);
+
+			triangles.AddRange(addedTris);
 		}
 
-		public void Reset()
-		{
-			iterations = 0;
-			ended = false;
-			triangles = new List<Triangle>();
-			vertices = new List<Vector2>();
-			removedTris = new List<Triangle>();
-			addedTris = new List<Triangle>();
-			polygon = new List<Edge>();
-		}
 
+		#region TRIANGULATION
+
+		/// <summary>
+		///     Delaunay Incremental Bowyer–Watson Algorithm
+		///     Elimina los Triangulos en los que el Vertice este dentro de su Circulo Circunscrito
+		///     Crea un Polígono con el hueco que se forma al eliminar los triángulos
+		///     Y añade un triangulo por cada arista del polígono
+		///     Por definición, los triángulos generados deben ser LEGALES
+		///     Por lo que no hace falta flipear ninguna arista
+		/// </summary>
 		public void Triangulate(Vector2 point)
 		{
 			if (vertices.Any(v => Vector2.Distance(v, point) < GeometryUtils.Epsilon)) return;
@@ -360,6 +476,183 @@ namespace DavidUtils.Geometry
 			triangles.AddRange(newTris);
 			removedTris = badTris;
 			addedTris = newTris.ToList();
+		}
+
+
+		// NO FUNCA, ALTERNATIVA => Al mover un vertice modificar los triangulos y legalizarlos en MoveSeed()
+
+		// /// <summary>
+		// ///     Deshace la Triangulacion del vertice con el indice dado
+		// ///     Eliminando los Triangulos a los que pertenece el Vertice
+		// ///     Y creando nuevos triangulos con los vertices que forman el poligono que queda como hueco
+		// /// </summary>
+		// public void UndoTriangulation(int vertexIndex)
+		// {
+		// 	Vector2 point = vertices[vertexIndex];
+		// 	// Buscamos los triangulos que contengan el vertice
+		// 	removedTris = FindTrianglesAroundVertex(point).ToList();
+		//
+		// 	// Border ordered CCW
+		// 	Border[] borders = GetBordersAround(point, removedTris);
+		//
+		// 	Triangulate_Hole(borders);
+		//
+		// 	// Eliminamos los triangulos que contengan el vertice
+		// 	foreach (Triangle t in removedTris)
+		// 		triangles.Remove(t);
+		// }
+		//
+		// private void Triangulate_Hole(Border[] borderPolygon)
+		// {
+		// 	// Polygon hecho de los ejes del borde
+		// 	polygon = borderPolygon.Select(e => e.edge).ToList();
+		// 	addedTris.Clear();
+		//
+		// 	// Situacion TRIVIAL => 3 aristas => Creamos 1 Triangulo
+		// 	if (borderPolygon.Length == 3)
+		// 		addedTris.Add(
+		// 			new Triangle(
+		// 				polygon.Select(e => e.begin).ToArray(),
+		// 				borderPolygon[0].tri,
+		// 				borderPolygon[1].tri,
+		// 				borderPolygon[2].tri
+		// 			)
+		// 		);
+		// 	else
+		// 		// Buscamos las combinaciones de triangulos que formen el poligono
+		// 		// y cuyos vertices formen un ciruclo donde no entre ninguno de los demas vertices
+		// 		for (var i = 0; i < borderPolygon.Length; i++)
+		// 		{
+		// 			Edge edge = borderPolygon[i].edge;
+		// 			Edge nextEdge = borderPolygon[(i + 1) % borderPolygon.Length].edge;
+		// 			
+		// 			if (addedTris.Exists(t => t.Edges.Any(e => e == nextEdge)) nextEdge)
+		// 			
+		// 			Triangle neighbour = borderPolygon[i].tri;
+		// 			Triangle nextNeighbour = borderPolygon[(i + 1) % borderPolygon.Length].tri;
+		// 			Vector2 v1 = edge.begin, v2 = edge.end, v3 = nextEdge.end;
+		//
+		// 			// Deben ser convexos
+		// 			// Si no, ya tendran un triangulo asociado fuera del poligono que contiene el vertice eliminado
+		// 			if (GeometryUtils.IsLeft(v1, v3, v2)) continue;
+		//
+		// 			Vector2[] otherVertices = polygon.Select(e => e.begin)
+		// 				.Where(vertex => v1 != vertex && v2 != vertex && v3 != vertex)
+		// 				.ToArray();
+		//
+		// 			// Test Point in Circle / vertice
+		//
+		// 			var ilegalTriangle = false;
+		// 			foreach (Vector2 vertex in otherVertices)
+		// 			{
+		// 				// Si un vertice esta dentro del Circulo formado por v1,v2,v3, no es legal
+		// 				ilegalTriangle = GeometryUtils.PointInCirle(vertex, v1, v2, v3);
+		// 				if (ilegalTriangle) break;
+		// 			}
+		//
+		// 			if (ilegalTriangle) continue;
+		//
+		// 			// Creo el Triangulo y asigno vecinos
+		// 			addedTris.Add(
+		// 				new Triangle(
+		// 					v1,
+		// 					v2,
+		// 					v3,
+		// 					neighbour,
+		// 					nextNeighbour
+		// 				)
+		// 			);
+		// 			i++;
+		// 		}
+		//
+		// 	// Añadimos los nuevos triangulos
+		// 	triangles.AddRange(addedTris);
+		//
+		// 	// Asignamos vecinos entre ellos
+		// 	// Buscamos que triangulo comparte la arista v3->v1 (Edges[2])
+		// 	// Ambos ejes compartidos tendran direccion opuesta, por lo que end == begin
+		// 	foreach (Triangle tri in addedTris)
+		// 	{
+		// 		Triangle neighbour = addedTris.First(t => t != tri && tri.Edges[2].begin == t.Edges[2].end);
+		// 		tri.SetNeighbour(neighbour, 2);
+		// 	}
+		// }
+
+		#endregion
+
+
+		#region BORDER
+
+		// Lista de Aristas que forman el Borde
+		// (Busca las que no tengan triangulo vecino)
+		// Ordenadas CCW por sus coords polares respecto a 0,0
+		private Border[] Borders
+		{
+			get
+			{
+				List<Border> borders = new();
+				foreach (Triangle tri in triangles)
+				{
+					if (!tri.IsBorder) continue;
+
+					Triangle tri1 = tri;
+					borders.AddRange(tri.BorderEdges.Select(e => new Border(tri1, e)));
+				}
+
+				return borders.OrderBy(border => border.polarAngle).ToArray();
+			}
+		}
+
+		#endregion
+
+
+		#region PROGRESIVE RUN
+
+		[HideInInspector] public int iterations;
+		[HideInInspector] public bool ended;
+		private List<Triangle> removedTris = new();
+		private List<Triangle> addedTris = new();
+		private List<Edge> polygon = new();
+
+		public IEnumerator AnimationCoroutine(float delay = 0.1f)
+		{
+			while (!ended)
+			{
+				Run_OnePoint();
+				yield return new WaitForSecondsRealtime(delay);
+			}
+
+			yield return null;
+		}
+
+		public void Run_OnePoint()
+		{
+			if (iterations > seeds.Length)
+				return;
+
+			removedTris = new List<Triangle>();
+			addedTris = new List<Triangle>();
+			polygon = new List<Edge>();
+
+			if (iterations == seeds.Length)
+				RemoveBoundingBox();
+			else
+				Triangulate(seeds[iterations]);
+
+			iterations++;
+
+			ended = iterations > seeds.Length;
+		}
+
+		public void Reset()
+		{
+			iterations = 0;
+			ended = false;
+			triangles = new List<Triangle>();
+			vertices = new List<Vector2>();
+			removedTris = new List<Triangle>();
+			addedTris = new List<Triangle>();
+			polygon = new List<Edge>();
 		}
 
 		#endregion
@@ -458,6 +751,19 @@ namespace DavidUtils.Geometry
 				this.tri = tri;
 				this.edge = edge;
 			}
+
+			// Ordena el borde respecto a un centro dado
+			public static Border[] SortByAngle(IEnumerable<Border> borders, Vector2 center) => borders.OrderBy(
+					e =>
+					{
+						Vector2 polarCoord = e.edge.begin - center;
+						return Mathf.Atan2(
+							polarCoord.y,
+							polarCoord.x
+						);
+					}
+				)
+				.ToArray();
 		}
 
 		#endregion

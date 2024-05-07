@@ -5,7 +5,6 @@ using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
 using UnityEngine;
-using UnityEngine.Serialization;
 #if UNITY_EDITOR
 using DavidUtils.DebugUtils;
 #endif
@@ -41,6 +40,7 @@ namespace DavidUtils.Geometry
 		public void MoveSeed(int index, Vector2 newPos)
 		{
 			seeds[index] = newPos;
+			delaunay.MoveSeed(index, newPos);
 			if (Ended)
 			{
 				Reset();
@@ -67,7 +67,11 @@ namespace DavidUtils.Geometry
 			if (Triangles.Length == 0) GenerateDelaunay();
 
 			foreach (Vector2 regionSeed in seeds)
-				regions.Add(new Polygon(GenerateRegion(regionSeed), regionSeed));
+			{
+				Vector2[] region = GenerateRegion(regionSeed);
+				if (region.Length <= 2) continue;
+				regions.Add(new Polygon(region, regionSeed));
+			}
 
 			return regions.ToArray();
 		}
@@ -96,9 +100,15 @@ namespace DavidUtils.Geometry
 			if (Ended) return;
 
 			if (!delaunay.ended)
+			{
 				delaunay.Run_OnePoint();
+			}
 			else
-				regions.Add(new Polygon(GenerateRegion(seeds[iteration]), seeds[iteration]));
+			{
+				Vector2[] region = GenerateRegion(seeds[iteration]);
+				if (region.Length > 2)
+					regions.Add(new Polygon(region, seeds[iteration]));
+			}
 
 			iteration++;
 		}
@@ -112,6 +122,8 @@ namespace DavidUtils.Geometry
 
 			// Obtenemos cada circuncentro CCW
 			polygon.AddRange(regionTris.Select(t => t.GetCircumcenter()));
+
+			if (polygon.Count == 0) return polygon.ToArray();
 
 			// Para que la Region este dentro de unas fronteras
 			// Aplicamos algunas modificaciones para RECORTAR o EXPANDIR la región al borde
@@ -155,6 +167,8 @@ namespace DavidUtils.Geometry
 			// RECORTE
 			// Clampeamos cada Region a la Bounding Box
 			polygon = bounds.CropPolygon(polygon.ToArray()).ToList();
+
+			if (polygon.Count <= 2) return polygon.ToArray();
 
 			// ESQUINAS
 			// Añadimos las esquinas de la Bounding Box, buscando las regiones que tengan vertices pertenecientes a dos bordes distintos
@@ -240,9 +254,8 @@ namespace DavidUtils.Geometry
 
 		private Vector3 MousePos => Input.mousePosition;
 
-		[FormerlySerializedAs("regionMargin")]
 		[Range(.2f, 1)]
-		public float regionScale = 0.05f;
+		public float regionScale = 1;
 
 		public bool drawGizmos = true;
 		public bool drawWire;
@@ -251,8 +264,10 @@ namespace DavidUtils.Geometry
 		{
 			if (!drawGizmos || regions is not { Count: > 0 }) return;
 
+			if (colors is null || colors.Length != regions.Count)
+				colors = Color.red.GetRainBowColors(regions.Count);
+
 			// Region Polygons
-			colors ??= Color.red.GetRainBowColors(regions.Count);
 			for (var i = 0; i < regions.Count; i++)
 				if (drawWire)
 					regions[i].OnDrawGizmosWire(matrix, regionScale, 5, colors[i], projectOnTerrain);

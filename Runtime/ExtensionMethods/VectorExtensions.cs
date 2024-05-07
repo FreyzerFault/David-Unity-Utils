@@ -47,6 +47,22 @@ namespace DavidUtils.ExtensionMethods
 
 		public static bool IsNormalized(this Vector2 p) => p.x is >= 0 and <= 1 && p.y is >= 0 and <= 1;
 
+		public static Vector2 Clamp01(this Vector2 p) => new(Mathf.Clamp01(p.x), Mathf.Clamp01(p.y));
+
+		public static Vector3 Clamp01(this Vector3 p) =>
+			new(Mathf.Clamp01(p.x), Mathf.Clamp01(p.y), Mathf.Clamp01(p.z));
+
+		public static Vector2 Clamp(this Vector2 p, Vector2 min, Vector2 max) => new(
+			Mathf.Clamp(p.x, min.x, max.x),
+			Mathf.Clamp(p.y, min.y, max.y)
+		);
+
+		public static Vector3 Clamp(this Vector3 p, Vector3 min, Vector3 max) => new(
+			Mathf.Clamp(p.x, min.x, max.x),
+			Mathf.Clamp(p.y, min.y, max.y),
+			Mathf.Clamp(p.z, min.z, max.z)
+		);
+
 		#endregion
 
 		#region 3D to 2D

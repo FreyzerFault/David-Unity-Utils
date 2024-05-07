@@ -40,6 +40,8 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 			if (voronoiGen == null) return;
 
+			if (voronoiGen.voronoi == null || voronoiGen.voronoi.Seeds == null) return;
+
 			Vector2[] seeds = voronoiGen.voronoi.Seeds;
 
 			for (var i = 0; i < seeds.Length; i++)
@@ -55,7 +57,8 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 				Undo.RecordObject(target, "Update Seed");
 
-				voronoiGen.voronoi.MoveSeed(i, transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz());
+				Vector2 newLocalPos = transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz();
+				voronoiGen.voronoi.MoveSeed(i, newLocalPos.Clamp01());
 
 				break;
 			}

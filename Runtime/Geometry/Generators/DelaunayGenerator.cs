@@ -6,7 +6,7 @@ namespace DavidUtils.Geometry.Generators
 {
 	public class DelaunayGenerator : SeedsGenerator
 	{
-		protected readonly Delaunay delaunay = new();
+		public Delaunay delaunay = new();
 		protected List<Delaunay.Triangle> Triangles
 		{
 			get => delaunay.triangles;
@@ -39,7 +39,11 @@ namespace DavidUtils.Geometry.Generators
 			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
 		}
 
-		public virtual void Initialize() => delaunay.Seeds = seeds;
+		public virtual void Initialize()
+		{
+			delaunay ??= new Delaunay(seeds);
+			delaunay.Seeds = seeds;
+		}
 
 
 		public virtual void Run()
@@ -61,7 +65,7 @@ namespace DavidUtils.Geometry.Generators
 
 		#region SEEDS
 
-		protected override void OnSeedsUpdated() => Run();
+		// protected override void OnSeedsUpdated() => Run();
 
 		#endregion
 

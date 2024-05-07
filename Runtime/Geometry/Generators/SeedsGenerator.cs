@@ -42,7 +42,7 @@ namespace DavidUtils.Geometry.Generators
 
 		#endregion
 
-		protected Bounds2D Bounds => Bounds2D.NormalizedBounds;
+		public Bounds2D Bounds => Bounds2D.NormalizedBounds;
 
 		protected virtual void Awake() => GenerateSeeds();
 

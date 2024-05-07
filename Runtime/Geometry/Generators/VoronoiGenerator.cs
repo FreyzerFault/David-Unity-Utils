@@ -14,7 +14,15 @@ namespace DavidUtils.Geometry.Generators
 		public override void Initialize()
 		{
 			base.Initialize();
-			voronoi.Seeds = seeds;
+			if (voronoi == null)
+			{
+				voronoi ??= new Voronoi(seeds, delaunay);
+			}
+			else
+			{
+				voronoi.Seeds = seeds;
+				voronoi.delaunay = delaunay;
+			}
 		}
 
 		protected override IEnumerator RunCoroutine()
@@ -49,6 +57,9 @@ namespace DavidUtils.Geometry.Generators
 			Matrix4x4 matrix = transform.localToWorldMatrix;
 			base.OnDrawGizmos();
 			voronoi.OnDrawGizmos(matrix, colors);
+
+			// DETALLES
+			if (voronoi.regions == null || voronoi.regions.Count == 0) return;
 
 			// Mientras se Genera, dibujamos detallada la ultima region generada
 			if (!voronoi.Ended) voronoi.DrawRegionGizmos_Detailed(voronoi.regions[^1], matrix, projectOnTerrain);
