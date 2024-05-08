@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
@@ -16,19 +17,19 @@ namespace DavidUtils.Geometry.Generators
 		public int numSeeds = 10;
 		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
 
-		[HideInInspector] public Vector2[] seeds = Array.Empty<Vector2>();
-		public Vector2[] Seeds
+		[HideInInspector] public List<Vector2> seeds = new();
+		public List<Vector2> Seeds
 		{
 			get => seeds;
 			set
 			{
 				seeds = value;
-				numSeeds = seeds.Length;
+				numSeeds = seeds.Count;
 				OnSeedsUpdated();
 			}
 		}
 
-		public bool SeedsGenerated => seeds?.Length == numSeeds;
+		public bool SeedsAreGenerated => seeds?.Count == numSeeds;
 
 		#region TO WORLD COORDS
 
@@ -56,7 +57,7 @@ namespace DavidUtils.Geometry.Generators
 			GenerateSeeds();
 		}
 
-		protected void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution);
+		protected void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
 
 		/// <summary>
 		///     Genera un set de puntos 2D random dentro del rango [0,0] -> [1,1]
@@ -176,7 +177,7 @@ namespace DavidUtils.Geometry.Generators
 
 		private void DrawGrid(Matrix4x4 matrix, Color color = default)
 		{
-			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Length));
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Count));
 			if (projectOnTerrain)
 				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, matrix, 5, color);
 			else

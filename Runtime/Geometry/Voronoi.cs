@@ -17,8 +17,9 @@ namespace DavidUtils.Geometry
 		[HideInInspector] public Delaunay delaunay;
 
 		[HideInInspector] public List<Polygon> regions;
-		[HideInInspector] private Vector2[] seeds;
-		public Vector2[] Seeds
+
+		private List<Vector2> seeds;
+		public List<Vector2> Seeds
 		{
 			get => seeds;
 			set
@@ -30,17 +31,24 @@ namespace DavidUtils.Geometry
 
 		private Delaunay.Triangle[] Triangles => delaunay.triangles.ToArray();
 
-		public Voronoi(Vector2[] seeds, Delaunay delaunay = null)
+		public Voronoi(IEnumerable<Vector2> seeds, Delaunay delaunay = null)
 		{
-			this.seeds = seeds;
+			this.seeds = seeds.ToList();
 			regions = new List<Polygon>();
-			this.delaunay = delaunay ?? new Delaunay(seeds);
+			this.delaunay = delaunay ?? new Delaunay(this.seeds);
 		}
+
 
 		public void MoveSeed(int index, Vector2 newPos)
 		{
+			// Si colisiona con otra semilla no la movemos
+			if (seeds.Where((p, i) => i != index).Any(p => Vector2.Distance(p, newPos) < GeometryUtils.Epsilon))
+				return;
+
 			seeds[index] = newPos;
+
 			delaunay.MoveSeed(index, newPos);
+
 			if (Ended)
 			{
 				Reset();
@@ -52,6 +60,9 @@ namespace DavidUtils.Geometry
 			}
 		}
 
+		public void MoveSeed(Vector2 oldPos, Vector2 newPos) =>
+			MoveSeed(seeds.IndexOf(oldPos), newPos);
+
 		public void Reset()
 		{
 			iteration = 0;
@@ -61,19 +72,19 @@ namespace DavidUtils.Geometry
 
 		public void GenerateDelaunay() => delaunay.Triangulate(seeds);
 
-		public Polygon[] GenerateVoronoi()
+		public IEnumerable<Polygon> GenerateVoronoi()
 		{
 			// Se necesita triangular las seeds primero.
 			if (Triangles.Length == 0) GenerateDelaunay();
 
 			foreach (Vector2 regionSeed in seeds)
 			{
-				Vector2[] region = GenerateRegion(regionSeed);
+				Vector2[] region = GenerateRegionPolygon(regionSeed).ToArray();
 				if (region.Length <= 2) continue;
 				regions.Add(new Polygon(region, regionSeed));
 			}
 
-			return regions.ToArray();
+			return regions;
 		}
 
 		#region PROGRESSIVE RUN
@@ -81,7 +92,7 @@ namespace DavidUtils.Geometry
 		public int iteration;
 
 		// Habra terminado cuando para todas las semillas haya una region
-		public bool Ended => regions.Count == seeds.Length;
+		public bool Ended => regions.Count == seeds.Count;
 
 		public IEnumerator AnimationCoroutine(float delay = 0.1f)
 		{
@@ -105,19 +116,19 @@ namespace DavidUtils.Geometry
 			}
 			else
 			{
-				Vector2[] region = GenerateRegion(seeds[iteration]);
-				if (region.Length > 2)
-					regions.Add(new Polygon(region, seeds[iteration]));
+				Vector2[] regionPolygon = GenerateRegionPolygon(seeds[iteration]).ToArray();
+				if (regionPolygon.Length > 2)
+					regions.Add(new Polygon(regionPolygon, seeds[iteration]));
 			}
 
 			iteration++;
 		}
 
 		// Genera los vertices de una region a partir de la semilla y los triangulos generados con Delaunay
-		private Vector2[] GenerateRegion(Vector2 seed)
+		private IEnumerable<Vector2> GenerateRegionPolygon(Vector2 seed)
 		{
 			var polygon = new List<Vector2>();
-			Delaunay.Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed);
+			Delaunay.Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
 			Bounds2D bounds = Bounds2D.NormalizedBounds;
 
 			// Obtenemos cada circuncentro CCW
@@ -145,14 +156,10 @@ namespace DavidUtils.Geometry
 						Delaunay.Edge edge = t.Edges[i];
 						if (edge.Vertices.All(v => v != seed)) continue;
 
-						Vector2 m = (edge.begin + edge.end) / 2;
-						Vector2 edgeDir = (edge.end - edge.begin).normalized;
-
 						// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
 						// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
 						// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
-						Vector2[] intersections =
-							bounds.Intersections_Ray(m, new Vector2(edgeDir.y, -edgeDir.x)).ToArray();
+						Vector2[] intersections = edge.MediatrizIntersetions_RIGHT(bounds);
 
 						polygon.AddRange(intersections);
 					}
@@ -192,7 +199,7 @@ namespace DavidUtils.Geometry
 			}
 
 			// Ordenamos los vertices CCW
-			return polygon.SortByAngle(seed).ToArray();
+			return polygon.SortByAngle(seed);
 		}
 
 		#endregion
@@ -212,7 +219,7 @@ namespace DavidUtils.Geometry
 			borderEdges = new List<Delaunay.Edge>();
 			circumcenters = new List<Vector2>();
 
-			tris ??= delaunay.FindTrianglesAroundVertex(seed);
+			tris ??= delaunay.FindTrianglesAroundVertex(seed).ToArray();
 
 			// Si no hay ningun triangulo del borde, la seed no puede serlo
 			if (tris.All(t => !t.IsBorder)) return false;
@@ -238,21 +245,26 @@ namespace DavidUtils.Geometry
 		}
 
 		public Polygon? GetRegion(Vector2 point) =>
-			point.IsNormalized()
-				? regions[
-					regions
-						.Select((r, i) => new Tuple<int, float>(i, Vector2.Distance(r.centroid, point)))
-						.OrderBy(t => t.Item2)
-						.First()
-						.Item1
-				]
+			regions?.Count > 0
+				? regions[GetRegionIndex(point)]
 				: null;
+
+		public int GetRegionIndex(Vector2 point)
+		{
+			if (regions.Count == 0 || !point.IsIn01()) return -1;
+
+			Tuple<int, float>[] distances = regions
+				.Select((r, i) => new Tuple<int, float>(i, Vector2.Distance(r.centroid, point)))
+				.OrderBy(t => t.Item2)
+				.ToArray();
+
+			if (distances.Length == 0) return -1;
+			return distances[0].Item1;
+		}
 
 		#region DEBUG
 
 #if UNITY_EDITOR
-
-		private Vector3 MousePos => Input.mousePosition;
 
 		[Range(.2f, 1)]
 		public float regionScale = 1;
@@ -275,9 +287,19 @@ namespace DavidUtils.Geometry
 					regions[i].OnDrawGizmos(matrix, regionScale, colors[i], projectOnTerrain);
 		}
 
+		public void DrawRegionGizmos_Highlighted(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false) =>
+			region.OnDrawGizmosWire(matrix, regionScale + .01f, 8, Color.yellow, projectOnTerrain);
+
 		public void DrawRegionGizmos_Detailed(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false)
 		{
 			Bounds2D bounds = Bounds2D.NormalizedBounds;
+
+			// VERTEX in Bounding Box Edges
+			foreach (Vector2 vertex in region.vertices)
+			{
+				Gizmos.color = bounds.PointOnBorder(vertex, out Bounds2D.Side? _) ? Color.red : Color.green;
+				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
+			}
 
 			// Triangulos usados para generar la region
 			foreach (Delaunay.Triangle t in delaunay.FindTrianglesAroundVertex(region.centroid))
@@ -290,46 +312,32 @@ namespace DavidUtils.Geometry
 				Gizmos.color = bounds.OutOfBounds(c) ? Color.red : Color.green;
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(c.ToVector3xz()), .05f);
 
-				if (bounds.OutOfBounds(c)) continue;
+				if (!t.IsBorder || bounds.OutOfBounds(c)) continue;
 
-				// BORDER EDGE 
-				for (var i = 0; i < 3; i++)
+				// BORDER EDGE
+				foreach (Delaunay.Edge borderEdge in t.BorderEdges)
 				{
-					if (t.neighbours[i] != null) continue;
-
-					Delaunay.Edge borderEdge = t.Edges[i];
 					if (borderEdge.begin != region.centroid && borderEdge.end != region.centroid) continue;
 
-					Vector2 m = (borderEdge.begin + borderEdge.end) / 2;
-					Vector2 edgeDir = (borderEdge.end - borderEdge.begin).normalized;
-
-					// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
-					// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
-					// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
-					Vector2[] intersections = bounds.Intersections_Ray(m, new Vector2(edgeDir.y, -edgeDir.x)).ToArray();
+					// Interseccion con la Bounding Box hacia fuera del triangulo
+					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
+					Vector2 intersections = borderEdge.MediatrizIntersetions_RIGHT(bounds).First();
 
 					if (projectOnTerrain)
 						GizmosExtensions.DrawLineThick_OnTerrain(
-							matrix.MultiplyPoint3x4(m.ToVector3xz()),
-							matrix.MultiplyPoint3x4(intersections.First().ToVector3xz()),
+							matrix.MultiplyPoint3x4(borderEdge.Median.ToVector3xz()),
+							matrix.MultiplyPoint3x4(intersections.ToVector3xz()),
 							6,
 							Color.red
 						);
 					else
 						GizmosExtensions.DrawLineThick(
-							matrix.MultiplyPoint3x4(m.ToVector3xz()),
-							matrix.MultiplyPoint3x4(intersections.First().ToVector3xz()),
+							matrix.MultiplyPoint3x4(borderEdge.Median.ToVector3xz()),
+							matrix.MultiplyPoint3x4(intersections.ToVector3xz()),
 							6,
 							Color.red
 						);
 				}
-			}
-
-			// VERTEX in Bounding Box Edges
-			foreach (Vector2 vertex in region.vertices)
-			{
-				Gizmos.color = bounds.PointOnBorder(vertex, out Bounds2D.Side? _) ? Color.red : Color.green;
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
 			}
 		}
 

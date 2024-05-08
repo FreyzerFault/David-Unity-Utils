@@ -34,6 +34,36 @@ namespace DavidUtils.Geometry
 			private static bool IsConvex(Edge e1, Edge e2) =>
 				GeometryUtils.IsRight(e1.begin, e2.end, e1.end);
 
+			public Vector2 Median => (begin + end) / 2;
+			public Vector2 Dir => (end - begin).normalized;
+
+			// Dir Derecha => (90º CCW) => [y,-x]
+			public Vector2 MediatrizRight => new(Dir.y, -Dir.x);
+
+			// Dir IZQUIERDA => (90º CW) => [-y,x]
+			public Vector2 MediatrizLeft => new(-Dir.y, Dir.x);
+
+			/// <summary>
+			///     Interseccion de la Mediatriz con la BoundingBox
+			///     La direccion del rayo debe ser PERPENDICULAR a la arista
+			/// </summary>
+			public Vector2[] MediatrizIntersetions(Bounds2D bounds) =>
+				bounds.Intersections_Line(Median, MediatrizRight).ToArray();
+
+
+			/// <summary>
+			///     Interseccion de la Mediatriz con la BoundingBox a la derecha de la arista
+			/// </summary>
+			public Vector2[] MediatrizIntersetions_RIGHT(Bounds2D bounds) =>
+				bounds.Intersections_Ray(Median, MediatrizRight).ToArray();
+
+			/// <summary>
+			///     Interseccion de la Mediatriz con la BoundingBox a la izquierda de la arista
+			/// </summary>
+			public Vector2[] MediatrizIntersetions_LEFT(Bounds2D bounds) =>
+				bounds.Intersections_Ray(Median, MediatrizRight).ToArray();
+
+
 			// Ignora el la direccion
 			public override bool Equals(object obj)
 			{
@@ -233,13 +263,13 @@ namespace DavidUtils.Geometry
 #endif
 		}
 
-		private Vector2[] seeds;
-		public Vector2[] Seeds
+		private List<Vector2> _seeds;
+		public List<Vector2> Seeds
 		{
-			get => seeds;
+			get => _seeds;
 			set
 			{
-				seeds = value;
+				_seeds = value;
 				Reset();
 			}
 		}
@@ -247,15 +277,16 @@ namespace DavidUtils.Geometry
 		[HideInInspector] public List<Vector2> vertices = new();
 		[HideInInspector] public List<Triangle> triangles = new();
 
-		public Delaunay(Vector2[] seeds = null) => this.seeds = seeds ?? Array.Empty<Vector2>();
+		public Delaunay(IEnumerable<Vector2> seeds = null) =>
+			_seeds = seeds == null ? new List<Vector2>() : seeds.ToList();
 
-		public void Run() => triangles = Triangulate(seeds).ToList();
+		public void Run() => triangles = Triangulate(_seeds).ToList();
 
 		// Algoritmo de Bowyer-Watson
 		// - Por cada punto busca los triangulos cuyo círculo circunscrito contenga al punto
 		// - Elimina los triangulos invalidos y crea nuevos triangulos con el punto
 		// points deben estar Normalizados entre [0,1]
-		public Triangle[] Triangulate(Vector2[] points)
+		public IEnumerable<Triangle> Triangulate(List<Vector2> points)
 		{
 			Reset();
 
@@ -270,22 +301,22 @@ namespace DavidUtils.Geometry
 			addedTris = new List<Triangle>();
 			polygon = new List<Edge>();
 
-			return triangles.ToArray();
+			return triangles;
 		}
 
 
-		public Triangle[] FindTrianglesAroundVertex(Vector2 vertex) =>
-			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex))).ToArray();
+		public IEnumerable<Triangle> FindTrianglesAroundVertex(Vector2 vertex) =>
+			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex)));
 
 		/// <summary>
 		///     Crea un borde a partir de un vertice.
 		///     Recoge todas las aristas opuestas al vertice de los triangulos a los que pertenece
 		///     Y los ordena CCW
 		/// </summary>
-		private Border[] GetBordersAround(Vector2 centerVertex, IEnumerable<Triangle> trisAround = null)
+		private IEnumerable<Border> GetBordersAround(Vector2 centerVertex, IEnumerable<Triangle> trisAround = null)
 		{
 			trisAround ??= FindTrianglesAroundVertex(centerVertex);
-			Border[] borders = trisAround
+			IEnumerable<Border> borders = trisAround
 				.SelectMany(
 					t =>
 					{
@@ -300,21 +331,20 @@ namespace DavidUtils.Geometry
 
 						return borders;
 					}
-				)
-				.ToArray();
+				);
 
 			return Border.SortByAngle(borders, centerVertex);
 		}
 
 		public void MoveSeed(int index, Vector2 newPos)
 		{
-			Vector2 vertex = seeds[index];
+			Vector2 vertex = _seeds[index];
 
-			Triangle[] tris = FindTrianglesAroundVertex(vertex);
+			Triangle[] tris = FindTrianglesAroundVertex(vertex).ToArray();
 			foreach (Triangle tri in tris)
 				tri.MoveVertex(vertex, newPos);
 
-			seeds[index] = newPos;
+			_seeds[index] = newPos;
 			vertices[index] = newPos;
 
 			// LEGALIZACION
@@ -329,7 +359,7 @@ namespace DavidUtils.Geometry
 					if (IsLegal(tri, out List<int> illegalSides)) continue;
 
 					Flip(tri, illegalSides[0]);
-					tris = FindTrianglesAroundVertex(newPos);
+					tris = FindTrianglesAroundVertex(newPos).ToArray();
 					illegal = true;
 					break;
 				}
@@ -586,7 +616,7 @@ namespace DavidUtils.Geometry
 		// Lista de Aristas que forman el Borde
 		// (Busca las que no tengan triangulo vecino)
 		// Ordenadas CCW por sus coords polares respecto a 0,0
-		private Border[] Borders
+		private IEnumerable<Border> Borders
 		{
 			get
 			{
@@ -599,7 +629,7 @@ namespace DavidUtils.Geometry
 					borders.AddRange(tri.BorderEdges.Select(e => new Border(tri1, e)));
 				}
 
-				return borders.OrderBy(border => border.polarAngle).ToArray();
+				return borders.OrderBy(border => border.PolarAngle).ToArray();
 			}
 		}
 
@@ -627,21 +657,21 @@ namespace DavidUtils.Geometry
 
 		public void Run_OnePoint()
 		{
-			if (iterations > seeds.Length)
+			if (iterations > _seeds.Count)
 				return;
 
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
 			polygon = new List<Edge>();
 
-			if (iterations == seeds.Length)
+			if (iterations == _seeds.Count)
 				RemoveBoundingBox();
 			else
-				Triangulate(seeds[iterations]);
+				Triangulate(_seeds[iterations]);
 
 			iterations++;
 
-			ended = iterations > seeds.Length;
+			ended = iterations > _seeds.Count;
 		}
 
 		public void Reset()
@@ -661,7 +691,7 @@ namespace DavidUtils.Geometry
 		#region BOUNDING BOX or SUPERTRIANGLE
 
 		// Vertices almancenados para buscar al final todos los triangulos que lo tengan
-		private Vector2[] boundingVertices = Array.Empty<Vector2>();
+		private Vector2[] _boundingVertices = Array.Empty<Vector2>();
 
 		public Triangle[] GetBoundingBoxTriangles()
 		{
@@ -672,7 +702,7 @@ namespace DavidUtils.Geometry
 			t1.neighbours[0] = t2;
 			t2.neighbours[0] = t1;
 
-			boundingVertices = bounds.Corners;
+			_boundingVertices = bounds.Corners;
 
 			return new[] { t1, t2 };
 		}
@@ -681,15 +711,15 @@ namespace DavidUtils.Geometry
 		{
 			var superTri = Triangle.SuperTriangle;
 			triangles.Add(superTri);
-			boundingVertices = superTri.Vertices;
+			_boundingVertices = superTri.Vertices;
 		}
 
 		// Elimina todos los Triangulos que contengan un vertice del SuperTriangulo/s
 		// Reasigna el vecino a de cualquier triangulo vecino que tenga como vecino al triangulo eliminado a null
 		// Y repara el borde
-		public void RemoveBoundingBox() => RemoveBorder(boundingVertices);
+		public void RemoveBoundingBox() => RemoveBorder(_boundingVertices);
 
-		private void RemoveBorder(Vector2[] points)
+		private void RemoveBorder(IEnumerable<Vector2> points)
 		{
 			// Cogemos todos los Triangulos que contengan un vertice del SuperTriangulo
 			HashSet<Triangle> trisToRemove = points.SelectMany(FindTrianglesAroundVertex).ToHashSet();
@@ -712,7 +742,7 @@ namespace DavidUtils.Geometry
 
 			// Cogemos de cada triangulo que forme parte del borde su arista de borde
 			// y guardamos el indice del triangulo al que pertenece para asignar vecinos despues
-			Border[] borderEdges = Borders;
+			Border[] borderEdges = Borders.ToArray();
 
 			// Iteramos los ejes por PARES, para ver si son convexos o no
 			// Si NO es convexo, añadimos un triangulo al borde
@@ -735,7 +765,7 @@ namespace DavidUtils.Geometry
 
 		private void RemovePointFromBorder(Vector2 point)
 		{
-			// TODO
+			// TODO Desencapsular el RemoveBorder() de punto en punto
 		}
 
 		private struct Border
@@ -743,8 +773,8 @@ namespace DavidUtils.Geometry
 			public readonly Triangle tri;
 			public readonly Edge edge;
 
-			public Vector2 polarPos => edge.begin - Vector2.one * .5f;
-			public float polarAngle => Mathf.Atan2(polarPos.y, polarPos.x);
+			public Vector2 PolarPos => edge.begin - Vector2.one * .5f;
+			public float PolarAngle => Mathf.Atan2(PolarPos.y, PolarPos.x);
 
 			public Border(Triangle tri, Edge edge)
 			{
@@ -753,7 +783,8 @@ namespace DavidUtils.Geometry
 			}
 
 			// Ordena el borde respecto a un centro dado
-			public static Border[] SortByAngle(IEnumerable<Border> borders, Vector2 center) => borders.OrderBy(
+			public static IEnumerable<Border> SortByAngle(IEnumerable<Border> borders, Vector2 center) =>
+				borders.OrderBy(
 					e =>
 					{
 						Vector2 polarCoord = e.edge.begin - center;
@@ -762,8 +793,7 @@ namespace DavidUtils.Geometry
 							polarCoord.x
 						);
 					}
-				)
-				.ToArray();
+				);
 		}
 
 		#endregion

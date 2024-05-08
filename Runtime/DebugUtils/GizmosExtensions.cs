@@ -145,7 +145,7 @@ namespace DavidUtils.DebugUtils
 		{
 			if (points.Length == 0) return;
 			if (loop) points = points.Append(points[0]).ToArray();
-			var colors = new Color[points.Length];
+			var colors = new Color[points.Length + (loop ? 1 : 0)];
 			Array.Fill(colors, color);
 			Handles.DrawAAPolyLine(thickness, colors, points);
 		}

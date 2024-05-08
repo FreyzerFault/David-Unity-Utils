@@ -45,7 +45,7 @@ namespace DavidUtils.ExtensionMethods
 			Mathf.InverseLerp(min.z, max.z, p.z)
 		);
 
-		public static bool IsNormalized(this Vector2 p) => p.x is >= 0 and <= 1 && p.y is >= 0 and <= 1;
+		public static bool IsIn01(this Vector2 p) => p.x is >= 0 and <= 1 && p.y is >= 0 and <= 1;
 
 		public static Vector2 Clamp01(this Vector2 p) => new(Mathf.Clamp01(p.x), Mathf.Clamp01(p.y));
 

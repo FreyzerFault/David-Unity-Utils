@@ -1,5 +1,8 @@
 ﻿using DavidUtils.ExtensionMethods;
+using UnityEditor;
 using UnityEngine;
+#if UNITY_EDITOR
+#endif
 
 namespace DavidUtils.MouseInput
 {
@@ -29,7 +32,7 @@ namespace DavidUtils.MouseInput
 
 			normalizedPos = (worldMousePos - originPos).ToVector2xz() / size;
 
-			return normalizedPos.IsNormalized();
+			return normalizedPos.IsIn01();
 		}
 
 		/// <summary>
@@ -45,8 +48,34 @@ namespace DavidUtils.MouseInput
 
 			normalizedPos = (worldMousePos - originPos).ToVector2xy() / size;
 
-			return normalizedPos.IsNormalized();
+			return normalizedPos.IsIn01();
 		}
+
+		#region DEBUG
+
+#if UNITY_EDITOR
+
+		#region MOUSE POSITION IN SCENE
+
+		// Mouse Position when Mouse is in Scene Window
+		public static Vector3 mouseWorldPosition_InScene = Vector3.zero;
+
+		public static Vector2 MouseWorldPosition_InScene_XY =>
+			mouseWorldPosition_InScene.ToVector2xy();
+		public static Vector2 MouseWorldPosition_InScene_XZ =>
+			mouseWorldPosition_InScene.ToVector2xz();
+
+		// !=======================================================================================
+		// ! USAR ESTO EN ONGUI() de cualquier MonoBehaviour que vaya a estar ACTIVO SIEMPRE
+		// ! para actualizar la posicion del Mouse en la Escena si vas a usarla
+		// !=======================================================================================
+		public static void UpdateMousePositionInScene() =>
+			mouseWorldPosition_InScene = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition).origin;
+
+		#endregion
+
+
+		#region GIZMOS
 
 		public static void DrawGizmos_XZ()
 		{
@@ -59,5 +88,11 @@ namespace DavidUtils.MouseInput
 			Gizmos.color = Color.red;
 			Gizmos.DrawSphere(MouseWorldPosition.WithZ(0), 0.1f);
 		}
+
+		#endregion
+
+#endif
+
+		#endregion
 	}
 }

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Geometry.Generators
 {
@@ -15,7 +16,7 @@ namespace DavidUtils.Geometry.Generators
 
 		public bool runOnStart = true;
 
-		public bool animated = true;
+		[FormerlySerializedAs("animated")] public bool animatedDelaunay = true;
 		public float delay = 0.1f;
 		protected Coroutine animationCoroutine;
 
@@ -30,7 +31,7 @@ namespace DavidUtils.Geometry.Generators
 			if (runOnStart) Run();
 		}
 
-		private void Update()
+		protected virtual void Update()
 		{
 			// NEXT ITERATION
 			if (Input.GetKeyDown(KeyCode.Space)) Run_OneIteration();
@@ -41,6 +42,9 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual void Initialize()
 		{
+			if (animationCoroutine != null)
+				StopCoroutine(animationCoroutine);
+
 			delaunay ??= new Delaunay(seeds);
 			delaunay.Seeds = seeds;
 		}
@@ -49,12 +53,14 @@ namespace DavidUtils.Geometry.Generators
 		public virtual void Run()
 		{
 			Initialize();
+			if (animationCoroutine != null)
+				StopCoroutine(animationCoroutine);
 			animationCoroutine = StartCoroutine(RunCoroutine());
 		}
 
 		protected virtual IEnumerator RunCoroutine()
 		{
-			if (animated)
+			if (animatedDelaunay)
 				yield return delaunay.AnimationCoroutine(delay);
 			else
 				delaunay.Run();

@@ -127,6 +127,21 @@ namespace DavidUtils.Geometry
 				.OrderBy(i => (i - p).sqrMagnitude);
 		}
 
+
+		public IEnumerable<Vector2> Intersections_Line(Vector2 a, Vector2 b)
+		{
+			Vector2? ib = GeometryUtils.IntersectionLineSegment(a, b, BL, BR);
+			Vector2? ir = GeometryUtils.IntersectionLineSegment(a, b, BR, TR);
+			Vector2? it = GeometryUtils.IntersectionLineSegment(a, b, TL, TR);
+			Vector2? il = GeometryUtils.IntersectionLineSegment(a, b, BL, TL);
+
+			Vector2?[] intersections = { ib, ir, it, il };
+			return intersections
+				.Where(i => i.HasValue)
+				.Select(i => i.Value)
+				.OrderBy(i => Vector2.Distance(i, a));
+		}
+
 		/// <summary>
 		///     Convert a Polygon to stay inside the Bounding Box
 		///     Add the intersections of the polygon edges with the BB
@@ -162,13 +177,17 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		public Vector2 Normalize(Vector2 p) => (p - min) / Size;
 
 		#region MOUSE PICKING
 
 		public bool MouseInBounds_XY() => Contains(MouseInputUtils.MouseWorldPosition.ToVector2xy());
 		public bool MouseInBounds_XZ() => Contains(MouseInputUtils.MouseWorldPosition.ToVector2xz());
-		public Vector2 NormalizeMousePosition_XY() => (MouseInputUtils.MouseWorldPosition.ToVector2xy() - min) / Size;
-		public Vector2 NormalizeMousePosition_XZ() => (MouseInputUtils.MouseWorldPosition.ToVector2xz() - min) / Size;
+		public Vector2 NormalizeMousePosition_XY() => Normalize(MouseInputUtils.MouseWorldPosition.ToVector2xy());
+		public Vector2 NormalizeMousePosition_XZ() => Normalize(MouseInputUtils.MouseWorldPosition.ToVector2xz());
+
+		public Vector2 NormalizeMousePosition_InScene_XY() => Normalize(MouseInputUtils.MouseWorldPosition_InScene_XY);
+		public Vector2 NormalizeMousePosition_InScene_XZ() => Normalize(MouseInputUtils.MouseWorldPosition_InScene_XZ);
 
 		#endregion
 
@@ -182,10 +201,16 @@ namespace DavidUtils.Geometry
 		public static implicit operator Bounds(Bounds2D bounds) =>
 			new(bounds.Center.ToVector3xz(), bounds.Extent.ToVector3xz());
 
-		public static Bounds2D operator *(Bounds2D bounds, Matrix4x4 matrix) =>
+		public Bounds2D ApplyTransform_XY(Matrix4x4 matrix) =>
 			new(
-				matrix.MultiplyPoint3x4(bounds.min.ToVector3xy()).ToVector2xy(),
-				matrix.MultiplyPoint3x4(bounds.max.ToVector3xy()).ToVector2xy()
+				matrix.MultiplyPoint3x4(min.ToVector3xy()).ToVector2xy(),
+				matrix.MultiplyPoint3x4(max.ToVector3xy()).ToVector2xy()
+			);
+
+		public Bounds2D ApplyTransform_XZ(Matrix4x4 matrix) =>
+			new(
+				matrix.MultiplyPoint3x4(min.ToVector3xz()).ToVector2xz(),
+				matrix.MultiplyPoint3x4(max.ToVector3xz()).ToVector2xz()
 			);
 
 		#endregion

@@ -152,6 +152,34 @@ namespace DavidUtils.Geometry
 		#region SEGMENTS
 
 		/// <summary>
+		///     Calcula el Punto de Interseccion entre la Linea definida por (a,b) y el Segmento (c,d)
+		///     Si s esta en [0,1] => Interseccion en el segmento
+		/// </summary>
+		/// <returns>null if no intersection, or colinear</returns>
+		public static Vector2? IntersectionLineSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		{
+			Vector2 ab = b - a;
+			Vector2 cd = d - c;
+			Vector2 ac = c - a;
+
+			// t = (cd x ac) / (ab x cd)
+			// s = (ab x ac) / (ab x cd)
+			// (x: Cross Product)
+
+			float denominador = cd.x * ab.y - ab.x * cd.y;
+
+			// Colinear
+			if (Mathf.Abs(denominador) < Epsilon) return null;
+
+			float s = (ab.x * ac.y - ac.x * ab.y) / denominador;
+
+			// Interseccion fuera del segmento, si se extienden intersectarian
+			if (s is < 0 or > 1) return null;
+
+			return c + cd * s;
+		}
+
+		/// <summary>
 		///     Calcula el Punto de Interseccion entre dos segmentos (a,b) y (c,d)
 		///     Si s y t estan en [0,1] => Interseccion en el segmento
 		/// </summary>
@@ -246,6 +274,11 @@ namespace DavidUtils.Geometry
 		}
 
 		#endregion
+
+		#endregion
+
+
+		#region DISTANCE TO LINE
 
 		/// <summary>
 		///     Distancia más corta desde el punto P a la recta definida por los puntos A y B
