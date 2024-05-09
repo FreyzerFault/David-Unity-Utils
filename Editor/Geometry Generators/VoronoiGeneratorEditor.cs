@@ -14,7 +14,7 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 		private Vector2 LocalMousePos => VoronoiGen.transform.worldToLocalMatrix
 			.MultiplyPoint3x4(MouseInputUtils.mouseWorldPosition_InScene)
-			.ToVector2xz();
+			.ToV2xz();
 		private Bounds2D Bounds => VoronoiGen.Bounds;
 		private Vector2 MousePosNorm => Bounds.Normalize(LocalMousePos);
 		private bool MouseInBounds => MousePosNorm.IsIn01();
@@ -72,12 +72,12 @@ namespace DavidUtils.Editor.Geometry_Generators
 				EditorGUI.BeginChangeCheck();
 
 				Transform transform = voronoiGen.transform;
-				Vector3 pos = transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToVector3xz());
+				Vector3 pos = transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToV3xz());
 				pos = Handles.PositionHandle(pos, transform.rotation);
 
 				if (EditorGUI.EndChangeCheck())
 				{
-					Vector2 newLocalPos = transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz().Clamp01();
+					Vector2 newLocalPos = transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToV2xz().Clamp01();
 					voronoiGen.voronoi.MoveSeed(selectedRegion, newLocalPos);
 
 					voronoiGen.hoveredRegionIndex = selectedRegion;

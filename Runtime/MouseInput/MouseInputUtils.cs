@@ -30,7 +30,7 @@ namespace DavidUtils.MouseInput
 
 			Vector3 worldMousePos = Camera.main.ScreenToWorldPoint(MousePosition).WithY(0);
 
-			normalizedPos = (worldMousePos - originPos).ToVector2xz() / size;
+			normalizedPos = (worldMousePos - originPos).ToV2xz() / size;
 
 			return normalizedPos.IsIn01();
 		}
@@ -46,7 +46,7 @@ namespace DavidUtils.MouseInput
 			Vector3 mousePos = MousePosition;
 			Vector3 worldMousePos = Camera.main.ScreenToWorldPoint(mousePos).WithZ(0);
 
-			normalizedPos = (worldMousePos - originPos).ToVector2xy() / size;
+			normalizedPos = (worldMousePos - originPos).ToV2xy() / size;
 
 			return normalizedPos.IsIn01();
 		}
@@ -61,9 +61,9 @@ namespace DavidUtils.MouseInput
 		public static Vector3 mouseWorldPosition_InScene = Vector3.zero;
 
 		public static Vector2 MouseWorldPosition_InScene_XY =>
-			mouseWorldPosition_InScene.ToVector2xy();
+			mouseWorldPosition_InScene.ToV2xy();
 		public static Vector2 MouseWorldPosition_InScene_XZ =>
-			mouseWorldPosition_InScene.ToVector2xz();
+			mouseWorldPosition_InScene.ToV2xz();
 
 		// !=======================================================================================
 		// ! USAR ESTO EN ONGUI() de cualquier MonoBehaviour que vaya a estar ACTIVO SIEMPRE

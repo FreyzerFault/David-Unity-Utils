@@ -16,22 +16,22 @@ namespace DavidUtils.Geometry
 		}
 
 		public Edge[] edges;
-		
+
 		public Edge E1 => edges[0];
 		public Edge E2 => edges[1];
 		public Edge E3 => edges[2];
-		
+
 		public Vector3 v1;
 		public Vector3 v2;
 		public Vector3 v3;
 
-		public Vector2 V1XZ => v1.ToVector2xz();
-		public Vector2 V2XZ => v2.ToVector2xz();
-		public Vector2 V3XZ => v3.ToVector2xz();
-		
+		public Vector2 V1XZ => v1.ToV2xz();
+		public Vector2 V2XZ => v2.ToV2xz();
+		public Vector2 V3XZ => v3.ToV2xz();
+
 		public Vector3[] Vertices => new[] { v1, v2, v3 };
 		public Vector2[] Vertices2D => new[] { V1XZ, V2XZ, V3XZ };
-			
+
 		public int index;
 
 		public Triangle(Edge[] edges, int index = -1)
@@ -58,14 +58,16 @@ namespace DavidUtils.Geometry
 			EnsureCounterClockwise();
 		}
 
-		public Triangle(Edge e1, Edge e2, Edge e3, int index = -1) : this(new []{e1,e2,e3}, index) { }
+		public Triangle(Edge e1, Edge e2, Edge e3, int index = -1) : this(new[] { e1, e2, e3 }, index)
+		{
+		}
 
 		public Triangle(Vector3 v1, Vector3 v2, Vector3 v3, Edge e1, Edge e2, Edge e3, int index = -1)
 		{
 			this.index = index;
 
 			edges = new[] { e1, e2, e3 };
-			
+
 			this.v1 = v1;
 			this.v2 = v2;
 			this.v3 = v3;
@@ -81,10 +83,10 @@ namespace DavidUtils.Geometry
 			this.v2 = v2;
 			this.v3 = v3;
 			edges = new[] { new Edge(v1, v2, this), new Edge(v2, v3, this), new Edge(v3, v1, this) };
-			
+
 			EnsureCounterClockwise();
 		}
-		
+
 		private void EnsureCounterClockwise()
 		{
 			// Hay que ordenarlos en orden ANTIHORARIO
@@ -135,7 +137,7 @@ namespace DavidUtils.Geometry
 		public bool GetOppositeVertex(out Vector3 opposite, Edge edge)
 		{
 			opposite = Vector3.zero;
-			
+
 			// Buscamos el vertice que no pertenece a la arista (no es ni Begin ni End)
 			foreach (Vector3 vertex in Vertices)
 			{
@@ -146,7 +148,7 @@ namespace DavidUtils.Geometry
 
 			return false;
 		}
-		
+
 		public Triangle GetOppositeTriangle(Edge edge)
 		{
 			if (edge == E1) return E1.OppositeTri(this);
@@ -333,7 +335,9 @@ namespace DavidUtils.Geometry
 		/// <param name="intersectionPoint">Punto de Interseccion</param>
 		/// <param name="nextTriangle">El siguiente Triangulo (en la direccion A -> B)</param>
 		/// <returns>false si no hay Interseccion</returns>
-		public bool GetIntersectionPoint(Vector2 a, Vector2 b, out Vector2? intersectionPoint, [CanBeNull] out Triangle nextTriangle)
+		public bool GetIntersectionPoint(
+			Vector2 a, Vector2 b, out Vector2? intersectionPoint, [CanBeNull] out Triangle nextTriangle
+		)
 		{
 			intersectionPoint = null;
 			nextTriangle = null;

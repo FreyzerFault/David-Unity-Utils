@@ -17,10 +17,19 @@ namespace DavidUtils.Geometry
 			this.centroid = centroid;
 		}
 
-		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToVector3xz());
+		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToV3xz());
 
 		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) =>
-			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToVector3xz())).ToArray();
+			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToV3xz())).ToArray();
+
+
+		public Vector2[] VerticesScaledByCenter(float centeredScale)
+		{
+			Vector2[] scaledVertices = vertices;
+			for (var i = 0; i < scaledVertices.Length; i++)
+				scaledVertices[i] = centroid + (scaledVertices[i] - centroid) * centeredScale;
+			return scaledVertices;
+		}
 
 		#region TESTS
 
@@ -73,7 +82,6 @@ namespace DavidUtils.Geometry
 		}
 
 		#endregion
-
 
 #if UNITY_EDITOR
 

@@ -33,13 +33,13 @@ namespace DavidUtils.Geometry.Generators
 
 		#region TO WORLD COORDS
 
-		protected Vector3[] Seeds3D_XY => Seeds.Select(seed => seed.ToVector3xy()).ToArray();
-		protected Vector3[] Seeds3D_XZ => Seeds.Select(seed => seed.ToVector3xz()).ToArray();
+		protected Vector3[] Seeds3D_XY => Seeds.Select(seed => seed.ToV3xy()).ToArray();
+		protected Vector3[] Seeds3D_XZ => Seeds.Select(seed => seed.ToV3xz()).ToArray();
 
 		protected Vector3[] SeedsInWorld_XZ =>
-			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToVector3xz())).ToArray();
+			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToV3xz())).ToArray();
 		protected Vector3[] SeedsInWorld_XY =>
-			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToVector3xy())).ToArray();
+			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToV3xy())).ToArray();
 
 		#endregion
 
@@ -57,7 +57,7 @@ namespace DavidUtils.Geometry.Generators
 			GenerateSeeds();
 		}
 
-		protected void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
+		public void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
 
 		/// <summary>
 		///     Genera un set de puntos 2D random dentro del rango [0,0] -> [1,1]
@@ -152,22 +152,26 @@ namespace DavidUtils.Geometry.Generators
 		public bool projectOnTerrain = true;
 		public bool drawSeeds = true;
 		public bool drawGrid = true;
-		[HideInInspector] public Color[] colors = Array.Empty<Color>();
+		protected Color[] seedColors = Array.Empty<Color>();
 
 		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
 		protected virtual void OnDrawGizmos()
 		{
-			Matrix4x4 matrix = transform.localToWorldMatrix;
-			Color gridColor = Color.blue;
-			if (drawSeeds) DrawSeeds(colors);
-			if (drawGrid)
-				if (seedsDistribution == SeedsDistribution.Random)
-					DrawBoundinBox(matrix, gridColor);
-				else
-					DrawGrid(matrix, gridColor);
+			if (drawSeeds) DrawSeeds();
+			if (drawGrid) DrawBoundingBox();
 		}
 
-		private void DrawBoundinBox(Matrix4x4 matrix, Color color = default)
+		protected void DrawBoundingBox()
+		{
+			Matrix4x4 matrix = transform.localToWorldMatrix;
+			Color gridColor = Color.blue;
+			if (seedsDistribution == SeedsDistribution.Random)
+				DrawBoundingBox(matrix, gridColor);
+			else
+				DrawGrid(matrix, gridColor);
+		}
+
+		private void DrawBoundingBox(Matrix4x4 matrix, Color color = default)
 		{
 			if (projectOnTerrain)
 				GizmosExtensions.DrawQuadWire_OnTerrain(matrix, 5, color);
@@ -184,17 +188,17 @@ namespace DavidUtils.Geometry.Generators
 				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
 		}
 
-		private void DrawSeeds(Color[] colors = null)
+		protected void DrawSeeds()
 		{
-			Gizmos.color = colors?.Length > 0 ? colors[0] : Color.grey;
+			Gizmos.color = seedColors?.Length > 0 ? seedColors[0] : Color.grey;
 			var terrain = Terrain.activeTerrain;
 			Vector3[] seedsInWorld = projectOnTerrain
 				? SeedsInWorld_XZ.Select(s => terrain.Project(s)).ToArray()
 				: SeedsInWorld_XZ;
 			for (var i = 0; i < seedsInWorld.Length; i++)
 			{
-				if (colors?.Length > 0)
-					Gizmos.color = colors[i];
+				if (seedColors?.Length > 0)
+					Gizmos.color = seedColors[i];
 				Gizmos.DrawSphere(seedsInWorld[i], 0.1f);
 			}
 		}

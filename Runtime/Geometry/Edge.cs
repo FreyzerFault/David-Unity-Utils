@@ -38,11 +38,11 @@ namespace DavidUtils.Geometry
 		public void AssignTriangle(Triangle tri)
 		{
 			if (!tri.GetOppositeVertex(out Vector3 opposite, this)) return;
-			tris = GeometryUtils.IsRight(opposite, begin, end) 
+			tris = GeometryUtils.IsRight(opposite, begin, end)
 				? new Tuple<Triangle, Triangle>(tris.Item1, tri)
 				: new Tuple<Triangle, Triangle>(tri, tris.Item2);
 		}
-		
+
 		public Triangle OppositeTri(Triangle tri) => tri == LeftTri ? RightTri : LeftTri;
 
 		/// <summary>
@@ -68,7 +68,7 @@ namespace DavidUtils.Geometry
 		}
 
 		public static PointEdgePosition GetPointEdgePosition(Vector3 p, Vector3 begin, Vector3 end) =>
-			GetPointEdgePosition(p.ToVector2xz(), begin.ToVector2xz(), end.ToVector2xz());
+			GetPointEdgePosition(p.ToV2xz(), begin.ToV2xz(), end.ToV2xz());
 
 		/// <summary>
 		///     Interpolacion de la altura en un punto 2D en la Arista.
@@ -100,15 +100,15 @@ namespace DavidUtils.Geometry
 		public bool GetIntersectionPoint(Vector2 a, Vector2 b, out Vector2? intersectionPoint)
 		{
 			intersectionPoint = null;
-			PointEdgePosition posA = GetPointEdgePosition(a, begin.ToVector2xz(), end.ToVector2xz());
-			PointEdgePosition posB = GetPointEdgePosition(b, begin.ToVector2xz(), end.ToVector2xz());
+			PointEdgePosition posA = GetPointEdgePosition(a, begin.ToV2xz(), end.ToV2xz());
+			PointEdgePosition posB = GetPointEdgePosition(b, begin.ToV2xz(), end.ToV2xz());
 
 			// Solo hay interseccion si los dos puntos estan en lados opuestos de la arista
 			if ((posA == PointEdgePosition.RIGHT && posB == PointEdgePosition.LEFT) ||
 			    (posA == PointEdgePosition.LEFT && posB == PointEdgePosition.RIGHT))
 			{
-				Vector2 c = begin.ToVector2xz();
-				Vector2 d = end.ToVector2xz();
+				Vector2 c = begin.ToV2xz();
+				Vector2 d = end.ToV2xz();
 
 				Vector2 ab = b - a;
 				Vector2 cd = d - c;

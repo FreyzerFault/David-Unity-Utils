@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
@@ -41,6 +40,8 @@ namespace DavidUtils.Geometry
 
 		public void MoveSeed(int index, Vector2 newPos)
 		{
+			newPos = newPos.Clamp01();
+
 			// Si colisiona con otra semilla no la movemos
 			if (seeds.Where((p, i) => i != index).Any(p => Vector2.Distance(p, newPos) < GeometryUtils.Epsilon))
 				return;
@@ -93,18 +94,6 @@ namespace DavidUtils.Geometry
 
 		// Habra terminado cuando para todas las semillas haya una region
 		public bool Ended => regions.Count == seeds.Count;
-
-		public IEnumerator AnimationCoroutine(float delay = 0.1f)
-		{
-			if (!delaunay.ended)
-				yield return delaunay.AnimationCoroutine(delay);
-
-			while (!Ended)
-			{
-				Run_OneIteration();
-				yield return new WaitForSecondsRealtime(delay);
-			}
-		}
 
 		public void Run_OneIteration()
 		{
@@ -266,13 +255,13 @@ namespace DavidUtils.Geometry
 
 #if UNITY_EDITOR
 
-		[Range(.2f, 1)]
-		public float regionScale = 1;
 
 		public bool drawGizmos = true;
 		public bool drawWire;
 
-		public void OnDrawGizmos(Matrix4x4 matrix, Color[] colors = null, bool projectOnTerrain = false)
+		public void OnDrawGizmos(
+			Matrix4x4 matrix, float regionScale = .9f, Color[] colors = null, bool projectOnTerrain = false
+		)
 		{
 			if (!drawGizmos || regions is not { Count: > 0 }) return;
 
@@ -287,8 +276,10 @@ namespace DavidUtils.Geometry
 					regions[i].OnDrawGizmos(matrix, regionScale, colors[i], projectOnTerrain);
 		}
 
-		public void DrawRegionGizmos_Highlighted(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false) =>
-			region.OnDrawGizmosWire(matrix, regionScale + .01f, 8, Color.yellow, projectOnTerrain);
+		public void DrawRegionGizmos_Highlighted(
+			Polygon region, Matrix4x4 matrix, float regionScale = .9f, bool projectOnTerrain = false
+		) =>
+			region.OnDrawGizmosWire(matrix, regionScale + .01f, 5, Color.yellow, projectOnTerrain);
 
 		public void DrawRegionGizmos_Detailed(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false)
 		{
@@ -298,19 +289,19 @@ namespace DavidUtils.Geometry
 			foreach (Vector2 vertex in region.vertices)
 			{
 				Gizmos.color = bounds.PointOnBorder(vertex, out Bounds2D.Side? _) ? Color.red : Color.green;
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToVector3xz()), .1f);
+				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToV3xz()), .1f);
 			}
 
 			// Triangulos usados para generar la region
 			foreach (Delaunay.Triangle t in delaunay.FindTrianglesAroundVertex(region.centroid))
 			{
-				t.OnGizmosDrawWire(matrix, 8, Color.blue, projectOnTerrain);
+				t.OnGizmosDrawWire(matrix, 5, Color.white, projectOnTerrain);
 
 				// CIRCUNCENTROS
 				Vector2 c = t.GetCircumcenter();
 
 				Gizmos.color = bounds.OutOfBounds(c) ? Color.red : Color.green;
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(c.ToVector3xz()), .05f);
+				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(c.ToV3xz()), .05f);
 
 				if (!t.IsBorder || bounds.OutOfBounds(c)) continue;
 
@@ -325,15 +316,15 @@ namespace DavidUtils.Geometry
 
 					if (projectOnTerrain)
 						GizmosExtensions.DrawLineThick_OnTerrain(
-							matrix.MultiplyPoint3x4(borderEdge.Median.ToVector3xz()),
-							matrix.MultiplyPoint3x4(intersections.ToVector3xz()),
+							matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz()),
+							matrix.MultiplyPoint3x4(intersections.ToV3xz()),
 							6,
 							Color.red
 						);
 					else
 						GizmosExtensions.DrawLineThick(
-							matrix.MultiplyPoint3x4(borderEdge.Median.ToVector3xz()),
-							matrix.MultiplyPoint3x4(intersections.ToVector3xz()),
+							matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz()),
+							matrix.MultiplyPoint3x4(intersections.ToV3xz()),
 							6,
 							Color.red
 						);

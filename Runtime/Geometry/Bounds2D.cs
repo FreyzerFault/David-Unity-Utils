@@ -35,6 +35,12 @@ namespace DavidUtils.Geometry
 			this.max = max;
 		}
 
+		public Bounds2D(Vector2[] pointsInsideBound)
+		{
+			min = pointsInsideBound.MinPosition();
+			max = pointsInsideBound.MaxPosition();
+		}
+
 		public Vector2 TransformNormalized(Vector2 normalized) => min + normalized * Size;
 
 		#region TEST INSIDE
@@ -181,10 +187,10 @@ namespace DavidUtils.Geometry
 
 		#region MOUSE PICKING
 
-		public bool MouseInBounds_XY() => Contains(MouseInputUtils.MouseWorldPosition.ToVector2xy());
-		public bool MouseInBounds_XZ() => Contains(MouseInputUtils.MouseWorldPosition.ToVector2xz());
-		public Vector2 NormalizeMousePosition_XY() => Normalize(MouseInputUtils.MouseWorldPosition.ToVector2xy());
-		public Vector2 NormalizeMousePosition_XZ() => Normalize(MouseInputUtils.MouseWorldPosition.ToVector2xz());
+		public bool MouseInBounds_XY() => Contains(MouseInputUtils.MouseWorldPosition.ToV2xy());
+		public bool MouseInBounds_XZ() => Contains(MouseInputUtils.MouseWorldPosition.ToV2xz());
+		public Vector2 NormalizeMousePosition_XY() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2xy());
+		public Vector2 NormalizeMousePosition_XZ() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2xz());
 
 		public Vector2 NormalizeMousePosition_InScene_XY() => Normalize(MouseInputUtils.MouseWorldPosition_InScene_XY);
 		public Vector2 NormalizeMousePosition_InScene_XZ() => Normalize(MouseInputUtils.MouseWorldPosition_InScene_XZ);
@@ -196,21 +202,21 @@ namespace DavidUtils.Geometry
 
 		// CONVERSION OPERATOR Bounds <--> Bounds2D
 		public static implicit operator Bounds2D(Bounds bounds) =>
-			new(bounds.min.ToVector2xz(), bounds.max.ToVector2xz());
+			new(bounds.min.ToV2xz(), bounds.max.ToV2xz());
 
 		public static implicit operator Bounds(Bounds2D bounds) =>
-			new(bounds.Center.ToVector3xz(), bounds.Extent.ToVector3xz());
+			new(bounds.Center.ToV3xz(), bounds.Extent.ToV3xz());
 
 		public Bounds2D ApplyTransform_XY(Matrix4x4 matrix) =>
 			new(
-				matrix.MultiplyPoint3x4(min.ToVector3xy()).ToVector2xy(),
-				matrix.MultiplyPoint3x4(max.ToVector3xy()).ToVector2xy()
+				matrix.MultiplyPoint3x4(min.ToV3xy()).ToV2xy(),
+				matrix.MultiplyPoint3x4(max.ToV3xy()).ToV2xy()
 			);
 
 		public Bounds2D ApplyTransform_XZ(Matrix4x4 matrix) =>
 			new(
-				matrix.MultiplyPoint3x4(min.ToVector3xz()).ToVector2xz(),
-				matrix.MultiplyPoint3x4(max.ToVector3xz()).ToVector2xz()
+				matrix.MultiplyPoint3x4(min.ToV3xz()).ToV2xz(),
+				matrix.MultiplyPoint3x4(max.ToV3xz()).ToV2xz()
 			);
 
 		#endregion

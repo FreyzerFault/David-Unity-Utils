@@ -64,10 +64,10 @@ namespace DavidUtils.DebugUtils
 
 		public static Vector3[] QuadVertices(Matrix4x4 matrix) => new[]
 		{
-			matrix.MultiplyPoint3x4(new Vector2(0, 0).ToVector3xz()),
-			matrix.MultiplyPoint3x4(new Vector2(1, 0).ToVector3xz()),
-			matrix.MultiplyPoint3x4(new Vector2(1, 1).ToVector3xz()),
-			matrix.MultiplyPoint3x4(new Vector2(0, 1).ToVector3xz())
+			matrix.MultiplyPoint3x4(new Vector2(0, 0).ToV3xz()),
+			matrix.MultiplyPoint3x4(new Vector2(1, 0).ToV3xz()),
+			matrix.MultiplyPoint3x4(new Vector2(1, 1).ToV3xz()),
+			matrix.MultiplyPoint3x4(new Vector2(0, 1).ToV3xz())
 		};
 
 		public static void DrawQuadWire(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
@@ -95,7 +95,7 @@ namespace DavidUtils.DebugUtils
 					matrix * Matrix4x4.TRS(
 						new Vector3(x * cellSize.x, 0, y * cellSize.y),
 						Quaternion.identity,
-						cellSize.ToVector3xz()
+						cellSize.ToV3xz()
 					),
 					thickness,
 					color
@@ -433,7 +433,7 @@ namespace DavidUtils.DebugUtils
 		)
 		{
 			Vector2 cellSize = Vector2.one / new Vector2(cellRows, cellCols);
-			Matrix4x4 cellScaleMatrix = Matrix4x4.Scale(cellSize.ToVector3xz().WithY(1));
+			Matrix4x4 cellScaleMatrix = Matrix4x4.Scale(cellSize.ToV3xz().WithY(1));
 
 			for (var y = 0; y < cellRows; y++)
 			for (var x = 0; x < cellRows; x++)

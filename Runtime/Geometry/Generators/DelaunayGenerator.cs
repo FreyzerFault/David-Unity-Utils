@@ -17,7 +17,7 @@ namespace DavidUtils.Geometry.Generators
 		public bool runOnStart = true;
 
 		[FormerlySerializedAs("animated")] public bool animatedDelaunay = true;
-		public float delay = 0.1f;
+		[FormerlySerializedAs("delay")] public float delayMilliseconds = 0.1f;
 		protected Coroutine animationCoroutine;
 
 		protected override void Awake()
@@ -61,7 +61,11 @@ namespace DavidUtils.Geometry.Generators
 		protected virtual IEnumerator RunCoroutine()
 		{
 			if (animatedDelaunay)
-				yield return delaunay.AnimationCoroutine(delay);
+				while (!delaunay.ended)
+				{
+					delaunay.Run_OnePoint();
+					yield return new WaitForSecondsRealtime(delayMilliseconds);
+				}
 			else
 				delaunay.Run();
 		}

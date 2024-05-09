@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
@@ -81,7 +80,7 @@ namespace DavidUtils.Geometry
 			)
 			{
 				Vector3[] verticesInWorld =
-					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz())).ToArray();
+					Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz())).ToArray();
 				GizmosExtensions.DrawLineThick(
 					projectedOnTerrain ? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) : verticesInWorld,
 					thickness,
@@ -233,7 +232,7 @@ namespace DavidUtils.Geometry
 			)
 			{
 				Vector3[] verticesInWorld = Vertices
-					.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz()))
+					.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz()))
 					.ToArray();
 
 				if (projectedOnTerrain)
@@ -249,7 +248,7 @@ namespace DavidUtils.Geometry
 			public void OnGizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
 			{
 				Vector3[] verticesInWorld = Vertices
-					.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToVector3xz()))
+					.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz()))
 					.ToArray();
 
 				if (projectedOnTerrain)
@@ -644,17 +643,6 @@ namespace DavidUtils.Geometry
 		private List<Triangle> addedTris = new();
 		private List<Edge> polygon = new();
 
-		public IEnumerator AnimationCoroutine(float delay = 0.1f)
-		{
-			while (!ended)
-			{
-				Run_OnePoint();
-				yield return new WaitForSecondsRealtime(delay);
-			}
-
-			yield return null;
-		}
-
 		public void Run_OnePoint()
 		{
 			if (iterations > _seeds.Count)
@@ -840,7 +828,7 @@ namespace DavidUtils.Geometry
 		}
 
 		private void GizmosHightlightBorder(Matrix4x4 matrix) => GizmosExtensions.DrawPolygonWire(
-			Borders.Select(t => t.edge.begin).Select(p => matrix.MultiplyPoint3x4(p.ToVector3xz())).ToArray(),
+			Borders.Select(t => t.edge.begin).Select(p => matrix.MultiplyPoint3x4(p.ToV3xz())).ToArray(),
 			10,
 			Color.red
 		);
