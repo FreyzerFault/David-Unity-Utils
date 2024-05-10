@@ -17,6 +17,8 @@ namespace DavidUtils.Geometry.Generators
 		public int numSeeds = 10;
 		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
 
+		protected Color[] seedColors = Array.Empty<Color>();
+
 		[HideInInspector] public List<Vector2> seeds = new();
 		public List<Vector2> Seeds
 		{
@@ -47,17 +49,74 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Awake() => GenerateSeeds();
 
-		protected virtual void OnSeedsUpdated()
+		public virtual void OnSeedsUpdated()
 		{
+			SetSeedsRainbowColors();
+			InstantiateSeeds();
 		}
 
 		public void RandomizeSeeds()
 		{
 			randSeed = Random.Range(1, int.MaxValue);
 			GenerateSeeds();
+			SetSeedsRainbowColors();
+			InstantiateSeeds();
 		}
 
 		public void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
+
+		#region COLOR
+
+		protected void SetSeedsRainbowColors() =>
+			seedColors = Color.red.GetRainBowColors(numSeeds);
+
+		#endregion
+
+		#region INSTANTIATE SPHERES IN WORLD
+
+		protected MeshRenderer[] spheresMr;
+		protected MeshFilter[] spheresMf;
+
+		protected void ClearSeedsObjs()
+		{
+			if (spheresMf == null) return;
+			foreach (MeshFilter meshFilter in spheresMf)
+				Destroy(meshFilter.gameObject);
+
+			spheresMf = Array.Empty<MeshFilter>();
+			spheresMr = Array.Empty<MeshRenderer>();
+		}
+
+		protected void InstantiateSeeds()
+		{
+			ClearSeedsObjs();
+			spheresMf = new MeshFilter[seeds.Count];
+			spheresMr = new MeshRenderer[seeds.Count];
+
+			for (var i = 0; i < seeds.Count; i++)
+			{
+				Vector2 seed = seeds[i];
+				var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+				sphere.transform.parent = transform;
+				sphere.transform.localPosition = seed.ToV3xz();
+				sphere.transform.localScale = Vector3.one * 0.3f / transform.lossyScale.x;
+
+				spheresMr[i] = sphere.GetComponent<MeshRenderer>();
+				spheresMf[i] = sphere.GetComponent<MeshFilter>();
+
+				// COLOR
+				Color[] colors = spheresMf[i].sharedMesh.vertices.Select(_ => seedColors[i]).ToArray();
+				spheresMf[i].sharedMesh.SetColors(colors);
+
+				// MATERIAL
+				spheresMr[i].sharedMaterial = Resources.Load<Material>("Materials/Geometry Unlit");
+			}
+		}
+
+		#endregion
+
+
+		#region GENERATION ALGORITHMS
 
 		/// <summary>
 		///     Genera un set de puntos 2D random dentro del rango [0,0] -> [1,1]
@@ -147,12 +206,13 @@ namespace DavidUtils.Geometry.Generators
 			return seeds;
 		}
 
+		#endregion
+
 		#region DEBUG
 
 		public bool projectOnTerrain = true;
 		public bool drawSeeds = true;
 		public bool drawGrid = true;
-		protected Color[] seedColors = Array.Empty<Color>();
 
 		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
 		protected virtual void OnDrawGizmos()

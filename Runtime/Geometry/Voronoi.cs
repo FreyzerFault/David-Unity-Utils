@@ -38,13 +38,13 @@ namespace DavidUtils.Geometry
 		}
 
 
-		public void MoveSeed(int index, Vector2 newPos)
+		public bool MoveSeed(int index, Vector2 newPos)
 		{
 			newPos = newPos.Clamp01();
 
 			// Si colisiona con otra semilla no la movemos
 			if (seeds.Where((p, i) => i != index).Any(p => Vector2.Distance(p, newPos) < GeometryUtils.Epsilon))
-				return;
+				return false;
 
 			seeds[index] = newPos;
 
@@ -59,6 +59,8 @@ namespace DavidUtils.Geometry
 			{
 				Reset();
 			}
+
+			return true;
 		}
 
 		public void MoveSeed(Vector2 oldPos, Vector2 newPos) =>

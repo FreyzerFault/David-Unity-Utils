@@ -1,11 +1,12 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
-	public struct Polygon
+	public struct Polygon : IEquatable<Polygon>
 	{
 		// Vertices in Counter-Clockwise order
 		public Vector2[] vertices;
@@ -13,7 +14,7 @@ namespace DavidUtils.Geometry
 
 		public Polygon(Vector2[] vertices, Vector2 centroid = default)
 		{
-			this.vertices = vertices;
+			this.vertices = vertices ?? Array.Empty<Vector2>();
 			this.centroid = centroid;
 		}
 
@@ -25,10 +26,8 @@ namespace DavidUtils.Geometry
 
 		public Vector2[] VerticesScaledByCenter(float centeredScale)
 		{
-			Vector2[] scaledVertices = vertices;
-			for (var i = 0; i < scaledVertices.Length; i++)
-				scaledVertices[i] = centroid + (scaledVertices[i] - centroid) * centeredScale;
-			return scaledVertices;
+			Vector2 c = centroid;
+			return vertices.Select(v => c + (v - c) * centeredScale).ToArray();
 		}
 
 		#region TESTS
@@ -83,6 +82,20 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		#region MESH GENERATION
+
+		public Delaunay.Triangle[] Triangulate(float centeredScale = .9f)
+		{
+			Vector2[] scaledVertices = VerticesScaledByCenter(centeredScale);
+
+			var tris = new Delaunay.Triangle[vertices.Length];
+			for (var i = 0; i < vertices.Length; i++)
+				tris[i] = new Delaunay.Triangle(scaledVertices[i], scaledVertices[(i + 1) % vertices.Length], centroid);
+			return tris;
+		}
+
+		#endregion
+
 #if UNITY_EDITOR
 
 		#region DEBUG
@@ -122,5 +135,10 @@ namespace DavidUtils.Geometry
 		#endregion
 
 #endif
+		public bool Equals(Polygon other) => Equals(vertices, other.vertices) && centroid.Equals(other.centroid);
+
+		public override bool Equals(object obj) => obj is Polygon other && Equals(other);
+
+		public override int GetHashCode() => HashCode.Combine(vertices, centroid);
 	}
 }

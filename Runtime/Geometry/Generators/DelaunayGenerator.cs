@@ -53,8 +53,6 @@ namespace DavidUtils.Geometry.Generators
 		public virtual void Run()
 		{
 			Initialize();
-			if (animationCoroutine != null)
-				StopCoroutine(animationCoroutine);
 			animationCoroutine = StartCoroutine(RunCoroutine());
 		}
 

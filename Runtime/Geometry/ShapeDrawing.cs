@@ -13,7 +13,7 @@ namespace DavidUtils.Geometry
 
 		public static LineRenderer InstantiateLine(
 			Transform parent, Vector2[] points, Color[] colors = null, float thickness = DEFAULT_THICKNESS,
-			bool XZplane = true
+			bool XZplane = true, string name = ""
 		)
 		{
 			// COLORS
@@ -21,14 +21,13 @@ namespace DavidUtils.Geometry
 			Color color = colors[0];
 
 			// LINE RENDERER
-			var line = new GameObject($"Line {(colors.Length == 0 ? color.ToString() : "")} - {points.Length} points");
+			var line = new GameObject($"Line{(name == "" ? "" : " - ")}{name}");
 			line.transform.parent = parent;
 
 			var lr = line.AddComponent<LineRenderer>();
 
 			// Line Material
 			lr.sharedMaterial = new Material(Shader.Find("Sprites/Default"));
-
 
 			// SET COLORS
 			if (colors.Length > 1)
@@ -45,6 +44,10 @@ namespace DavidUtils.Geometry
 				.ToArray();
 			lr.SetPositions(positions);
 
+			// Smoothness
+			lr.numCapVertices = 5;
+			lr.numCornerVertices = 5;
+
 			return lr;
 		}
 
@@ -59,7 +62,8 @@ namespace DavidUtils.Geometry
 				polygon.VerticesScaledByCenter(centeredScale),
 				new[] { color },
 				thickness,
-				XZplane
+				XZplane,
+				"Polygon"
 			);
 			lr.loop = true;
 			return lr;
@@ -70,7 +74,7 @@ namespace DavidUtils.Geometry
 
 		#region MESH SHAPES
 
-		public static void InstantiatePolygon(
+		public static void InstantiatePolygon_DelaunayTriangulation(
 			Polygon polygon, Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f,
 			Color color = default
 		) => InstantiateMeshRenderer(
@@ -78,21 +82,39 @@ namespace DavidUtils.Geometry
 			parent,
 			out mr,
 			out mf,
-			color
+			color,
+			"Polygon"
+		);
+
+		public static void InstantiatePolygon(
+			Polygon polygon, Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f,
+			Color color = default
+		) => InstantiateMeshRenderer(
+			Delaunay.Triangle.CreateMesh(polygon.Triangulate(centeredScale), color),
+			parent,
+			out mr,
+			out mf,
+			color,
+			"Polygon"
 		);
 
 		public static void InstantiateMeshRenderer(
-			Mesh mesh, Transform parent, out MeshRenderer mr, out MeshFilter mf, Color color = default
+			Mesh mesh, Transform parent, out MeshRenderer mr, out MeshFilter mf, Color color = default, string name = ""
 		)
 		{
 			// LINE RENDERER
-			var mObj = new GameObject($"Mesh {color.ToString()}");
+			var mObj = new GameObject($"Mesh{(name == "" ? "" : " - ")} - {name}");
 			mObj.transform.parent = parent;
+			mObj.transform.position = Vector3.zero;
+			mObj.transform.rotation = Quaternion.identity;
+			mObj.transform.localScale = Vector3.one;
 
 			mr = mObj.AddComponent<MeshRenderer>();
 			mf = mObj.AddComponent<MeshFilter>();
 
-			mr.sharedMaterial = new Material(Shader.Find("Sprites/Default"));
+			// Find Default Material
+			mr.sharedMaterial = Resources.Load<Material>("Materials/Geometry Lit");
+
 			mf.sharedMesh = mesh;
 		}
 

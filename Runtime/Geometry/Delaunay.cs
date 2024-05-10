@@ -222,6 +222,41 @@ namespace DavidUtils.Geometry
 			public static Triangle SuperTriangle =>
 				new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
+			#region MESH GENERATION
+
+			public static Mesh CreateMesh(Triangle[] tris, Color color = default, bool XZplane = true)
+			{
+				int[] indices = new int[tris.Length * 3].Select((_, index) => index).ToArray();
+				var vertices = new Vector3[tris.Length * 3];
+				for (var i = 0; i < tris.Length; i++)
+				{
+					Triangle t = tris[i];
+					vertices[i * 3 + 0] = t.v3.ToV3xz();
+					vertices[i * 3 + 1] = t.v2.ToV3xz();
+					vertices[i * 3 + 2] = t.v1.ToV3xz();
+				}
+
+				var mesh = new Mesh
+				{
+					vertices = vertices,
+					triangles = indices
+				};
+
+				var colors = new Color[vertices.Length];
+				Array.Fill(colors, color);
+				mesh.colors = colors;
+
+				mesh.normals = mesh.vertices.Select(v => XZplane ? Vector3.up : Vector3.back).ToArray();
+				mesh.bounds = tris
+					.SelectMany(t => t.Vertices)
+					.Select(p => XZplane ? p.ToV3xz() : p.ToV3xy())
+					.ToArray()
+					.GetBoundingBox();
+
+				return mesh;
+			}
+
+			#endregion
 
 #if UNITY_EDITOR
 
