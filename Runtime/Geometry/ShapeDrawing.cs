@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
@@ -51,6 +51,23 @@ namespace DavidUtils.Geometry
 			return lr;
 		}
 
+		public static LineRenderer InstantiateTriangleWire(
+			Transform parent, Delaunay.Triangle triangle, Color color = default,
+			float thickness = DEFAULT_THICKNESS, bool XZplane = true
+		)
+		{
+			LineRenderer lr = InstantiateLine(
+				parent,
+				triangle.Vertices,
+				new[] { color },
+				thickness,
+				XZplane,
+				"Triangle"
+			);
+			lr.loop = true;
+			return lr;
+		}
+
 		public static LineRenderer InstantiatePolygonWire(
 			Transform parent, Polygon polygon, float centeredScale = 1, Color color = default,
 			float thickness = DEFAULT_THICKNESS,
@@ -74,11 +91,17 @@ namespace DavidUtils.Geometry
 
 		#region MESH SHAPES
 
+		public static void InstatiateTriangle(
+			Delaunay.Triangle tri, Transform parent, out MeshRenderer mr, out MeshFilter mf,
+			Color color = default
+		) =>
+			InstantiateMeshRenderer(CreateMesh(new[] { tri }), parent, out mr, out mf, color, "Triangle");
+
 		public static void InstantiatePolygon_DelaunayTriangulation(
 			Polygon polygon, Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f,
 			Color color = default
 		) => InstantiateMeshRenderer(
-			CreateMesh(polygon.VerticesScaledByCenter(centeredScale)),
+			CreateMesh_Delaunay(polygon.VerticesScaledByCenter(centeredScale)),
 			parent,
 			out mr,
 			out mf,
@@ -103,10 +126,10 @@ namespace DavidUtils.Geometry
 		)
 		{
 			// LINE RENDERER
-			var mObj = new GameObject($"Mesh{(name == "" ? "" : " - ")} - {name}");
+			var mObj = new GameObject($"Mesh{(name == "" ? "" : " - " + name)}");
 			mObj.transform.parent = parent;
-			mObj.transform.position = Vector3.zero;
-			mObj.transform.rotation = Quaternion.identity;
+			mObj.transform.localPosition = Vector3.zero;
+			mObj.transform.localRotation = Quaternion.identity;
 			mObj.transform.localScale = Vector3.one;
 
 			mr = mObj.AddComponent<MeshRenderer>();
@@ -118,30 +141,45 @@ namespace DavidUtils.Geometry
 			mf.sharedMesh = mesh;
 		}
 
-		public static Mesh CreateMesh(Vector2[] points, bool XZplane = true)
+		public static Mesh CreateMesh(Delaunay.Triangle[] triangles, bool XZplane = true, Color[] colors = null)
 		{
 			var mesh = new Mesh();
 
-			// DELAUNAY TRIANGULATION
-			var delaunay = new Delaunay(points);
-			delaunay.Run();
-			List<Delaunay.Triangle> tris = delaunay.triangles;
-
-			mesh.vertices = new Vector3[tris.Count * 3];
-			var indices = new int[tris.Count * 3];
+			mesh.vertices = new Vector3[triangles.Length * 3];
+			var indices = new int[triangles.Length * 3];
 			mesh.triangles = indices.Select((_, index) => index).ToArray();
-			for (var i = 0; i < tris.Count; i++)
+			for (var i = 0; i < triangles.Length; i++)
 			{
-				Delaunay.Triangle t = tris[i];
-				mesh.vertices[i * 3 + 0] = t.v3;
-				mesh.vertices[i * 3 + 1] = t.v2;
-				mesh.vertices[i * 3 + 2] = t.v1;
+				Delaunay.Triangle t = triangles[i];
+				mesh.vertices[i * 3 + 0] = XZplane ? t.v3.ToV3xz() : t.v3.ToV3xy();
+				mesh.vertices[i * 3 + 1] = XZplane ? t.v2.ToV3xz() : t.v2.ToV3xy();
+				mesh.vertices[i * 3 + 2] = XZplane ? t.v1.ToV3xz() : t.v1.ToV3xy();
 			}
 
-			mesh.normals = mesh.vertices.Select(v => XZplane ? Vector3.up : Vector3.back).ToArray();
-			mesh.bounds = points.Select(p => XZplane ? p.ToV3xz() : p.ToV3xy()).ToArray().GetBoundingBox();
+			var normals = new Vector3[triangles.Length * 3];
+			Array.Fill(normals, XZplane ? Vector3.up : Vector3.back);
+			mesh.normals = normals;
+
+			// COLOR => Duplicar cada color x3 para asignarlo a cada vertice correctamente
+			if (colors != null)
+				mesh.colors = colors.SelectMany(c => new[] { c, c, c }).ToArray();
+
+			mesh.bounds = triangles.SelectMany(t => t.Vertices)
+				.Select(p => XZplane ? p.ToV3xz() : p.ToV3xy())
+				.ToArray()
+				.GetBoundingBox();
 
 			return mesh;
+		}
+
+		// DELAUNAY TRIANGULATION
+		public static Mesh CreateMesh_Delaunay(Vector2[] points, bool XZplane = true, Color? color = null)
+		{
+			var delaunay = new Delaunay(points);
+			delaunay.Run();
+			Delaunay.Triangle[] tris = delaunay.triangles.ToArray();
+
+			return CreateMesh(tris, XZplane, color.HasValue ? new[] { color.Value } : null);
 		}
 
 		#endregion

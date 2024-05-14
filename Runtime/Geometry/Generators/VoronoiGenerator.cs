@@ -16,13 +16,6 @@ namespace DavidUtils.Geometry.Generators
 
 		public bool animatedVoronoi = true;
 
-		protected override void Start()
-		{
-			base.Start();
-
-			InitializeRenderObjects();
-		}
-
 		public override void Initialize()
 		{
 			base.Initialize();
@@ -39,23 +32,17 @@ namespace DavidUtils.Geometry.Generators
 				voronoi.Seeds = seeds;
 				voronoi.delaunay = delaunay;
 			}
-
-			// REGION COLORS
-			seedColors = Color.red.GetRainBowColors(seeds.Count);
-
-			// Reset RENDERERS
-			ClearRenderers();
 		}
 
 		protected override IEnumerator RunCoroutine()
 		{
 			yield return base.RunCoroutine();
 
-			bool delaunayDrawGizmos = delaunay.drawGizmos;
+			bool delaunayDrawGizmos = delaunay.draw;
 
 			if (animatedVoronoi)
 			{
-				voronoi.delaunay.drawGizmos = true;
+				voronoi.delaunay.draw = true;
 				while (!voronoi.Ended)
 				{
 					voronoi.Run_OneIteration();
@@ -63,7 +50,7 @@ namespace DavidUtils.Geometry.Generators
 					yield return new WaitForSecondsRealtime(delayMilliseconds);
 				}
 
-				voronoi.delaunay.drawGizmos = delaunayDrawGizmos;
+				voronoi.delaunay.draw = delaunayDrawGizmos;
 			}
 			else
 			{
@@ -89,22 +76,15 @@ namespace DavidUtils.Geometry.Generators
 
 		private void OnRegionCreated(Polygon region, int i)
 		{
-			// Instantiate
-			if (DrawVoronoi && RegionsCount > 0)
+			if (i < regionMeshRenderers.Count)
+			{
+				UpdateMeshRenderer(i);
+				UpdateLineRenderer(i);
+			}
+			else
+			{
 				InstatiateRegion(region, seedColors[i]);
-		}
-
-		public override void OnSeedsUpdated()
-		{
-			base.OnSeedsUpdated();
-
-			if (voronoi.regions == null || RegionsCount == 0) return;
-
-			if (seeds.Count != RegionsCount)
-				ClearRenderers();
-
-			UpdateLineRenderersPoints();
-			UpdateMeshRenderersPoints();
+			}
 		}
 
 		#region RENDERING
@@ -121,8 +101,8 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
-		private GameObject lineParent;
-		private GameObject meshParent;
+		private GameObject voronoilineParent;
+		private GameObject voronoiMeshParent;
 
 		private readonly List<LineRenderer> regionLineRenderers = new();
 		private readonly List<MeshRenderer> regionMeshRenderers = new();
@@ -131,20 +111,22 @@ namespace DavidUtils.Geometry.Generators
 		private LineRenderer hightlightedRegionLineRenderer;
 		private LineRenderer selectedRegionLineRenderer;
 
-		private void InitializeRenderObjects()
+		protected override void InitializeRenderObjects()
 		{
-			// PARENTS
-			lineParent = new GameObject("LINE RENDERERS");
-			lineParent.transform.parent = transform;
-			lineParent.transform.localPosition = Vector3.zero;
-			lineParent.transform.localRotation = Quaternion.identity;
-			lineParent.transform.localScale = Vector3.one;
+			base.InitializeRenderObjects();
 
-			meshParent = new GameObject("MESH RENDERERS");
-			meshParent.transform.parent = transform;
-			meshParent.transform.localPosition = Vector3.zero;
-			meshParent.transform.localRotation = Quaternion.identity;
-			meshParent.transform.localScale = Vector3.one;
+			// PARENTS
+			voronoilineParent = new GameObject("VORONOI Mesh Renderers");
+			voronoilineParent.transform.parent = transform;
+			voronoilineParent.transform.localPosition = Vector3.zero;
+			voronoilineParent.transform.localRotation = Quaternion.identity;
+			voronoilineParent.transform.localScale = Vector3.one;
+
+			voronoiMeshParent = new GameObject("VORONOI Mesh Renderers");
+			voronoiMeshParent.transform.parent = transform;
+			voronoiMeshParent.transform.localPosition = Vector3.zero;
+			voronoiMeshParent.transform.localRotation = Quaternion.identity;
+			voronoiMeshParent.transform.localScale = Vector3.one;
 
 			// SELECTED & HIGHTLIGHTED (hovered)
 			hightlightedRegionLineRenderer =
@@ -166,12 +148,17 @@ namespace DavidUtils.Geometry.Generators
 
 		private void InstatiateRegion(Polygon region, Color color)
 		{
-			LineRenderer lr = ShapeDrawing.InstantiatePolygonWire(lineParent.transform, region, regionScale, color);
+			LineRenderer lr = ShapeDrawing.InstantiatePolygonWire(
+				voronoilineParent.transform,
+				region,
+				regionScale,
+				color
+			);
 			regionLineRenderers.Add(lr);
 
 			ShapeDrawing.InstantiatePolygon(
 				region,
-				meshParent.transform,
+				voronoiMeshParent.transform,
 				out MeshRenderer mr,
 				out MeshFilter mf,
 				regionScale,
@@ -180,40 +167,48 @@ namespace DavidUtils.Geometry.Generators
 			regionMeshRenderers.Add(mr);
 			regionMeshFilters.Add(mf);
 
-			lr.gameObject.SetActive(WireVoronoi);
+			lr.gameObject.SetActive(DrawVoronoi && WireVoronoi);
 			mr.gameObject.SetActive(!WireVoronoi);
+		}
+
+
+		private void UpdateMeshRenderer(int i)
+		{
+			Polygon region = voronoi.regions[i];
+			regionMeshFilters[i].sharedMesh =
+				Delaunay.Triangle.CreateMesh(region.Triangulate(regionScale), seedColors[i]);
+
+			regionMeshFilters[i].gameObject.SetActive(DrawVoronoi && !WireVoronoi);
+		}
+
+		private void UpdateLineRenderer(int i)
+		{
+			Polygon region = voronoi.regions[i];
+			Vector3[] newPoints = region
+				.VerticesScaledByCenter(regionScale)
+				.Select(v => v.ToV3xz())
+				.ToArray();
+			transform.TransformPoints(newPoints);
+			regionLineRenderers[i].positionCount = newPoints.Length;
+			regionLineRenderers[i].SetPositions(newPoints);
+			regionLineRenderers[i].gameObject.SetActive(WireVoronoi);
 		}
 
 		private void UpdateMeshRenderersPoints()
 		{
-			for (var i = 0; i < RegionsCount; i++)
-			{
-				Polygon region = voronoi.regions[i];
-				regionMeshFilters[i].sharedMesh =
-					Delaunay.Triangle.CreateMesh(region.Triangulate(regionScale), seedColors[i]);
-
-				regionMeshFilters[i].gameObject.SetActive(!WireVoronoi);
-			}
+			for (var i = 0; i < RegionsCount; i++) UpdateMeshRenderer(i);
 		}
 
 		private void UpdateLineRenderersPoints()
 		{
-			for (var i = 0; i < RegionsCount; i++)
-			{
-				Polygon region = voronoi.regions[i];
-				Vector3[] newPoints = region
-					.VerticesScaledByCenter(regionScale)
-					.Select(v => v.ToV3xz())
-					.ToArray();
-				transform.TransformPoints(newPoints);
-				regionLineRenderers[i].positionCount = newPoints.Length;
-				regionLineRenderers[i].SetPositions(newPoints);
-				regionLineRenderers[i].gameObject.SetActive(WireVoronoi);
-			}
+			for (var i = 0; i < RegionsCount; i++) UpdateLineRenderer(i);
 		}
 
-		private void ClearRenderers()
+
+		protected override void ClearRenderers()
 		{
+			base.ClearRenderers();
+
 			for (var i = 0; i < regionMeshFilters.Count; i++)
 			{
 				Destroy(regionMeshFilters[i].gameObject);
@@ -223,6 +218,20 @@ namespace DavidUtils.Geometry.Generators
 			regionLineRenderers.Clear();
 			regionMeshFilters.Clear();
 			regionMeshRenderers.Clear();
+		}
+
+		protected override void UpdateVisibility()
+		{
+			base.UpdateVisibility();
+
+			for (var i = 0; i < RegionsCount; i++)
+			{
+				LineRenderer lr = regionLineRenderers[i];
+				MeshFilter mf = regionMeshFilters[i];
+
+				lr.gameObject.SetActive(WireVoronoi);
+				mf.gameObject.SetActive(DrawVoronoi && !WireVoronoi);
+			}
 		}
 
 		#endregion
@@ -269,18 +278,23 @@ namespace DavidUtils.Geometry.Generators
 			if (Input.GetMouseButtonDown(0))
 			{
 				selectedRegionIndex = MouseRegionIndex;
-				if (SelectedRegion.HasValue) draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
+				if (SelectedRegion.HasValue)
+				{
+					draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
+
+					selectedRegionLineRenderer.CopyLineRendererPoints(regionLineRenderers[selectedRegionIndex]);
+					hightlightedRegionLineRenderer.gameObject.SetActive(false);
+
+					if (voronoi.MoveSeed(selectedRegionIndex, MousePosNorm - draggingOffset))
+						OnSeedMoved();
+				}
 			}
+		}
 
-			if (Input.GetMouseButton(0) && SelectedRegion.HasValue)
-			{
-				if (voronoi.MoveSeed(selectedRegionIndex, MousePosNorm - draggingOffset))
-					OnSeedsUpdated();
-
-
-				selectedRegionLineRenderer.CopyLineRendererPoints(regionLineRenderers[selectedRegionIndex]);
-				hightlightedRegionLineRenderer.gameObject.SetActive(false);
-			}
+		private void OnSeedMoved()
+		{
+			UpdateLineRenderersPoints();
+			UpdateMeshRenderersPoints();
 		}
 
 		#endregion
@@ -301,13 +315,11 @@ namespace DavidUtils.Geometry.Generators
 		public bool DrawVoronoi
 		{
 			get => voronoi.drawGizmos;
-			set => voronoi.drawGizmos = value;
-		}
-
-		public bool DrawDelaunay
-		{
-			get => delaunay.drawGizmos;
-			set => delaunay.drawGizmos = value;
+			set
+			{
+				voronoi.drawGizmos = value;
+				UpdateVisibility();
+			}
 		}
 
 		public bool WireVoronoi
@@ -316,18 +328,11 @@ namespace DavidUtils.Geometry.Generators
 			set
 			{
 				voronoi.drawWire = value;
-				foreach (LineRenderer lr in regionLineRenderers) lr.gameObject.SetActive(value);
-				foreach (MeshFilter meshFilter in regionMeshFilters) meshFilter.gameObject.SetActive(!value);
+				UpdateVisibility();
 			}
 		}
 
-		public bool WireDelaunay
-		{
-			get => delaunay.drawWire;
-			set => delaunay.drawWire = value;
-		}
-
-		public bool Animated
+		public override bool Animated
 		{
 			get => animatedVoronoi || animatedDelaunay;
 			set => animatedVoronoi = animatedDelaunay = value;
@@ -353,8 +358,8 @@ namespace DavidUtils.Geometry.Generators
 
 		protected override void OnDrawGizmos()
 		{
-			if (drawSeeds) DrawSeeds();
-			if (drawGrid) DrawBoundingBox();
+			if (DrawSeeds) GizmosSeeds();
+			if (drawGrid) GizmosBoundingBox();
 
 			voronoi.OnDrawGizmos(LocalToWorldMatrix, regionScale, seedColors);
 

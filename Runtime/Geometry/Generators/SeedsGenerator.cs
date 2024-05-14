@@ -47,7 +47,22 @@ namespace DavidUtils.Geometry.Generators
 
 		public Bounds2D Bounds => Bounds2D.NormalizedBounds;
 
-		protected virtual void Awake() => GenerateSeeds();
+		protected virtual void Awake()
+		{
+			GenerateSeeds();
+			SetSeedsRainbowColors();
+		}
+
+		protected virtual void Start()
+		{
+			Initialize();
+			InitializeRenderObjects();
+			InstantiateSeeds();
+		}
+
+		public virtual void Initialize()
+		{
+		}
 
 		public virtual void OnSeedsUpdated()
 		{
@@ -59,11 +74,10 @@ namespace DavidUtils.Geometry.Generators
 		{
 			randSeed = Random.Range(1, int.MaxValue);
 			GenerateSeeds();
-			SetSeedsRainbowColors();
-			InstantiateSeeds();
+			OnSeedsUpdated();
 		}
 
-		public void GenerateSeeds() => Seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
+		public void GenerateSeeds() => seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
 
 		#region COLOR
 
@@ -74,10 +88,36 @@ namespace DavidUtils.Geometry.Generators
 
 		#region INSTANTIATE SPHERES IN WORLD
 
+		private GameObject seedsParent;
+
 		protected MeshRenderer[] spheresMr;
 		protected MeshFilter[] spheresMf;
 
-		protected void ClearSeedsObjs()
+
+		public bool projectOnTerrain = true;
+		[SerializeField] private bool drawSeeds = true;
+		public bool DrawSeeds
+		{
+			get => drawSeeds;
+			set
+			{
+				drawSeeds = value;
+				UpdateVisibility();
+			}
+		}
+
+		protected virtual void InitializeRenderObjects() => seedsParent = new GameObject("SEEDS")
+		{
+			transform =
+			{
+				parent = transform,
+				localPosition = Vector3.zero,
+				localRotation = Quaternion.identity,
+				localScale = Vector3.one
+			}
+		};
+
+		protected virtual void ClearRenderers()
 		{
 			if (spheresMf == null) return;
 			foreach (MeshFilter meshFilter in spheresMf)
@@ -89,7 +129,7 @@ namespace DavidUtils.Geometry.Generators
 
 		protected void InstantiateSeeds()
 		{
-			ClearSeedsObjs();
+			ClearRenderers();
 			spheresMf = new MeshFilter[seeds.Count];
 			spheresMr = new MeshRenderer[seeds.Count];
 
@@ -105,12 +145,22 @@ namespace DavidUtils.Geometry.Generators
 				spheresMf[i] = sphere.GetComponent<MeshFilter>();
 
 				// COLOR
-				Color[] colors = spheresMf[i].sharedMesh.vertices.Select(_ => seedColors[i]).ToArray();
-				spheresMf[i].sharedMesh.SetColors(colors);
+				Color[] colors = spheresMf[i].sharedMesh.vertices.Select(_ => seedColors[i].RotateHue(.5f)).ToArray();
+				spheresMf[i].mesh.SetColors(colors);
 
 				// MATERIAL
 				spheresMr[i].sharedMaterial = Resources.Load<Material>("Materials/Geometry Unlit");
 			}
+		}
+
+
+		/// <summary>
+		///     Activa o desactiva los Renderers
+		/// </summary>
+		protected virtual void UpdateVisibility()
+		{
+			foreach (MeshFilter meshFilter in spheresMf)
+				meshFilter.gameObject.SetActive(drawSeeds);
 		}
 
 		#endregion
@@ -210,28 +260,28 @@ namespace DavidUtils.Geometry.Generators
 
 		#region DEBUG
 
-		public bool projectOnTerrain = true;
-		public bool drawSeeds = true;
 		public bool drawGrid = true;
+
+		private static readonly int BaseColorId = Shader.PropertyToID("_Base_Color");
 
 		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
 		protected virtual void OnDrawGizmos()
 		{
-			if (drawSeeds) DrawSeeds();
-			if (drawGrid) DrawBoundingBox();
+			if (drawSeeds) GizmosSeeds();
+			if (drawGrid) GizmosBoundingBox();
 		}
 
-		protected void DrawBoundingBox()
+		protected void GizmosBoundingBox()
 		{
 			Matrix4x4 matrix = transform.localToWorldMatrix;
 			Color gridColor = Color.blue;
 			if (seedsDistribution == SeedsDistribution.Random)
-				DrawBoundingBox(matrix, gridColor);
+				GizmosBoundingBox(matrix, gridColor);
 			else
-				DrawGrid(matrix, gridColor);
+				GizmosGrid(matrix, gridColor);
 		}
 
-		private void DrawBoundingBox(Matrix4x4 matrix, Color color = default)
+		private void GizmosBoundingBox(Matrix4x4 matrix, Color color = default)
 		{
 			if (projectOnTerrain)
 				GizmosExtensions.DrawQuadWire_OnTerrain(matrix, 5, color);
@@ -239,7 +289,7 @@ namespace DavidUtils.Geometry.Generators
 				GizmosExtensions.DrawQuadWire(matrix, 5, color);
 		}
 
-		private void DrawGrid(Matrix4x4 matrix, Color color = default)
+		private void GizmosGrid(Matrix4x4 matrix, Color color = default)
 		{
 			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Count));
 			if (projectOnTerrain)
@@ -248,7 +298,7 @@ namespace DavidUtils.Geometry.Generators
 				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
 		}
 
-		protected void DrawSeeds()
+		protected void GizmosSeeds()
 		{
 			Gizmos.color = seedColors?.Length > 0 ? seedColors[0] : Color.grey;
 			var terrain = Terrain.activeTerrain;

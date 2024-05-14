@@ -826,12 +826,12 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		public bool drawGizmos;
+		public bool draw;
 		public bool drawWire = true;
 
 		public void OnDrawGizmos(Matrix4x4 matrix, bool projectOnTerrain = false)
 		{
-			if (!drawGizmos) return;
+			if (!draw) return;
 
 			// TRIANGULATION
 			Color[] colors = Color.cyan.GetRainBowColors(triangles.Count, 0.02f);
