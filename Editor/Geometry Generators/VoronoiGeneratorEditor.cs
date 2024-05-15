@@ -78,7 +78,7 @@ namespace DavidUtils.Editor.Geometry_Generators
 				if (EditorGUI.EndChangeCheck())
 				{
 					Vector2 newLocalPos = transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToV2xz().Clamp01();
-					voronoiGen.voronoi.MoveSeed(selectedRegion, newLocalPos);
+					voronoiGen.MoveSeed(selectedRegion, newLocalPos);
 
 					voronoiGen.hoveredRegionIndex = selectedRegion;
 

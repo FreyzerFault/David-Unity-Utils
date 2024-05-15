@@ -90,8 +90,7 @@ namespace DavidUtils.Geometry.Generators
 
 		private GameObject seedsParent;
 
-		protected MeshRenderer[] spheresMr;
-		protected MeshFilter[] spheresMf;
+		protected GameObject[] spheres;
 
 
 		public bool projectOnTerrain = true;
@@ -119,49 +118,65 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void ClearRenderers()
 		{
-			if (spheresMf == null) return;
-			foreach (MeshFilter meshFilter in spheresMf)
-				Destroy(meshFilter.gameObject);
+			if (spheres == null) return;
+			foreach (GameObject meshFilter in spheres)
+				Destroy(meshFilter);
 
-			spheresMf = Array.Empty<MeshFilter>();
-			spheresMr = Array.Empty<MeshRenderer>();
+			spheres = Array.Empty<GameObject>();
 		}
 
 		protected void InstantiateSeeds()
 		{
 			ClearRenderers();
-			spheresMf = new MeshFilter[seeds.Count];
-			spheresMr = new MeshRenderer[seeds.Count];
-
+			spheres = new GameObject[seeds.Count];
 			for (var i = 0; i < seeds.Count; i++)
 			{
 				Vector2 seed = seeds[i];
-				var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-				sphere.transform.parent = transform;
+				GameObject sphere = spheres[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+				sphere.transform.parent = seedsParent.transform;
 				sphere.transform.localPosition = seed.ToV3xz();
 				sphere.transform.localScale = Vector3.one * 0.3f / transform.lossyScale.x;
 
-				spheresMr[i] = sphere.GetComponent<MeshRenderer>();
-				spheresMf[i] = sphere.GetComponent<MeshFilter>();
+				var mr = sphere.GetComponent<MeshRenderer>();
+				var mf = sphere.GetComponent<MeshFilter>();
 
 				// COLOR
-				Color[] colors = spheresMf[i].sharedMesh.vertices.Select(_ => seedColors[i].RotateHue(.5f)).ToArray();
-				spheresMf[i].mesh.SetColors(colors);
+				Color[] colors = mf.sharedMesh.vertices.Select(_ => seedColors[i].RotateHue(.5f)).ToArray();
+				mf.mesh.SetColors(colors);
 
 				// MATERIAL
-				spheresMr[i].sharedMaterial = Resources.Load<Material>("Materials/Geometry Unlit");
+				mr.sharedMaterial = Resources.Load<Material>("Materials/Geometry Unlit");
 			}
+		}
+
+		/// <summary>
+		///     Mueve una semilla a una nueva posición siempre y cuando:
+		///     No colisione con otra, no sea la misma posición y esté dentro del rango [0,1]
+		/// </summary>
+		/// <returns>True si Cumple con los requisitos y se ha movido</returns>
+		public virtual bool MoveSeed(int index, Vector2 newPos)
+		{
+			newPos = newPos.Clamp01();
+			Vector2 oldPos = seeds[index];
+
+			// Si colisiona con otra semilla no la movemos
+			if (newPos == oldPos ||
+			    seeds
+				    .Where((p, i) => i != index)
+				    .Any(p => Vector2.Distance(p, newPos) < 0.02f))
+				return false;
+
+			seeds[index] = newPos;
+			spheres[index].transform.localPosition = newPos.ToV3xz();
+
+			return true;
 		}
 
 
 		/// <summary>
 		///     Activa o desactiva los Renderers
 		/// </summary>
-		protected virtual void UpdateVisibility()
-		{
-			foreach (MeshFilter meshFilter in spheresMf)
-				meshFilter.gameObject.SetActive(drawSeeds);
-		}
+		private void UpdateVisibility() => seedsParent.SetActive(drawSeeds);
 
 		#endregion
 

@@ -4,7 +4,7 @@ namespace DavidUtils.Geometry
 {
 	public static class GeometryUtils
 	{
-		public const float Epsilon = 0.001f;
+		public const float Epsilon = 0.0001f;
 
 		public static bool Equals(float a, float b) => Mathf.Abs(a - b) < Epsilon;
 		public static bool Equals(Vector2 v1, Vector2 v2) => Mathf.Abs((v1 - v2).magnitude) < Epsilon;

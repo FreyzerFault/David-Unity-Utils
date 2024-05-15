@@ -111,6 +111,8 @@ namespace DavidUtils.Geometry
 
 			public Edge[] BorderEdges => Edges.Where((e, i) => neighbours[i] == null).ToArray();
 
+			public Border[] Borders => BorderEdges.Select(e => new Border(this, e)).ToArray();
+
 			public Triangle(
 				Vector2 v1, Vector2 v2, Vector2 v3, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
 			)
@@ -314,7 +316,7 @@ namespace DavidUtils.Geometry
 		public Delaunay(IEnumerable<Vector2> seeds = null) =>
 			_seeds = seeds == null ? new List<Vector2>() : seeds.ToList();
 
-		public void Run() => triangles = Triangulate(_seeds).ToList();
+		public void RunTriangulation() => triangles = Triangulate(_seeds).ToList();
 
 		// Algoritmo de Bowyer-Watson
 		// - Por cada punto busca los triangulos cuyo círculo circunscrito contenga al punto
@@ -370,34 +372,29 @@ namespace DavidUtils.Geometry
 			return Border.SortByAngle(borders, centerVertex);
 		}
 
-		public void MoveSeed(int index, Vector2 newPos)
+		/// <summary>
+		///     Legaliza el triangulo. Si no es legal, hace FLIP
+		///     Comprueba despues todos los vecinos de forma recursiva hasta que todos sean legales
+		/// </summary>
+		/// <returns>True si era ilegal y se legalizo</returns>
+		private bool Legalize(Triangle tri, out Triangle[] flippedTris)
 		{
-			Vector2 vertex = _seeds[index];
+			flippedTris = null;
+			if (IsLegal(tri, out List<int> illegalSides)) return false;
 
-			Triangle[] tris = FindTrianglesAroundVertex(vertex).ToArray();
-			foreach (Triangle tri in tris)
-				tri.MoveVertex(vertex, newPos);
+			Flip(tri, illegalSides[0], out flippedTris);
 
-			_seeds[index] = newPos;
-			vertices[index] = newPos;
-
-			// LEGALIZACION
-			// Busca el primer Triangulo ilegal, lo flipea y vuelve a reiniciar la busqueda con los triangulos nuevos
-			// Cuando no haya ningun triangulo ilegal, sale del bucle
-			bool illegal;
-			do
+			// Comprobamos vecinos de forma recursiva
+			foreach (Triangle flippedTri in flippedTris)
 			{
-				illegal = false;
-				foreach (Triangle tri in tris)
-				{
-					if (IsLegal(tri, out List<int> illegalSides)) continue;
+				// Temp var to use out var in lambda
+				Triangle[] flippedTemp = flippedTris;
+				foreach (Triangle neighbour in flippedTri.neighbours.Where(t => !flippedTemp.Contains(t)))
+					if (neighbour != null)
+						Legalize(neighbour, out Triangle[] _);
+			}
 
-					Flip(tri, illegalSides[0]);
-					tris = FindTrianglesAroundVertex(newPos).ToArray();
-					illegal = true;
-					break;
-				}
-			} while (illegal);
+			return true;
 		}
 
 		/// <summary>
@@ -426,7 +423,7 @@ namespace DavidUtils.Geometry
 		///     Eliminando el triangulo y su vecino, y creando nuevos
 		///     Actualiza los vecinos también
 		/// </summary>
-		private void Flip(Triangle tri, int side)
+		private void Flip(Triangle tri, int side, out Triangle[] flippedTris)
 		{
 			Edge edge = tri.Edges[side];
 			Triangle neighbour = tri.neighbours[side];
@@ -450,6 +447,8 @@ namespace DavidUtils.Geometry
 			triangles.Remove(neighbour);
 
 			triangles.AddRange(addedTris);
+
+			flippedTris = new[] { newTri1, newTri2 };
 		}
 
 
@@ -765,25 +764,46 @@ namespace DavidUtils.Geometry
 
 			// Cogemos de cada triangulo que forme parte del borde su arista de borde
 			// y guardamos el indice del triangulo al que pertenece para asignar vecinos despues
-			Border[] borderEdges = Borders.ToArray();
+			List<Border> borderEdges = Borders.ToList();
 
 			// Iteramos los ejes por PARES, para ver si son convexos o no
 			// Si NO es convexo, añadimos un triangulo al borde
-			for (var i = 0; i < borderEdges.Length; i++)
+			var allConvex = true;
+			do
 			{
-				Border border = borderEdges[i];
-				Border nextBorder = borderEdges[(i + 1) % borderEdges.Length];
+				for (var i = 0; i < borderEdges.Count; i++)
+				{
+					Border border = borderEdges[i];
+					Border nextBorder = borderEdges[(i + 1) % borderEdges.Count];
 
-				// Siendo los ejes v1 - v2, v2 - v3
-				// Es convexo si el vertice intermedio v2 esta a la derecha de la linea v1 - v3
-				Vector2 v1 = border.edge.begin, v2 = border.edge.end, v3 = nextBorder.edge.end;
-				if (!Edge.IsConcave(border.edge, nextBorder.edge)) continue;
+					allConvex = !Edge.IsConcave(border.edge, nextBorder.edge);
 
-				var tri = new Triangle(v3, v2, v1);
-				tri.SetNeighbour(nextBorder.tri, 0);
-				tri.SetNeighbour(border.tri, 1);
-				triangles.Add(tri);
-			}
+					if (allConvex) continue;
+
+					// Creamos el triangulo exterior para hacerlo convexo
+					Vector2 v1 = border.edge.begin, v2 = border.edge.end, v3 = nextBorder.edge.end;
+					var tri = new Triangle(v3, v2, v1);
+					tri.SetNeighbour(nextBorder.tri, 0);
+					tri.SetNeighbour(border.tri, 1);
+					triangles.Add(tri);
+
+					// Legalizamos el Triangulo
+					// Si fuera ilegal se flipea, por lo que hay que cambiar tri por el triangulo
+					// del borde entre los nuevos triangulos flipeados
+					if (Legalize(tri, out Triangle[] flippedTris))
+						tri = flippedTris.First(t => t.IsBorder);
+
+					// Sustituimos los bordes por el nuevo borde exterior del nuevo triangulo
+					borderEdges.RemoveAt((i + 1) % borderEdges.Count);
+					borderEdges.RemoveAt(i);
+					if (i >= borderEdges.Count)
+						borderEdges.AddRange(tri.Borders);
+					else
+						borderEdges.InsertRange(i, tri.Borders);
+
+					break;
+				}
+			} while (!allConvex);
 		}
 
 		private void RemovePointFromBorder(Vector2 point)
@@ -791,7 +811,7 @@ namespace DavidUtils.Geometry
 			// TODO Desencapsular el RemoveBorder() de punto en punto
 		}
 
-		private struct Border
+		public struct Border
 		{
 			public readonly Triangle tri;
 			public readonly Edge edge;

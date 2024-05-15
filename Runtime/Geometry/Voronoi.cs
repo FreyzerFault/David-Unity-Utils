@@ -37,35 +37,6 @@ namespace DavidUtils.Geometry
 			this.delaunay = delaunay ?? new Delaunay(this.seeds);
 		}
 
-
-		public bool MoveSeed(int index, Vector2 newPos)
-		{
-			newPos = newPos.Clamp01();
-
-			// Si colisiona con otra semilla no la movemos
-			if (seeds.Where((p, i) => i != index).Any(p => Vector2.Distance(p, newPos) < GeometryUtils.Epsilon))
-				return false;
-
-			seeds[index] = newPos;
-
-			delaunay.MoveSeed(index, newPos);
-
-			if (Ended)
-			{
-				Reset();
-				GenerateVoronoi();
-			}
-			else
-			{
-				Reset();
-			}
-
-			return true;
-		}
-
-		public void MoveSeed(Vector2 oldPos, Vector2 newPos) =>
-			MoveSeed(seeds.IndexOf(oldPos), newPos);
-
 		public void Reset()
 		{
 			iteration = 0;
@@ -80,12 +51,7 @@ namespace DavidUtils.Geometry
 			// Se necesita triangular las seeds primero.
 			if (Triangles.Length == 0) GenerateDelaunay();
 
-			foreach (Vector2 regionSeed in seeds)
-			{
-				Vector2[] region = GenerateRegionPolygon(regionSeed).ToArray();
-				if (region.Length <= 2) continue;
-				regions.Add(new Polygon(region, regionSeed));
-			}
+			foreach (Vector2 regionSeed in seeds) regions.Add(GenerateRegionPolygon(regionSeed));
 
 			return regions;
 		}
@@ -102,30 +68,24 @@ namespace DavidUtils.Geometry
 			if (Ended) return;
 
 			if (!delaunay.ended)
-			{
 				delaunay.Run_OnePoint();
-			}
 			else
-			{
-				Vector2[] regionPolygon = GenerateRegionPolygon(seeds[iteration]).ToArray();
-				if (regionPolygon.Length > 2)
-					regions.Add(new Polygon(regionPolygon, seeds[iteration]));
-			}
+				regions.Add(GenerateRegionPolygon(seeds[iteration]));
 
 			iteration++;
 		}
 
 		// Genera los vertices de una region a partir de la semilla y los triangulos generados con Delaunay
-		private IEnumerable<Vector2> GenerateRegionPolygon(Vector2 seed)
+		private Polygon GenerateRegionPolygon(Vector2 seed)
 		{
-			var polygon = new List<Vector2>();
+			var vertices = new List<Vector2>();
 			Delaunay.Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
 			Bounds2D bounds = Bounds2D.NormalizedBounds;
 
 			// Obtenemos cada circuncentro CCW
-			polygon.AddRange(regionTris.Select(t => t.GetCircumcenter()));
+			vertices.AddRange(regionTris.Select(t => t.GetCircumcenter()));
 
-			if (polygon.Count == 0) return polygon.ToArray();
+			if (vertices.Count == 0) return new Polygon(vertices.ToArray(), seed);
 
 			// Para que la Region este dentro de unas fronteras
 			// Aplicamos algunas modificaciones para RECORTAR o EXPANDIR la región al borde
@@ -152,29 +112,29 @@ namespace DavidUtils.Geometry
 						// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
 						Vector2[] intersections = edge.MediatrizIntersetions_RIGHT(bounds);
 
-						polygon.AddRange(intersections);
+						vertices.AddRange(intersections);
 					}
 				}
 
-			if (polygon.Count <= 2) return polygon.ToArray();
+			if (vertices.Count <= 2) return new Polygon(vertices.ToArray(), seed);
 
 
 			// Ordenamos los vertices CCW antes de hacer mas modificaciones
-			polygon = polygon.SortByAngle(seed).ToList();
+			vertices = vertices.SortByAngle(seed).ToList();
 
 			// RECORTE
 			// Clampeamos cada Region a la Bounding Box
-			polygon = bounds.CropPolygon(polygon.ToArray()).ToList();
+			vertices = bounds.CropPolygon(vertices.ToArray()).ToList();
 
-			if (polygon.Count <= 2) return polygon.ToArray();
+			if (vertices.Count <= 2) return new Polygon(vertices.ToArray(), seed);
 
 			// ESQUINAS
 			// Añadimos las esquinas de la Bounding Box, buscando las regiones que tengan vertices pertenecientes a dos bordes distintos
 			Bounds2D.Side? lastBorderSide;
-			bool lastIsOnBorder = bounds.PointOnBorder(polygon[^1], out lastBorderSide);
-			for (var i = 0; i < polygon.Count; i++)
+			bool lastIsOnBorder = bounds.PointOnBorder(vertices[^1], out lastBorderSide);
+			for (var i = 0; i < vertices.Count; i++)
 			{
-				Vector2 vertex = polygon[i];
+				Vector2 vertex = vertices[i];
 				bool isOnBorder = bounds.PointOnBorder(vertex, out Bounds2D.Side? borderSide);
 				if (!isOnBorder || !lastIsOnBorder || lastBorderSide.Value == borderSide.Value)
 				{
@@ -185,12 +145,12 @@ namespace DavidUtils.Geometry
 
 				// Solo añadimos la esquina si el vertice y su predecesor pertenecen a dos bordes distintos
 				Vector2 corner = bounds.GetCorner(lastBorderSide.Value, borderSide.Value);
-				polygon.Insert(i, corner);
+				vertices.Insert(i, corner);
 				break;
 			}
 
 			// Ordenamos los vertices CCW
-			return polygon.SortByAngle(seed);
+			return new Polygon(vertices.SortByAngle(seed), seed);
 		}
 
 		#endregion

@@ -145,16 +145,19 @@ namespace DavidUtils.Geometry
 		{
 			var mesh = new Mesh();
 
-			mesh.vertices = new Vector3[triangles.Length * 3];
+			var vertices = new Vector3[triangles.Length * 3];
 			var indices = new int[triangles.Length * 3];
-			mesh.triangles = indices.Select((_, index) => index).ToArray();
 			for (var i = 0; i < triangles.Length; i++)
 			{
 				Delaunay.Triangle t = triangles[i];
-				mesh.vertices[i * 3 + 0] = XZplane ? t.v3.ToV3xz() : t.v3.ToV3xy();
-				mesh.vertices[i * 3 + 1] = XZplane ? t.v2.ToV3xz() : t.v2.ToV3xy();
-				mesh.vertices[i * 3 + 2] = XZplane ? t.v1.ToV3xz() : t.v1.ToV3xy();
+				vertices[i * 3 + 0] = XZplane ? t.v3.ToV3xz() : t.v3.ToV3xy();
+				vertices[i * 3 + 1] = XZplane ? t.v2.ToV3xz() : t.v2.ToV3xy();
+				vertices[i * 3 + 2] = XZplane ? t.v1.ToV3xz() : t.v1.ToV3xy();
 			}
+
+			mesh.vertices = vertices;
+
+			mesh.triangles = indices.Select((_, index) => index).ToArray();
 
 			var normals = new Vector3[triangles.Length * 3];
 			Array.Fill(normals, XZplane ? Vector3.up : Vector3.back);
@@ -176,7 +179,7 @@ namespace DavidUtils.Geometry
 		public static Mesh CreateMesh_Delaunay(Vector2[] points, bool XZplane = true, Color? color = null)
 		{
 			var delaunay = new Delaunay(points);
-			delaunay.Run();
+			delaunay.RunTriangulation();
 			Delaunay.Triangle[] tris = delaunay.triangles.ToArray();
 
 			return CreateMesh(tris, XZplane, color.HasValue ? new[] { color.Value } : null);

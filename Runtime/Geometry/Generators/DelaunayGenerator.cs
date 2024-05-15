@@ -83,7 +83,7 @@ namespace DavidUtils.Geometry.Generators
 			}
 			else
 			{
-				delaunay.Run();
+				delaunay.RunTriangulation();
 				OnTrianglesUpdated();
 			}
 		}
@@ -99,6 +99,21 @@ namespace DavidUtils.Geometry.Generators
 
 			Initialize();
 			Run();
+		}
+
+
+		public override bool MoveSeed(int index, Vector2 newPos)
+		{
+			bool moved = base.MoveSeed(index, newPos);
+
+			if (!moved) return false;
+
+			delaunay.Seeds = seeds;
+			delaunay.RunTriangulation();
+
+			UpdateRenderers();
+
+			return true;
 		}
 
 		#endregion
@@ -151,7 +166,7 @@ namespace DavidUtils.Geometry.Generators
 			{
 				var mObj = new GameObject("DELAUNAY Mesh");
 				mObj.transform.parent = transform;
-				mObj.transform.localPosition = Vector3.zero;
+				mObj.transform.localPosition = Vector3.up;
 				mObj.transform.localRotation = Quaternion.identity;
 				mObj.transform.localScale = Vector3.one;
 
@@ -160,17 +175,19 @@ namespace DavidUtils.Geometry.Generators
 
 				// Find Default Material
 				delaunayMeshRenderer.sharedMaterial = Resources.Load<Material>("Materials/Geometry Lit");
-
-				mObj.SetActive(false);
 			}
 
 			ClearRenderers();
+			UpdateVisibility();
 		}
 
-		private void OnTrianglesUpdated()
+		private void OnTrianglesUpdated() => UpdateRenderers();
+
+		protected virtual void UpdateRenderers()
 		{
 			// Update Colors
-			FillColorsRainbow();
+			if (triColors == null || triColors.Length != TrianglesCount)
+				FillColorsRainbow();
 
 			// MESH
 			delaunayMeshFilter.sharedMesh = ShapeDrawing.CreateMesh(Triangles.ToArray(), true, triColors);
@@ -207,13 +224,10 @@ namespace DavidUtils.Geometry.Generators
 			UpdateVisibility();
 		}
 
-		protected override void UpdateVisibility()
+		private void UpdateVisibility()
 		{
-			base.UpdateVisibility();
-
 			delaunayMeshFilter.gameObject.SetActive(DrawDelaunay && !DelaunayWire);
-			foreach (LineRenderer lr in delaunayLineRenderers)
-				lr.gameObject.SetActive(DelaunayWire);
+			delaunaylineParent.SetActive(DelaunayWire);
 		}
 
 		protected override void ClearRenderers()
