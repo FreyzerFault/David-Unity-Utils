@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -101,6 +102,7 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
+		// Parents
 		private GameObject voronoilineParent;
 		private GameObject voronoiMeshParent;
 
@@ -116,56 +118,21 @@ namespace DavidUtils.Geometry.Generators
 			base.InitializeRenderObjects();
 
 			// PARENTS
-			voronoilineParent = new GameObject("VORONOI Line Renderers");
-			voronoilineParent.transform.parent = transform;
-			voronoilineParent.transform.localPosition = Vector3.zero;
-			voronoilineParent.transform.localRotation = Quaternion.identity;
-			voronoilineParent.transform.localScale = Vector3.one;
-
-			voronoiMeshParent = new GameObject("VORONOI Mesh Renderers");
-			voronoiMeshParent.transform.parent = transform;
-			voronoiMeshParent.transform.localPosition = Vector3.zero;
-			voronoiMeshParent.transform.localRotation = Quaternion.identity;
-			voronoiMeshParent.transform.localScale = Vector3.one;
+			voronoilineParent = ObjectGenerator.InstantiateEmptyObject(transform, "VORONOI Line Renderers");
+			voronoiMeshParent = ObjectGenerator.InstantiateEmptyObject(transform, "VORONOI Mesh Renderers");
 
 			UpdateVisibility();
 
 			// SELECTED & HIGHTLIGHTED (hovered)
-			hightlightedRegionLineRenderer =
-				ShapeDrawing.InstantiatePolygonWire(
-					transform,
-					new Polygon(null, Vector2.zero),
-					regionScale + 0.01f,
-					Color.yellow
-				);
-			selectedRegionLineRenderer =
-				ShapeDrawing.InstantiatePolygonWire(
-					transform,
-					new Polygon(null, Vector2.zero),
-					regionScale + 0.01f,
-					Color.yellow,
-					0.2f
-				);
+			hightlightedRegionLineRenderer = new Polyline(Array.Empty<Vector2>(), new[] { Color.yellow },  loop: true).Instantiate(transform, "Hightlighted Region");
+			selectedRegionLineRenderer = new Polyline(Array.Empty<Vector2>(), new[] { Color.yellow }, 0.2f,  loop: true).Instantiate(transform, "Selected Region");
 		}
 
 		private void InstatiateRegion(Polygon region, Color color)
 		{
-			LineRenderer lr = ShapeDrawing.InstantiatePolygonWire(
-				voronoilineParent.transform,
-				region,
-				regionScale,
-				color
-			);
-			regionLineRenderers.Add(lr);
+			regionLineRenderers.Add(region.InstantiateLineRenderer(voronoilineParent.transform, regionScale, color));
 
-			ShapeDrawing.InstantiatePolygon(
-				region,
-				voronoiMeshParent.transform,
-				out MeshRenderer mr,
-				out MeshFilter mf,
-				regionScale,
-				color
-			);
+			region.Instantiate(voronoiMeshParent.transform, out MeshRenderer mr, out MeshFilter mf, regionScale, color);
 			regionMeshRenderers.Add(mr);
 			regionMeshFilters.Add(mf);
 		}
@@ -174,8 +141,7 @@ namespace DavidUtils.Geometry.Generators
 		private void UpdateMeshRenderer(int i)
 		{
 			Polygon region = voronoi.regions[i];
-			regionMeshFilters[i].sharedMesh =
-				Delaunay.Triangle.CreateMesh(region.Triangulate(regionScale), seedColors[i]);
+			regionMeshFilters[i].sharedMesh = region.CreateMesh(regionScale, seedColors[i]);
 		}
 
 		private void UpdateLineRenderer(int i)
@@ -185,9 +151,7 @@ namespace DavidUtils.Geometry.Generators
 				.VerticesScaledByCenter(regionScale)
 				.Select(v => v.ToV3xz())
 				.ToArray();
-			transform.TransformPoints(newPoints);
-			regionLineRenderers[i].positionCount = newPoints.Length;
-			regionLineRenderers[i].SetPositions(newPoints);
+			regionLineRenderers[i].SetPoints(newPoints);
 		}
 
 		protected override void UpdateRenderers()
@@ -372,7 +336,7 @@ namespace DavidUtils.Geometry.Generators
 			if (DrawSeeds) GizmosSeeds();
 			if (drawGrid) GizmosBoundingBox();
 
-			voronoi.OnDrawGizmos(LocalToWorldMatrix, regionScale, seedColors);
+			DrawVoronoiGizmos();
 
 			// Mientras se Genera, dibujamos detallada la ultima region generada
 			if (voronoi.regions != null && voronoi.regions.Count != 0 && !voronoi.Ended)
@@ -392,7 +356,7 @@ namespace DavidUtils.Geometry.Generators
 			delaunay.OnDrawGizmos(LocalToWorldMatrix, projectOnTerrain);
 		}
 
-		public void DrawRegionGizmos(Polygon region) =>
+		public void DrawVoronoiGizmos() =>
 			voronoi.OnDrawGizmos(LocalToWorldMatrix, regionScale, seedColors);
 
 		public void DrawRegionGizmos_Detailed(Polygon region) =>

@@ -84,21 +84,36 @@ namespace DavidUtils.Geometry
 
 		#region MESH GENERATION
 
-		public Delaunay.Triangle[] Triangulate(float centeredScale = .9f)
+		public Triangle[] Triangulate(float centeredScale = .9f)
 		{
 			Vector2[] scaledVertices = VerticesScaledByCenter(centeredScale);
 
-			var tris = new Delaunay.Triangle[vertices.Length];
+			var tris = new Triangle[vertices.Length];
 			for (var i = 0; i < vertices.Length; i++)
-				tris[i] = new Delaunay.Triangle(scaledVertices[i], scaledVertices[(i + 1) % vertices.Length], centroid);
+				tris[i] = new Triangle(scaledVertices[i], scaledVertices[(i + 1) % vertices.Length], centroid);
 			return tris;
+		}
+
+		public Mesh CreateMesh(float centeredScale = .9f, Color color = default) => Triangle.CreateMesh(Triangulate(centeredScale), color);
+
+		public void Instantiate(
+			Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f, Color color = default, string name = "Mesh"
+		) =>
+			ObjectGenerator.InstantiateMeshRenderer(CreateMesh(centeredScale, color), parent, out mr, out mf, name);
+
+		public LineRenderer InstantiateLineRenderer(
+			Transform parent, float centeredScale = .9f, Color color = default, float thickness = Polyline.DEFAULT_THICKNESS, int smoothness = Polyline.DEFAULT_SMOOTHNESS, string name = "Triangle Line"
+			)
+		{
+			Polyline line = new Polyline(VerticesScaledByCenter(centeredScale), new[] { color }, thickness, smoothness, true, true);
+			return line.Instantiate(parent, name);
 		}
 
 		#endregion
 
+		#region DEBUG
 #if UNITY_EDITOR
 
-		#region DEBUG
 
 		public void OnDrawGizmosWire(
 			Matrix4x4 mTRS, float scale, float thickness = 1, Color color = default, bool projectOnTerrain = false
@@ -132,9 +147,9 @@ namespace DavidUtils.Geometry
 				GizmosExtensions.DrawPolygon(verticesInWorld, color);
 		}
 
+#endif
 		#endregion
 
-#endif
 		public bool Equals(Polygon other) => Equals(vertices, other.vertices) && centroid.Equals(other.centroid);
 
 		public override bool Equals(object obj) => obj is Polygon other && Equals(other);

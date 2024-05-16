@@ -10,7 +10,7 @@ namespace DavidUtils.Geometry.Generators
 	public class DelaunayGenerator : SeedsGenerator
 	{
 		public Delaunay delaunay = new();
-		protected List<Delaunay.Triangle> Triangles
+		protected List<Triangle> Triangles
 		{
 			get => delaunay.triangles;
 			set => delaunay.triangles = value;
@@ -155,27 +155,13 @@ namespace DavidUtils.Geometry.Generators
 			base.InitializeRenderObjects();
 
 			// LINE PARENT
-			delaunaylineParent = new GameObject("DELAUNAY Line Renderers");
-			delaunaylineParent.transform.parent = transform;
-			delaunaylineParent.transform.localPosition = Vector3.zero;
-			delaunaylineParent.transform.localRotation = Quaternion.identity;
-			delaunaylineParent.transform.localScale = Vector3.one;
+			delaunaylineParent = ObjectGenerator.InstantiateEmptyObject(transform, "DELAUNAY Line Renderers");
 
-			// MESH
-			if (delaunayMeshRenderer == null)
-			{
-				var mObj = new GameObject("DELAUNAY Mesh");
-				mObj.transform.parent = transform;
-				mObj.transform.localPosition = Vector3.up;
-				mObj.transform.localRotation = Quaternion.identity;
-				mObj.transform.localScale = Vector3.one;
-
-				delaunayMeshRenderer = mObj.AddComponent<MeshRenderer>();
-				delaunayMeshFilter = mObj.AddComponent<MeshFilter>();
-
-				// Find Default Material
-				delaunayMeshRenderer.sharedMaterial = Resources.Load<Material>("Materials/Geometry Lit");
-			}
+			var mObj = ObjectGenerator.InstantiateEmptyObject(transform, "DELAUNAY Line Renderers");
+			delaunayMeshRenderer = mObj.AddComponent<MeshRenderer>();
+			delaunayMeshFilter = mObj.AddComponent<MeshFilter>();
+			
+			ObjectGenerator.InstantiateMeshRenderer(new Mesh(), transform, out delaunayMeshRenderer, out delaunayMeshFilter, "DELAUNAY Mesh");
 
 			ClearRenderers();
 			UpdateVisibility();
@@ -190,7 +176,7 @@ namespace DavidUtils.Geometry.Generators
 				FillColorsRainbow();
 
 			// MESH
-			delaunayMeshFilter.sharedMesh = ShapeDrawing.CreateMesh(Triangles.ToArray(), true, triColors);
+			delaunayMeshFilter.sharedMesh = ObjectGenerator.CreateMesh(Triangles.ToArray(), true, triColors);
 
 			// LINE
 			// Vacio todos los Line Renderers
@@ -202,23 +188,15 @@ namespace DavidUtils.Geometry.Generators
 			for (var i = 0; i < TrianglesCount; i++)
 			{
 				LineRenderer lr;
+				Triangle tri = Triangles[i];
 
 				if (i >= delaunayLineRenderers.Length)
 				{
-					lr = ShapeDrawing.InstantiateTriangleWire(delaunaylineParent.transform, Triangles[i], Color.white);
+					lr = tri.InstantiateLineRenderer(delaunaylineParent.transform, Color.white);
 					delaunayLineRenderers = delaunayLineRenderers.Append(lr).ToArray();
 				}
 				else
-				{
-					lr = delaunayLineRenderers[i];
-				}
-
-				Delaunay.Triangle tri = Triangles[i];
-				Vector3[] points = tri.Vertices.Select(v => v.ToV3xz()).ToArray();
-				transform.TransformPoints(points);
-				lr.positionCount = points.Length;
-				lr.SetPositions(points);
-				lr.gameObject.SetActive(delaunay.draw && delaunay.drawWire);
+					delaunayLineRenderers[i].SetPoints(Triangles[i].Vertices.Select(v => v.ToV3xz()).ToArray());
 			}
 
 			UpdateVisibility();

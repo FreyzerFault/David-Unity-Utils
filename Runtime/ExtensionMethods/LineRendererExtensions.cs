@@ -11,5 +11,12 @@ namespace DavidUtils.ExtensionMethods
 			other.GetPositions(points);
 			lr.SetPositions(points);
 		}
+
+		public static void SetPoints(this LineRenderer lr, Vector3[] points)
+		{
+			if (lr.positionCount != points.Length)
+				lr.positionCount = points.Length;
+			lr.SetPositions(points);
+		}
 	}
 }

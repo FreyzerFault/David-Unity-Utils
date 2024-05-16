@@ -1,143 +1,86 @@
 ﻿using System;
+using System.Linq;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
 	public class Edge
-	{
-		public enum PointEdgePosition { RIGHT, LEFT, COLINEAR }
+    {
+        public Vector2 begin;
+        public Vector2 end;
 
-		// Begin -> End
-		public readonly Vector3 begin;
-		public readonly Vector3 end;
-		private readonly int index;
+        public Vector2[] Vertices => new[] { begin, end };
 
-		// [Left, Right] (CCW, CW)
-		public Tuple<Triangle, Triangle> tris;
-		public Triangle LeftTri => tris.Item1;
-		public Triangle RightTri => tris.Item2;
+        public Edge(Vector2 a, Vector2 b)
+        {
+            begin = a;
+            end = b;
+        }
 
-		public Edge(Vector3 begin, Vector3 end, Triangle tIzq = null, Triangle tDer = null, int index = -1)
-		{
-			this.index = index;
+        // Comprueba si dos aristas son CONCAVAS (el vertice intermedio esta a la Izquierda)
+        // Presupone que se suceden (e1.end == e2.begin)
+        public static bool IsConcave(Edge e1, Edge e2) =>
+            GeometryUtils.IsLeft(e1.begin, e2.end, e1.end);
 
-			this.begin = begin;
-			this.end = end;
-			tris = new Tuple<Triangle, Triangle>(tIzq, tDer);
-		}
+        private static bool IsConvex(Edge e1, Edge e2) =>
+            GeometryUtils.IsRight(e1.begin, e2.end, e1.end);
 
-		/// <summary>
-		///     El Eje es Frontera siempre que le falte asignarle un Triangulo a la Izquierda o Derecha
-		/// </summary>
-		public bool IsFrontier => tris.Item1 == null || tris.Item2 == null;
+        public Vector2 Median => (begin + end) / 2;
+        public Vector2 Dir => (end - begin).normalized;
 
-		/// <summary>
-		///     Asigna un Triangulo segun su posicion como Izquierdo o Derecho
-		/// </summary>
-		public void AssignTriangle(Triangle tri)
-		{
-			if (!tri.GetOppositeVertex(out Vector3 opposite, this)) return;
-			tris = GeometryUtils.IsRight(opposite, begin, end)
-				? new Tuple<Triangle, Triangle>(tris.Item1, tri)
-				: new Tuple<Triangle, Triangle>(tri, tris.Item2);
-		}
+        // Dir Derecha => (90º CCW) => [y,-x]
+        public Vector2 MediatrizRight => new(Dir.y, -Dir.x);
 
-		public Triangle OppositeTri(Triangle tri) => tri == LeftTri ? RightTri : LeftTri;
+        // Dir IZQUIERDA => (90º CW) => [-y,x]
+        public Vector2 MediatrizLeft => new(-Dir.y, Dir.x);
 
-		/// <summary>
-		///     NEGATIVA => DERECHA; POSITIVA => IZQUIERDA; ~0 => COLINEAR
-		///     (tiene un margen grande para no crear triangulos sin apenas grosor)
-		/// </summary>
-		/// <param name="p"></param>
-		/// <param name="begin"></param>
-		/// <param name="end"></param>
-		/// <returns>RIGHT / LEFT / COLINEAR</returns>
-		public static PointEdgePosition GetPointEdgePosition(Vector2 p, Vector2 begin, Vector2 end)
-		{
-			float area = GeometryUtils.TriArea2(begin, end, p);
-
-			// EPSILON Grande en este caso, porque las veces que cae un punto en un triangulo
-			// puede estar muy cerca de una arista y el resultado puede ser un Triangulo muy estirado
-
-			return area > 0.1f
-				? PointEdgePosition.LEFT
-				: area < -0.1f
-					? PointEdgePosition.RIGHT
-					: PointEdgePosition.COLINEAR;
-		}
-
-		public static PointEdgePosition GetPointEdgePosition(Vector3 p, Vector3 begin, Vector3 end) =>
-			GetPointEdgePosition(p.ToV2xz(), begin.ToV2xz(), end.ToV2xz());
-
-		/// <summary>
-		///     Interpolacion de la altura en un punto 2D en la Arista.
-		///     Inversamente proporcional a la distancia de cada vertice al punto 2D
-		/// </summary>
-		/// <param name="point">Punto 2D</param>
-		/// <returns></returns>
-		public float GetHeightInterpolation(Vector2 point)
-		{
-			// Interpolamos la altura entre begin y end
-			float distBegin = (point - new Vector2(begin.x, begin.z)).magnitude;
-			float distEnd = (point - new Vector2(end.x, end.z)).magnitude;
-
-			float distanceInterpolation = 0;
-			distanceInterpolation += begin.y / distBegin;
-			distanceInterpolation += end.y / distEnd;
-			return distanceInterpolation / (1 / distBegin + 1 / distEnd);
-		}
+        /// <summary>
+        ///     Interseccion de la Mediatriz con la BoundingBox
+        ///     La direccion del rayo debe ser PERPENDICULAR a la arista
+        /// </summary>
+        public Vector2[] MediatrizIntersetions(Bounds2D bounds) =>
+            bounds.Intersections_Line(Median, MediatrizRight).ToArray();
 
 
-		/// <summary>
-		///     Calcula el Punto de interseccion de un Segmento A -> B
-		/// </summary>
-		/// <param name="a"></param>
-		/// <param name="b"></param>
-		/// <param name="intersectionPoint"></param>
-		/// <returns></returns>
-		/// <exception cref="Exception"></exception>
-		public bool GetIntersectionPoint(Vector2 a, Vector2 b, out Vector2? intersectionPoint)
-		{
-			intersectionPoint = null;
-			PointEdgePosition posA = GetPointEdgePosition(a, begin.ToV2xz(), end.ToV2xz());
-			PointEdgePosition posB = GetPointEdgePosition(b, begin.ToV2xz(), end.ToV2xz());
+        /// <summary>
+        ///     Interseccion de la Mediatriz con la BoundingBox a la derecha de la arista
+        /// </summary>
+        public Vector2[] MediatrizIntersetions_RIGHT(Bounds2D bounds) =>
+            bounds.Intersections_Ray(Median, MediatrizRight).ToArray();
 
-			// Solo hay interseccion si los dos puntos estan en lados opuestos de la arista
-			if ((posA == PointEdgePosition.RIGHT && posB == PointEdgePosition.LEFT) ||
-			    (posA == PointEdgePosition.LEFT && posB == PointEdgePosition.RIGHT))
-			{
-				Vector2 c = begin.ToV2xz();
-				Vector2 d = end.ToV2xz();
+        /// <summary>
+        ///     Interseccion de la Mediatriz con la BoundingBox a la izquierda de la arista
+        /// </summary>
+        public Vector2[] MediatrizIntersetions_LEFT(Bounds2D bounds) =>
+            bounds.Intersections_Ray(Median, MediatrizRight).ToArray();
 
-				Vector2 ab = b - a;
-				Vector2 cd = d - c;
-				Vector2 ac = c - a;
 
-				float denominador = cd.x * ab.y - ab.x * cd.y;
+        // Ignora el la direccion
+        public override bool Equals(object obj)
+        {
+            if (obj is Edge edge)
+                return (edge.begin == begin && edge.end == end) || (edge.begin == end && edge.end == begin);
 
-				if (denominador == 0) throw new Exception("La interseccion es paralela");
+            return false;
+        }
 
-				float s = (cd.x * ac.y - ac.x * cd.y) / denominador;
-				float t = (ab.x * ac.y - ac.x * ab.y) / denominador;
+        public override int GetHashCode() => HashCode.Combine(begin, end);
 
-				// Si s o t estan fuera de [0,1] => la interseccion esta fuera de los segmentos
-				if (s < 0 || s > 1 || t < 0 || t > 1) return false;
-
-				intersectionPoint = a + (b - a) * s;
-
-				return true;
-			}
-
-			intersectionPoint = null;
-			return false;
-		}
-
-		public override string ToString() => "e" + index + " {" + begin + " -> " + end + "}";
-
-		/// <summary>
-		///     No puede haber mas de un Eje con los mismos vertices
-		/// </summary>
-		public override int GetHashCode() => begin.GetHashCode() + end.GetHashCode();
-	}
+#if UNITY_EDITOR
+        public void OnGizmosDraw(
+            Matrix4x4 matrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
+        )
+        {
+            Vector3[] verticesInWorld =
+                Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz())).ToArray();
+            GizmosExtensions.DrawLineThick(
+                projectedOnTerrain ? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) : verticesInWorld,
+                thickness,
+                color
+            );
+        }
+#endif
+    }
 }
