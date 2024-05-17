@@ -217,31 +217,29 @@ namespace DavidUtils.Geometry
 
 #if UNITY_EDITOR
 
-
-		public bool drawGizmos = true;
-		public bool drawWire;
-
 		public void OnDrawGizmos(
-			Matrix4x4 matrix, float regionScale = .9f, Color[] colors = null, bool projectOnTerrain = false
+			Matrix4x4 matrix, float centeredScale = .9f, Color[] colors = null, bool wire = false,
+			bool projectOnTerrain = false
 		)
 		{
-			if (!drawGizmos || regions is not { Count: > 0 }) return;
+			if (regions is not { Count: > 0 }) return;
 
 			if (colors is null || colors.Length != regions.Count)
 				colors = Color.red.GetRainBowColors(regions.Count);
 
 			// Region Polygons
 			for (var i = 0; i < regions.Count; i++)
-				if (drawWire)
-					regions[i].OnDrawGizmosWire(matrix, regionScale, 5, colors[i], projectOnTerrain);
-				else
-					regions[i].OnDrawGizmos(matrix, regionScale, colors[i], projectOnTerrain);
+			{
+				Polygon scaledRegion = regions[i].ScaleByCenter(centeredScale);
+				if (wire) scaledRegion.OnDrawGizmosWire(matrix, 5, colors[i], projectOnTerrain);
+				else scaledRegion.OnDrawGizmos(matrix, colors[i], projectOnTerrain);
+			}
 		}
 
 		public void DrawRegionGizmos_Highlighted(
 			Polygon region, Matrix4x4 matrix, float regionScale = .9f, bool projectOnTerrain = false
 		) =>
-			region.OnDrawGizmosWire(matrix, regionScale + .01f, 5, Color.yellow, projectOnTerrain);
+			region.ScaleByCenter(regionScale + .01f).OnDrawGizmosWire(matrix, 5, Color.yellow, projectOnTerrain);
 
 		public void DrawRegionGizmos_Detailed(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false)
 		{

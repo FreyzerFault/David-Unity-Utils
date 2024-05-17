@@ -49,18 +49,19 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Awake()
 		{
+			Reset();
 			GenerateSeeds();
 			SetSeedsRainbowColors();
 		}
 
 		protected virtual void Start()
 		{
-			Initialize();
-			InitializeRenderObjects();
+			Reset();
+			InitializeRenderer();
 			InstantiateSeeds();
 		}
 
-		public virtual void Initialize()
+		public virtual void Reset()
 		{
 		}
 
@@ -105,7 +106,7 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
-		protected virtual void InitializeRenderObjects() => seedsParent = new GameObject("SEEDS")
+		protected virtual void InitializeRenderer() => seedsParent = new GameObject("SEEDS")
 		{
 			transform =
 			{
@@ -116,7 +117,7 @@ namespace DavidUtils.Geometry.Generators
 			}
 		};
 
-		protected virtual void ClearRenderers()
+		protected virtual void ClearRenderer()
 		{
 			if (spheres == null) return;
 			foreach (GameObject meshFilter in spheres)
@@ -127,7 +128,7 @@ namespace DavidUtils.Geometry.Generators
 
 		protected void InstantiateSeeds()
 		{
-			ClearRenderers();
+			ClearRenderer();
 			spheres = new GameObject[seeds.Count];
 			for (var i = 0; i < seeds.Count; i++)
 			{

@@ -7,8 +7,6 @@ namespace DavidUtils.Geometry
 {
 	public static class ObjectGenerator
 	{
-		public const float DEFAULT_THICKNESS = .1f;
-		public const int DEFAULT_SMOOTHNESS = 5;
 		
 		#region BASE OBJECTS
 
@@ -24,48 +22,8 @@ namespace DavidUtils.Geometry
 
 		#endregion
 		
-		#region LINE SHAPES
-		
-		public static LineRenderer InstantiateTriangleWire(
-			Transform parent, Triangle triangle, Color color = default,
-			float thickness = DEFAULT_THICKNESS, bool XZplane = true
-		) => new Polyline(triangle.Vertices, new[] { color }, thickness, DEFAULT_SMOOTHNESS, true, XZplane)
-			.Instantiate(parent, "Triangle");
-
-		public static LineRenderer InstantiatePolygonWire(
-			Transform parent, Polygon polygon, float centeredScale = 1, Color color = default,
-			float thickness = DEFAULT_THICKNESS,
-			bool XZplane = true
-		) => new Polyline(
-				polygon.VerticesScaledByCenter(centeredScale), 
-				new[] { color }, thickness, DEFAULT_SMOOTHNESS, true, XZplane
-			).Instantiate(parent, "Polygon");
-
-		#endregion
-
-
 		#region MESH SHAPES
 		
-		
-		public static void InstantiateMeshRenderer(
-			Mesh mesh, Transform parent, out MeshRenderer mr, out MeshFilter mf, string name = ""
-		)
-		{
-			// LINE RENDERER
-			var mObj = new GameObject($"Mesh{(name == "" ? "" : " - " + name)}");
-			mObj.transform.parent = parent;
-			mObj.transform.localPosition = Vector3.zero;
-			mObj.transform.localRotation = Quaternion.identity;
-			mObj.transform.localScale = Vector3.one;
-
-			mr = mObj.AddComponent<MeshRenderer>();
-			mf = mObj.AddComponent<MeshFilter>();
-
-			// Find Default Material
-			mr.sharedMaterial = Resources.Load<Material>("Materials/Geometry Lit");
-
-			mf.sharedMesh = mesh;
-		}
 
 		public static Mesh CreateMesh(Triangle[] triangles, bool XZplane = true, Color[] colors = null)
 		{
@@ -110,34 +68,6 @@ namespace DavidUtils.Geometry
 
 			return CreateMesh(tris, XZplane, color.HasValue ? new[] { color.Value } : null);
 		}
-
-		public static void InstatiateTriangle(
-			Triangle tri, Transform parent, out MeshRenderer mr, out MeshFilter mf,
-			Color color = default
-		) =>
-			InstantiateMeshRenderer(CreateMesh(new[] { tri }, true, new [] { color }), parent, out mr, out mf, "Triangle");
-
-		public static void InstantiatePolygon_DelaunayTriangulation(
-			Polygon polygon, Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f,
-			Color color = default
-		) => InstantiateMeshRenderer(
-			CreateMesh_Delaunay(polygon.VerticesScaledByCenter(centeredScale), true, color),
-			parent,
-			out mr,
-			out mf,
-			"Polygon"
-		);
-
-		public static void InstantiatePolygon(
-			Polygon polygon, Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f,
-			Color color = default
-		) => InstantiateMeshRenderer(
-			Triangle.CreateMesh(polygon.Triangulate(centeredScale), color),
-			parent,
-			out mr,
-			out mf,
-			"Polygon"
-		);
 
 		#endregion
 	}

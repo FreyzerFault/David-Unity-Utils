@@ -1,9 +1,17 @@
-﻿using UnityEngine;
+﻿using DavidUtils.Geometry;
+using UnityEngine;
 
 namespace DavidUtils.ExtensionMethods
 {
 	public static class LineRendererExtensions
 	{
+		public const float DEFAULT_THICKNESS = .1f;
+		public const int DEFAULT_SMOOTHNESS = 5;
+		public static Material DefaultLineMaterial => new(Shader.Find("Sprites/Default"));
+
+		#region MODIFY LINE
+
+		
 		public static void CopyLineRendererPoints(this LineRenderer lr, LineRenderer other)
 		{
 			lr.positionCount = other.positionCount;
@@ -14,9 +22,105 @@ namespace DavidUtils.ExtensionMethods
 
 		public static void SetPoints(this LineRenderer lr, Vector3[] points)
 		{
+			if (points == null) return;
+			
 			if (lr.positionCount != points.Length)
 				lr.positionCount = points.Length;
 			lr.SetPositions(points);
 		}
+
+		public static void SetPolygon(this LineRenderer lr, Polygon polygon, bool XZplane = true) => 
+			lr.SetPoints(XZplane ? polygon.Vertices3D_XZ : polygon.Vertices3D_XY);
+
+		#endregion
+			
+		
+		#region INSTANTIATION
+
+		public static LineRenderer LineRenderer(
+			Transform parent,
+			string name = "Line",
+			Vector3[] points = null,
+			Color[] colors = null,
+			float thickness = DEFAULT_THICKNESS, 
+			int smoothness = DEFAULT_SMOOTHNESS, 
+			Material material = null,
+			bool loop = false
+		)
+		{
+			GameObject obj = ObjectGenerator.InstantiateEmptyObject(parent, name);
+			var lr = obj.AddComponent<LineRenderer>();
+			
+			if (colors is { Length: > 1 }) lr.colorGradient = colors.ToGradient();
+			else lr.startColor = lr.endColor = colors is { Length: 1 } ? colors[0] : Color.gray;
+			
+			lr.startWidth = lr.endWidth = thickness;
+			lr.numCapVertices = lr.numCornerVertices = smoothness;
+			lr.sharedMaterial = material != null ? material : DefaultLineMaterial;
+			lr.loop = loop;
+
+			lr.SetPoints(points);
+			
+			// Posiciones de Vertices locales al Transform del GameObject
+			lr.useWorldSpace = false;
+			
+			return lr;
+		}
+        
+		public static LineRenderer DefaultLineRenderer(Transform parent = null) => LineRenderer(parent);
+
+		#endregion
+		
+
+		#region WIRE SHAPES
+		
+		// POLYLINE
+		public static LineRenderer LineRenderer(
+			this Polyline polyline, Transform parent, Color color = default,
+			float thickness = DEFAULT_THICKNESS,
+			int smoothness = DEFAULT_SMOOTHNESS,  bool XZplane = true
+		) => LineRenderer(
+			parent,
+			"Line",
+			polyline.points,
+			new []{color},
+			thickness,
+			smoothness,
+			loop: polyline.loop
+		);
+		
+		// TRIANGLE
+		public static LineRenderer LineRenderer(
+			this Triangle triangle, Transform parent, Color color = default,
+			float thickness = DEFAULT_THICKNESS,
+			int smoothness = DEFAULT_SMOOTHNESS,  bool XZplane = true
+		) => LineRenderer(
+			parent,
+			"Triangle Line",
+			XZplane ? triangle.Vertices3D_XZ : triangle.Vertices3D_XY,
+			new []{color},
+			thickness,
+			smoothness,
+			loop: true
+		);
+		
+		// POLYGON
+		public static LineRenderer LineRenderer(
+			this Polygon polygon, Transform parent, Color color = default,
+			float thickness = DEFAULT_THICKNESS,
+			int smoothness = DEFAULT_SMOOTHNESS,  bool XZplane = true
+		) => LineRenderer(
+			parent,
+			"Polygon Line",
+			XZplane ? polygon.Vertices3D_XZ : polygon.Vertices3D_XY,
+			new []{color},
+			thickness,
+			smoothness,
+			loop: true
+		);
+
+		#endregion
+        
+
 	}
 }

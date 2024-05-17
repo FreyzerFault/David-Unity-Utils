@@ -11,6 +11,9 @@ namespace DavidUtils.Geometry
         // CCW
         public Vector2 v1, v2, v3;
         public Vector2[] Vertices => new[] { v1, v2, v3 };
+        public Vector3[] Vertices3D_XZ => new[] { v1.ToV3xz(), v2.ToV3xz(), v3.ToV3xz() };
+        public Vector3[] Vertices3D_XY => new[] { v1.ToV3xy(), v2.ToV3xy(), v3.ToV3xy() };
+         
 
         public Edge e1;
         public Edge e2;
@@ -29,33 +32,27 @@ namespace DavidUtils.Geometry
 
         public Delaunay.Border[] Borders => BorderEdges.Select(e => new Delaunay.Border(this, e)).ToArray();
 
-        public Triangle(
-            Vector2 v1, Vector2 v2, Vector2 v3, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
-        )
+        public Triangle(Vector2[] vertices, Triangle[] neighbours = null)
         {
-            this.v1 = v1;
-            this.v2 = v2;
-            this.v3 = v3;
+            v1 = vertices[0];
+            v2 = vertices[1];
+            v3 = vertices[2];
 
-            SetAllNeightbours(new[] { t1, t2, t3 });
+            SetAllNeightbours(neighbours ?? Array.Empty<Triangle>());
 
             e1 = new Edge(v1, v2);
             e2 = new Edge(v2, v3);
             e3 = new Edge(v3, v1);
         }
+        
+        public Triangle(
+            Vector2 v1, Vector2 v2, Vector2 v3, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
+        ): this(new [] { v1, v2, v3 }, new [] { t1, t2, t3 }) { }
 
         public Triangle(
             Vector2[] vertices, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
-        ) : this(vertices[0], vertices[1], vertices[2], t1, t2, t3)
-        {
-        }
-
-        public Triangle(Vector2[] vertices, Triangle[] neighbours = null)
-            : this(vertices[0], vertices[1], vertices[2])
-        {
-            if (neighbours != null && neighbours.Length > 0)
-                SetAllNeightbours(neighbours);
-        }
+        ): this(vertices, new [] { t1, t2, t3 }) {}
+        
 
         public void MoveVertex(Vector2 vertex, Vector2 newVertex)
         {
@@ -111,7 +108,7 @@ namespace DavidUtils.Geometry
         public Triangle GetNeighbour(Edge edge) => neighbours[Array.IndexOf(Edges, edge)];
 
         /// <summary>
-        ///     MEDIATRIZ para encontrar el circuncentro, vértice buscado en Voronoi
+        ///     Interseccion de MEDIATRIZES para encontrar el circuncentro, vértice buscado en Voronoi
         /// </summary>
         public Vector2 GetCircumcenter()
         {
@@ -122,6 +119,11 @@ namespace DavidUtils.Geometry
             return (v1 + v2 + v3) / 3;
         }
 
+        /// <summary>
+        /// Busca el vertice opuesto al eje dado
+        /// </summary>
+        /// <param name="edge"></param>
+        /// <param name="side">Índice del vértice opuesto</param>
         public Vector2 GetOppositeVertex(Edge edge, out int side)
         {
             for (var i = 0; i < 3; i++)
@@ -137,54 +139,9 @@ namespace DavidUtils.Geometry
             return v1;
         }
 
+        // Super Triangulo para Delaunay
         public static Triangle SuperTriangle =>
             new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
-
-        #region MESH GENERATION
-        
-        public static void Instantiate(
-            Triangle[] triangles, Transform parent, out MeshRenderer mr, out MeshFilter mf, Color color = default, string name = "Mesh"
-        ) => ObjectGenerator.InstantiateMeshRenderer(CreateMesh(triangles, color), parent, out mr, out mf, name);
-
-        public static Mesh CreateMesh(Triangle[] tris, Color color = default, bool XZplane = true)
-        {
-            int[] indices = new int[tris.Length * 3].Select((_, index) => index).ToArray();
-            var vertices = new Vector3[tris.Length * 3];
-            for (var i = 0; i < tris.Length; i++)
-            {
-                Triangle t = tris[i];
-                vertices[i * 3 + 0] = t.v3.ToV3xz();
-                vertices[i * 3 + 1] = t.v2.ToV3xz();
-                vertices[i * 3 + 2] = t.v1.ToV3xz();
-            }
-
-            var mesh = new Mesh
-            {
-                vertices = vertices,
-                triangles = indices
-            };
-
-            var colors = new Color[vertices.Length];
-            Array.Fill(colors, color);
-            mesh.colors = colors;
-
-            mesh.normals = mesh.vertices.Select(v => XZplane ? Vector3.up : Vector3.back).ToArray();
-            mesh.bounds = tris
-                .SelectMany(t => t.Vertices)
-                .Select(p => XZplane ? p.ToV3xz() : p.ToV3xy())
-                .ToArray()
-                .GetBoundingBox();
-
-            return mesh;
-        }
-        
-        public LineRenderer InstantiateLineRenderer(Transform parent, Color color = default, float thickness = Polyline.DEFAULT_THICKNESS, int smoothness = Polyline.DEFAULT_SMOOTHNESS, string name = "Triangle Line")
-        {
-            Polyline line = new Polyline(Vertices, new[] { color }, thickness, smoothness, true, true);
-            return line.Instantiate(parent, name);
-        }
-
-        #endregion
 
 #if UNITY_EDITOR
 

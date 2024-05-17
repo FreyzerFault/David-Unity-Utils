@@ -23,17 +23,10 @@ namespace DavidUtils.Geometry.Generators
 		public float delayMilliseconds = 0.1f;
 		protected Coroutine animationCoroutine;
 
-
 		public virtual bool Animated
 		{
 			get => animatedDelaunay;
 			set => animatedDelaunay = value;
-		}
-
-		protected override void Awake()
-		{
-			base.Awake();
-			Initialize();
 		}
 
 		protected override void Start()
@@ -52,21 +45,23 @@ namespace DavidUtils.Geometry.Generators
 			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
 		}
 
-		public override void Initialize()
+		public override void Reset()
 		{
-			base.Initialize();
+			base.Reset();
 
 			if (animationCoroutine != null)
 				StopCoroutine(animationCoroutine);
 
 			delaunay ??= new Delaunay(seeds);
 			delaunay.Seeds = seeds;
+
+			_renderer.Clear();
 		}
 
 
 		public virtual void Run()
 		{
-			Initialize();
+			Reset();
 			animationCoroutine = StartCoroutine(RunCoroutine());
 		}
 
@@ -90,6 +85,8 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Run_OneIteration() => delaunay.Run_OnePoint();
 
+		private void OnTrianglesUpdated() => _renderer.Update(Triangles.ToArray());
+
 
 		#region SEEDS
 
@@ -97,10 +94,9 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.OnSeedsUpdated();
 
-			Initialize();
+			Reset();
 			Run();
 		}
-
 
 		public override bool MoveSeed(int index, Vector2 newPos)
 		{
@@ -109,9 +105,9 @@ namespace DavidUtils.Geometry.Generators
 			if (!moved) return false;
 
 			delaunay.Seeds = seeds;
-			delaunay.RunTriangulation();
+			List<Triangle> tris = delaunay.RunTriangulation();
 
-			UpdateRenderers();
+			_renderer.Update(tris.ToArray());
 
 			return true;
 		}
@@ -121,13 +117,122 @@ namespace DavidUtils.Geometry.Generators
 
 		#region RENDERING
 
-		private Color[] triColors;
+		[Serializable]
+		private class Renderer
+		{
+			// MESH
+			public MeshRenderer meshRenderer;
+			public MeshFilter meshFilter;
 
-		private MeshRenderer delaunayMeshRenderer;
-		private MeshFilter delaunayMeshFilter;
+			// LINE
+			public Transform lineParent;
+			public List<LineRenderer> lineRenderers;
 
-		private GameObject delaunaylineParent;
-		private LineRenderer[] delaunayLineRenderers;
+			public bool active = true;
+			public bool wire;
+
+			public void Initialize(Transform parent)
+			{
+				lineParent = ObjectGenerator.InstantiateEmptyObject(parent, "DELAUNAY Line Renderers").transform;
+
+				MeshExtensions.InstantiateMeshRenderer(
+					out meshRenderer,
+					out meshFilter,
+					new Mesh(),
+					parent,
+					"VORONOI Mesh Renderers"
+				);
+
+				UpdateVisibility();
+			}
+
+			public void UpdateVisibility()
+			{
+				lineParent.gameObject.SetActive(active && wire);
+				meshRenderer.gameObject.SetActive(active && !wire);
+			}
+
+			public void InstatiateLineRenderer(Triangle triangle, Color color) =>
+				lineRenderers.Add(triangle.LineRenderer(lineParent, color));
+
+			public void UpdateTri(Triangle triangle, int i)
+			{
+				if (i >= lineRenderers.Count)
+				{
+					SetRainbowColors(i + 1);
+					InstatiateLineRenderer(triangle, colors[i]);
+				}
+				else
+				{
+					lineRenderers[i].SetPoints(triangle.Vertices3D_XY.ToArray());
+				}
+			}
+
+			public void Update(Triangle[] triangles)
+			{
+				if (triangles.Length != colors.Count)
+					SetRainbowColors(triangles.Length);
+
+				// MESH
+				meshFilter.sharedMesh = triangles.CreateMesh(colors.ToArray());
+
+				// LINE
+				for (var i = 0; i < triangles.Length; i++)
+					UpdateTri(triangles[i], i);
+
+				if (triangles.Length >= lineRenderers.Count) return;
+
+				// Elimina los Renderers sobrantes
+				int removeCount = lineRenderers.Count - triangles.Length;
+
+				for (int i = triangles.Length; i < lineRenderers.Count; i++)
+					Destroy(lineRenderers[i].gameObject);
+
+				lineRenderers.RemoveRange(triangles.Length, removeCount);
+			}
+
+			public void Clear()
+			{
+				foreach (LineRenderer t in lineRenderers)
+					Destroy(t.gameObject);
+
+				lineRenderers.Clear();
+				meshFilter.sharedMesh.Clear();
+			}
+
+
+			#region COLOR
+
+			public List<Color> colors;
+
+			protected void SetRainbowColors(int numColors)
+			{
+				if (colors == null || colors.Count == 0)
+				{
+					colors = Color.cyan.GetRainBowColors(numColors).ToList();
+					return;
+				}
+
+				if (numColors > colors.Count)
+					colors.AddRange(colors[^1].GetRainBowColors(numColors - colors.Count));
+				else if (numColors < colors.Count)
+					colors.RemoveRange(numColors, colors.Count - numColors);
+			}
+
+			#endregion
+		}
+
+		private Renderer _renderer;
+
+		protected override void InitializeRenderer()
+		{
+			base.InitializeRenderer();
+			_renderer.Initialize(transform);
+		}
+
+		#endregion
+
+		#region UI CONTROL
 
 		public bool DrawDelaunay
 		{
@@ -135,7 +240,7 @@ namespace DavidUtils.Geometry.Generators
 			set
 			{
 				delaunay.draw = value;
-				UpdateVisibility();
+				_renderer.UpdateVisibility();
 			}
 		}
 		public bool DelaunayWire
@@ -144,90 +249,16 @@ namespace DavidUtils.Geometry.Generators
 			set
 			{
 				delaunay.drawWire = value;
-				UpdateVisibility();
+				_renderer.UpdateVisibility();
 			}
-		}
-
-		private void FillColorsRainbow() => triColors = Color.cyan.GetRainBowColors(TrianglesCount, 0.05f);
-
-		protected override void InitializeRenderObjects()
-		{
-			base.InitializeRenderObjects();
-
-			// LINE PARENT
-			delaunaylineParent = ObjectGenerator.InstantiateEmptyObject(transform, "DELAUNAY Line Renderers");
-
-			var mObj = ObjectGenerator.InstantiateEmptyObject(transform, "DELAUNAY Line Renderers");
-			delaunayMeshRenderer = mObj.AddComponent<MeshRenderer>();
-			delaunayMeshFilter = mObj.AddComponent<MeshFilter>();
-			
-			ObjectGenerator.InstantiateMeshRenderer(new Mesh(), transform, out delaunayMeshRenderer, out delaunayMeshFilter, "DELAUNAY Mesh");
-
-			ClearRenderers();
-			UpdateVisibility();
-		}
-
-		private void OnTrianglesUpdated() => UpdateRenderers();
-
-		protected virtual void UpdateRenderers()
-		{
-			// Update Colors
-			if (triColors == null || triColors.Length != TrianglesCount)
-				FillColorsRainbow();
-
-			// MESH
-			delaunayMeshFilter.sharedMesh = ObjectGenerator.CreateMesh(Triangles.ToArray(), true, triColors);
-
-			// LINE
-			// Vacio todos los Line Renderers
-			foreach (LineRenderer lr in delaunayLineRenderers)
-				lr.positionCount = 0;
-
-			// Por cada Triangulo, actualizo un Line Renderer
-			// Y cuando no haya suficientes, creo mas Line Renderers
-			for (var i = 0; i < TrianglesCount; i++)
-			{
-				LineRenderer lr;
-				Triangle tri = Triangles[i];
-
-				if (i >= delaunayLineRenderers.Length)
-				{
-					lr = tri.InstantiateLineRenderer(delaunaylineParent.transform, Color.white);
-					delaunayLineRenderers = delaunayLineRenderers.Append(lr).ToArray();
-				}
-				else
-					delaunayLineRenderers[i].SetPoints(Triangles[i].Vertices.Select(v => v.ToV3xz()).ToArray());
-			}
-
-			UpdateVisibility();
-		}
-
-		private void UpdateVisibility()
-		{
-			delaunayMeshFilter.gameObject.SetActive(DrawDelaunay && !DelaunayWire);
-			delaunaylineParent.SetActive(DelaunayWire);
-		}
-
-		protected override void ClearRenderers()
-		{
-			base.ClearRenderers();
-
-			if (delaunayLineRenderers != null)
-				foreach (LineRenderer t in delaunayLineRenderers)
-					Destroy(t.gameObject);
-
-			delaunayLineRenderers = Array.Empty<LineRenderer>();
-
-			if (delaunayMeshFilter != null)
-				delaunayMeshFilter.mesh.Clear();
 		}
 
 		#endregion
 
 
-#if UNITY_EDITOR
-
 		#region DEBUG
+
+#if UNITY_EDITOR
 
 		protected override void OnDrawGizmos()
 		{
@@ -235,8 +266,8 @@ namespace DavidUtils.Geometry.Generators
 			delaunay.OnDrawGizmos(transform.localToWorldMatrix);
 		}
 
-		#endregion
-
 #endif
+
+		#endregion
 	}
 }

@@ -229,9 +229,8 @@ namespace DavidUtils.ExtensionMethods
 		}
 
 		// Extract Patch from Terrain (Mesh proyectada sobre el terreno)
-		public static void CreateMeshPatch(
+		public static Mesh CreateMeshPatch(
 			this Terrain terrain,
-			Mesh mesh,
 			Transform meshTransform,
 			Vector3 worldCenter,
 			float size,
@@ -239,9 +238,9 @@ namespace DavidUtils.ExtensionMethods
 		)
 		{
 			float cellSize = terrain.terrainData.heightmapScale.x / 2;
-			mesh.GenerateMeshPlane(cellSize, Vector2.one * size);
+			Mesh meshPlane = MeshExtensions.GenerateMeshPlane(cellSize, Vector2.one * size);
 
-			terrain.ProjectMeshInTerrain(mesh, meshTransform, heightOffset);
+			return terrain.ProjectMeshInTerrain(meshPlane, meshTransform, heightOffset);
 		}
 
 		// Crea el Patch en la posicion central dada

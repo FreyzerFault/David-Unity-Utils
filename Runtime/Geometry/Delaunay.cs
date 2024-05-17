@@ -10,7 +10,7 @@ using DavidUtils.DebugUtils;
 namespace DavidUtils.Geometry
 {
 	[Serializable]
-	public partial class Delaunay
+	public class Delaunay
 	{
 		private List<Vector2> _seeds;
 		public List<Vector2> Seeds
@@ -29,7 +29,7 @@ namespace DavidUtils.Geometry
 		public Delaunay(IEnumerable<Vector2> seeds = null) =>
 			_seeds = seeds == null ? new List<Vector2>() : seeds.ToList();
 
-		public void RunTriangulation() => triangles = Triangulate(_seeds).ToList();
+		public List<Triangle> RunTriangulation() => triangles = Triangulate(_seeds).ToList();
 
 		// Algoritmo de Bowyer-Watson
 		// - Por cada punto busca los triangulos cuyo círculo circunscrito contenga al punto

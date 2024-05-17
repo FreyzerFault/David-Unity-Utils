@@ -11,6 +11,11 @@ namespace DavidUtils.Geometry
 		// Vertices in Counter-Clockwise order
 		public Vector2[] vertices;
 		public Vector2 centroid;
+		
+		public int VextexCount => vertices.Length;
+		
+		public Vector3[] Vertices3D_XZ => vertices.Select(v => v.ToV3xz()).ToArray();
+		public Vector3[] Vertices3D_XY => vertices.Select(v => v.ToV3xy()).ToArray();
 
 		public Polygon(Vector2[] vertices, Vector2 centroid = default)
 		{
@@ -29,6 +34,10 @@ namespace DavidUtils.Geometry
 			Vector2 c = centroid;
 			return vertices.Select(v => c + (v - c) * centeredScale).ToArray();
 		}
+
+		public Polygon ScaleByCenter(float centeredScale) => 
+			Mathf.Approximately(centeredScale, 1) ? this :
+			new(VerticesScaledByCenter(centeredScale), centroid);
 
 		#region TESTS
 
@@ -82,49 +91,32 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
-		#region MESH GENERATION
+		#region MESH
 
-		public Triangle[] Triangulate(float centeredScale = .9f)
+		/// <summary>
+		/// Triangula creando un triangulo por arista, siendo el centroide el tercer vertice
+		/// </summary>
+		public Triangle[] Triangulate()
 		{
-			Vector2[] scaledVertices = VerticesScaledByCenter(centeredScale);
-
 			var tris = new Triangle[vertices.Length];
 			for (var i = 0; i < vertices.Length; i++)
-				tris[i] = new Triangle(scaledVertices[i], scaledVertices[(i + 1) % vertices.Length], centroid);
+				tris[i] = new Triangle(vertices[i], vertices[(i + 1) % vertices.Length], centroid);
 			return tris;
 		}
 
-		public Mesh CreateMesh(float centeredScale = .9f, Color color = default) => Triangle.CreateMesh(Triangulate(centeredScale), color);
-
-		public void Instantiate(
-			Transform parent, out MeshRenderer mr, out MeshFilter mf, float centeredScale = .9f, Color color = default, string name = "Mesh"
-		) =>
-			ObjectGenerator.InstantiateMeshRenderer(CreateMesh(centeredScale, color), parent, out mr, out mf, name);
-
-		public LineRenderer InstantiateLineRenderer(
-			Transform parent, float centeredScale = .9f, Color color = default, float thickness = Polyline.DEFAULT_THICKNESS, int smoothness = Polyline.DEFAULT_SMOOTHNESS, string name = "Triangle Line"
-			)
-		{
-			Polyline line = new Polyline(VerticesScaledByCenter(centeredScale), new[] { color }, thickness, smoothness, true, true);
-			return line.Instantiate(parent, name);
-		}
-
 		#endregion
-
+		
 		#region DEBUG
 #if UNITY_EDITOR
 
 
 		public void OnDrawGizmosWire(
-			Matrix4x4 mTRS, float scale, float thickness = 1, Color color = default, bool projectOnTerrain = false
+			Matrix4x4 mTRS, float thickness = 1, Color color = default, bool projectOnTerrain = false
 		)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector3 centroidInWorld = ToWorldSpace(mTRS);
-			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS)
-				.Select(v => centroidInWorld + (v - centroidInWorld) * scale)
-				.ToArray();
+			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS).ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygonWire_OnTerrain(verticesInWorld, thickness, color);
@@ -132,14 +124,12 @@ namespace DavidUtils.Geometry
 				GizmosExtensions.DrawPolygonWire(verticesInWorld, thickness, color);
 		}
 
-		public void OnDrawGizmos(Matrix4x4 mTRS, float scale, Color color = default, bool projectOnTerrain = false)
+		public void OnDrawGizmos(Matrix4x4 mTRS, Color color = default, bool projectOnTerrain = false)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
 			Vector3 centroidInWorld = ToWorldSpace(mTRS);
-			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS)
-				.Select(v => centroidInWorld + (v - centroidInWorld) * scale)
-				.ToArray();
+			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS).ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color);
