@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
+using MyBox;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -17,7 +18,6 @@ namespace DavidUtils.Geometry.Generators
 		public int numSeeds = 10;
 		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
 
-		protected Color[] seedColors = Array.Empty<Color>();
 
 		[HideInInspector] public List<Vector2> seeds = new();
 		public List<Vector2> Seeds
@@ -49,27 +49,19 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Awake()
 		{
+			InitializeRenderer();
 			Reset();
 			GenerateSeeds();
-			SetSeedsRainbowColors();
+			OnSeedsUpdated();
 		}
 
-		protected virtual void Start()
-		{
-			Reset();
-			InitializeRenderer();
-			InstantiateSeeds();
-		}
+		protected virtual void Start() => InstantiateRenderer();
 
 		public virtual void Reset()
 		{
 		}
 
-		public virtual void OnSeedsUpdated()
-		{
-			SetSeedsRainbowColors();
-			InstantiateSeeds();
-		}
+		public virtual void OnSeedsUpdated() => UpdateRenderer();
 
 		public void RandomizeSeeds()
 		{
@@ -80,75 +72,8 @@ namespace DavidUtils.Geometry.Generators
 
 		public void GenerateSeeds() => seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
 
-		#region COLOR
 
-		protected void SetSeedsRainbowColors() =>
-			seedColors = Color.red.GetRainBowColors(numSeeds);
-
-		#endregion
-
-		#region INSTANTIATE SPHERES IN WORLD
-
-		private GameObject seedsParent;
-
-		protected GameObject[] spheres;
-
-
-		public bool projectOnTerrain = true;
-		[SerializeField] private bool drawSeeds = true;
-		public bool DrawSeeds
-		{
-			get => drawSeeds;
-			set
-			{
-				drawSeeds = value;
-				UpdateVisibility();
-			}
-		}
-
-		protected virtual void InitializeRenderer() => seedsParent = new GameObject("SEEDS")
-		{
-			transform =
-			{
-				parent = transform,
-				localPosition = Vector3.zero,
-				localRotation = Quaternion.identity,
-				localScale = Vector3.one
-			}
-		};
-
-		protected virtual void ClearRenderer()
-		{
-			if (spheres == null) return;
-			foreach (GameObject meshFilter in spheres)
-				Destroy(meshFilter);
-
-			spheres = Array.Empty<GameObject>();
-		}
-
-		protected void InstantiateSeeds()
-		{
-			ClearRenderer();
-			spheres = new GameObject[seeds.Count];
-			for (var i = 0; i < seeds.Count; i++)
-			{
-				Vector2 seed = seeds[i];
-				GameObject sphere = spheres[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-				sphere.transform.parent = seedsParent.transform;
-				sphere.transform.localPosition = seed.ToV3xz();
-				sphere.transform.localScale = Vector3.one * 0.3f / transform.lossyScale.x;
-
-				var mr = sphere.GetComponent<MeshRenderer>();
-				var mf = sphere.GetComponent<MeshFilter>();
-
-				// COLOR
-				Color[] colors = mf.sharedMesh.vertices.Select(_ => seedColors[i].RotateHue(.5f)).ToArray();
-				mf.mesh.SetColors(colors);
-
-				// MATERIAL
-				mr.sharedMaterial = Resources.Load<Material>("Materials/Geometry Unlit");
-			}
-		}
+		#region MODIFICATION
 
 		/// <summary>
 		///     Mueve una semilla a una nueva posición siempre y cuando:
@@ -159,25 +84,155 @@ namespace DavidUtils.Geometry.Generators
 		{
 			newPos = newPos.Clamp01();
 			Vector2 oldPos = seeds[index];
-
-			// Si colisiona con otra semilla no la movemos
-			if (newPos == oldPos ||
-			    seeds
-				    .Where((p, i) => i != index)
-				    .Any(p => Vector2.Distance(p, newPos) < 0.02f))
+			if (newPos == oldPos)
 				return false;
 
+			// Si colisiona con otra semilla no la movemos
+			bool collision = seeds
+				.Where((p, i) => i != index)
+				.Any(p => Vector2.Distance(p, newPos) < 0.02f);
+
+			if (collision) return false;
+
 			seeds[index] = newPos;
-			spheres[index].transform.localPosition = newPos.ToV3xz();
+
+			seedsRenderer.MoveSeed(index, newPos);
 
 			return true;
 		}
 
+		#endregion
 
-		/// <summary>
-		///     Activa o desactiva los Renderers
-		/// </summary>
-		private void UpdateVisibility() => seedsParent.SetActive(drawSeeds);
+
+		#region RENDERER
+
+		[SerializeField] private Renderer seedsRenderer;
+
+		public bool projectOnTerrain = true;
+
+		public bool DrawSeeds
+		{
+			get => seedsRenderer.active;
+			set
+			{
+				seedsRenderer.active = value;
+				seedsRenderer.UpdateVisibility();
+			}
+		}
+
+		protected virtual void InitializeRenderer() =>
+			seedsRenderer.Initialize(transform);
+
+		protected virtual void InstantiateRenderer()
+		{
+			seedsRenderer.Instantiate(seeds.ToArray());
+			if (projectOnTerrain && Terrain.activeTerrain != null)
+				seedsRenderer.ProjectOnTerrain(Terrain.activeTerrain);
+		}
+
+		protected virtual void UpdateRenderer() => seedsRenderer.Update(seeds.ToArray());
+
+		[Serializable]
+		private class Renderer
+		{
+			public GameObject seedsParent;
+			public GameObject[] spheres = Array.Empty<GameObject>();
+
+			public float sphereScale = .3f;
+
+			public Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
+
+			public bool active = true;
+
+			public void Initialize(Transform parent) => seedsParent = new GameObject("SEEDS")
+			{
+				transform =
+				{
+					parent = parent,
+					localPosition = Vector3.zero,
+					localRotation = Quaternion.identity,
+					localScale = Vector3.one
+				}
+			};
+
+			public void Instantiate(Vector2[] seeds)
+			{
+				if (seeds.Length == 0) return;
+
+				if (seedColors.Length != seeds.Length)
+					SetSeedsRainbowColors(seeds.Length);
+
+				Clear();
+
+				spheres = new GameObject[seeds.Length];
+				for (var i = 0; i < seeds.Length; i++)
+				{
+					Vector2 seed = seeds[i];
+					GameObject sphere = spheres[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+					sphere.transform.parent = seedsParent.transform;
+					sphere.transform.SetLocalPositionAndRotation(seed.ToV3xz(), Quaternion.identity);
+
+					// Compensa el Scale Global para verse siempre del mismo tamaño
+					sphere.transform.SetLossyScale(Vector3.one * sphereScale / sphere.transform.lossyScale.x);
+
+					var mr = sphere.GetComponent<MeshRenderer>();
+					var mf = sphere.GetComponent<MeshFilter>();
+
+					// COLOR
+					Color[] colors = mf.sharedMesh.vertices.Select(_ => seedColors[i].RotateHue(.5f)).ToArray();
+					mf.mesh.SetColors(colors);
+
+					// MATERIAL
+					mr.sharedMaterial = Material;
+				}
+
+				UpdateVisibility();
+			}
+
+			public void Update(Vector2[] seeds)
+			{
+				if (!active) return;
+
+				for (var i = 0; i < spheres.Length; i++)
+					spheres[i].transform.localPosition = seeds[i].ToV3xz();
+
+				UpdateVisibility();
+			}
+
+			public void Clear()
+			{
+				if (spheres == null) return;
+				foreach (GameObject meshFilter in spheres)
+					Destroy(meshFilter);
+
+				spheres = Array.Empty<GameObject>();
+			}
+
+			public void UpdateVisibility() => seedsParent.SetActive(active);
+
+			public void MoveSeed(int index, Vector2 newPos) =>
+				spheres[index].transform.localPosition = newPos.ToV3xz();
+
+			public void ProjectOnTerrain(Terrain terrain)
+			{
+				foreach (GameObject sphere in spheres)
+				{
+					Vector3 pos = sphere.transform.position;
+					pos.y = terrain.SampleHeight(pos);
+					sphere.transform.position = pos;
+				}
+			}
+
+
+			#region COLOR
+
+			public Color[] seedColors = Array.Empty<Color>();
+
+			private void SetSeedsRainbowColors(int numColors) =>
+				seedColors = Color.red.GetRainBowColors(numColors);
+
+			#endregion
+		}
 
 		#endregion
 
@@ -283,7 +338,7 @@ namespace DavidUtils.Geometry.Generators
 		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
 		protected virtual void OnDrawGizmos()
 		{
-			if (drawSeeds) GizmosSeeds();
+			if (DrawSeeds) GizmosSeeds();
 			if (drawGrid) GizmosBoundingBox();
 		}
 
@@ -316,15 +371,15 @@ namespace DavidUtils.Geometry.Generators
 
 		protected void GizmosSeeds()
 		{
-			Gizmos.color = seedColors?.Length > 0 ? seedColors[0] : Color.grey;
+			Gizmos.color = seedsRenderer.seedColors?.Length > 0 ? seedsRenderer.seedColors[0] : Color.grey;
 			var terrain = Terrain.activeTerrain;
 			Vector3[] seedsInWorld = projectOnTerrain
 				? SeedsInWorld_XZ.Select(s => terrain.Project(s)).ToArray()
 				: SeedsInWorld_XZ;
 			for (var i = 0; i < seedsInWorld.Length; i++)
 			{
-				if (seedColors?.Length > 0)
-					Gizmos.color = seedColors[i];
+				if (seedsRenderer.seedColors?.Length > 0)
+					Gizmos.color = seedsRenderer.seedColors[i];
 				Gizmos.DrawSphere(seedsInWorld[i], 0.1f);
 			}
 		}

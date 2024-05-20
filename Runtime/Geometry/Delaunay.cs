@@ -561,13 +561,8 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		public bool draw;
-		public bool drawWire = true;
-
-		public void OnDrawGizmos(Matrix4x4 matrix, bool projectOnTerrain = false)
+		public void OnDrawGizmos(Matrix4x4 matrix, bool wire = true, bool projectOnTerrain = false)
 		{
-			if (!draw) return;
-
 			// TRIANGULATION
 			Color[] colors = Color.cyan.GetRainBowColors(triangles.Count, 0.02f);
 
@@ -575,7 +570,7 @@ namespace DavidUtils.Geometry
 			{
 				Triangle tri = triangles[i];
 
-				if (ended && !drawWire)
+				if (ended && !wire)
 					tri.OnGizmosDraw(matrix, colors[i], projectOnTerrain);
 				else
 					tri.OnGizmosDrawWire(matrix, 2, Color.white, projectOnTerrain);

@@ -66,23 +66,32 @@ namespace DavidUtils.ExtensionMethods
 
 		#endregion
 
+		public static Vector3 WithX(this Vector3 v, float x) => v = new Vector3(x, v.y, v.z);
+		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
+		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
+
+
 		#region 3D to 2D
 
 		public static Vector2 ToV2xz(this Vector3 v) => new(v.x, v.z);
 		public static Vector2 ToV2xy(this Vector3 v) => new(v.x, v.y);
 
-		public static Vector3 WithX(this Vector3 v, float x) => v = new Vector3(x, v.y, v.z);
-		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
-		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
+		public static IEnumerable<Vector2> ToV2xz(this IEnumerable<Vector3> v) => v.Select(ToV2xz);
+		public static IEnumerable<Vector2> ToV2xy(this IEnumerable<Vector3> v) => v.Select(ToV2xy);
 
 		#endregion
+
 
 		#region 2D to 3D
 
 		public static Vector3 ToV3xz(this Vector2 v) => new(v.x, 0, v.y);
 		public static Vector3 ToV3xy(this Vector2 v) => new(v.x, v.y, 0);
 
+		public static IEnumerable<Vector3> ToV3xz(this IEnumerable<Vector2> v) => v.Select(ToV3xz);
+		public static IEnumerable<Vector3> ToV3xy(this IEnumerable<Vector2> v) => v.Select(ToV3xy);
+
 		#endregion
+
 
 		#region to 4D for Matrix Transformations
 
@@ -146,6 +155,12 @@ namespace DavidUtils.ExtensionMethods
 				Vector3.negativeInfinity,
 				(max, p) => new Vector3(Mathf.Max(max.x, p.x), Mathf.Max(max.y, p.y), Mathf.Max(max.z, p.z))
 			);
+
+		public static Vector2 Center(this Vector2[] points) =>
+			points.Aggregate(Vector2.zero, (sum, p) => sum + p) / points.Count();
+
+		public static Vector3 Center(this Vector3[] points) =>
+			points.Aggregate(Vector3.zero, (sum, p) => sum + p) / points.Length;
 
 		#endregion
 	}

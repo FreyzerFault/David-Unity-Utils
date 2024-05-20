@@ -372,8 +372,8 @@ namespace DavidUtils.ExtensionMethods
 
 		#region PROJECTION
 
-		public static Vector3 Project(this Terrain terrain, Vector3 point) =>
-			new(point.x, terrain.SampleHeight(point), point.z);
+		public static Vector3 Project(this Terrain terrain, Vector3 point, float offset = .1f) =>
+			new(point.x, terrain.SampleHeight(point) + offset, point.z);
 
 		public static Vector3[] ProjectPathToTerrain(
 			this Terrain terrain,
