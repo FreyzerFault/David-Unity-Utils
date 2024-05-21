@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.TerrainExtensions;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -33,10 +34,9 @@ namespace DavidUtils.DebugUtils
 			{
 				pos,
 				tipPos,
+				tipPos - Quaternion.AngleAxis(30, tangent) * direction * length * capSize,
 				tipPos,
-				tipPos - Quaternion.AngleAxis(30, tangent) * direction * capSize,
-				tipPos,
-				tipPos - Quaternion.AngleAxis(-30, tangent) * direction * capSize
+				tipPos - Quaternion.AngleAxis(-30, tangent) * direction * length * capSize
 			};
 			DrawLineThick(vertices, thickness, color);
 		}

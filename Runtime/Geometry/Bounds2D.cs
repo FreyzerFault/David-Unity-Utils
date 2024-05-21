@@ -221,4 +221,13 @@ namespace DavidUtils.Geometry
 
 		#endregion
 	}
+
+	#region EXTENSIONS
+
+	public static class Bounds2DExtensions
+	{
+		public static Bounds2D GetBoundingBox(this Vector2[] points) => new(points);
+	}
+
+	#endregion
 }

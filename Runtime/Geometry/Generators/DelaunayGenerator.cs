@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry.MeshExtensions;
+using DavidUtils.Geometry.Rendering;
+using DavidUtils.TerrainExtensions;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.Generators
@@ -160,7 +163,7 @@ namespace DavidUtils.Geometry.Generators
 			{
 				lineParent = ObjectGenerator.InstantiateEmptyObject(parent, "DELAUNAY Line Renderers").transform;
 
-				MeshExtensions.InstantiateMeshRenderer(
+				MeshRendererExtensions.InstantiateMeshRenderer(
 					out meshRenderer,
 					out meshFilter,
 					new Mesh(),

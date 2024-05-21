@@ -1,7 +1,5 @@
-using DavidUtils.PlayerControl;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Serialization;
 
 namespace DavidUtils
 {
@@ -12,8 +10,6 @@ namespace DavidUtils
 			Playing,
 			Paused
 		}
-
-		public Player player;
 
 		public UnityEvent<GameState> onGameStateChanged;
 		[SerializeField] private GameState state = GameState.Playing;
@@ -36,8 +32,6 @@ namespace DavidUtils
 
 			OnStateChange(State);
 			onGameStateChanged ??= new UnityEvent<GameState>();
-
-			player = FindObjectOfType<Player>();
 		}
 
 		private void OnDestroy() => onGameStateChanged.RemoveAllListeners();
@@ -60,8 +54,5 @@ namespace DavidUtils
 		}
 
 		private void OnPause() => State = State == GameState.Paused ? GameState.Playing : GameState.Paused;
-		
-		
-		public static Player FindPlayer() => Instance.player ?? FindObjectOfType<Player>();
 	}
 }

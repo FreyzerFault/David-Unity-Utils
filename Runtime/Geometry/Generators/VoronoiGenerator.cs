@@ -4,7 +4,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry.MeshExtensions;
+using DavidUtils.Geometry.Rendering;
 using DavidUtils.MouseInput;
+using DavidUtils.TerrainExtensions;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.Generators
@@ -245,11 +248,13 @@ namespace DavidUtils.Geometry.Generators
 
 			protected void SetRainbowColors(int numColors)
 			{
+				colors = Color.cyan.Darken(.3f).GetRainBowColors(numColors, .005f, 20).ToList();
+				return;
 				if (numColors == colors.Count) return;
 				if (numColors > colors.Count)
 					colors.AddRange(
 						(colors.Count == 0 ? Color.magenta : colors.Last())
-						.GetRainBowColors(numColors - colors.Count + 1)
+						.GetRainBowColors(numColors - colors.Count + 1, .05f, 2)
 						.Skip(1)
 					);
 				else
@@ -318,7 +323,7 @@ namespace DavidUtils.Geometry.Generators
 		public Polygon? SelectedRegion => selectedRegionIndex == -1 ? null : voronoi.regions[selectedRegionIndex];
 
 		// For dragging a region
-		private Vector2 draggingOffset = Vector2.zero;
+		private Vector2 _draggingOffset = Vector2.zero;
 
 		protected override void Update()
 		{
@@ -338,7 +343,7 @@ namespace DavidUtils.Geometry.Generators
 			{
 				selectedRegionIndex = MouseRegionIndex;
 				if (SelectedRegion.HasValue)
-					draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
+					_draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
 			}
 
 			// DRAGGING
@@ -347,7 +352,7 @@ namespace DavidUtils.Geometry.Generators
 				voronoiRenderer.SetSelectedRegion(SelectedRegion.Value);
 				voronoiRenderer.ToggleHightlighted(false);
 
-				MoveSeed(selectedRegionIndex, MousePosNorm - draggingOffset);
+				MoveSeed(selectedRegionIndex, MousePosNorm - _draggingOffset);
 			}
 		}
 

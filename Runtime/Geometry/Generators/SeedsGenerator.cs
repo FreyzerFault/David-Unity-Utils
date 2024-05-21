@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
-using MyBox;
+using DavidUtils.TerrainExtensions;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -139,6 +139,7 @@ namespace DavidUtils.Geometry.Generators
 			public GameObject[] spheres = Array.Empty<GameObject>();
 
 			public float sphereScale = .3f;
+			private float heightOffset = .2f;
 
 			public Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
 
@@ -170,10 +171,13 @@ namespace DavidUtils.Geometry.Generators
 					Vector2 seed = seeds[i];
 					GameObject sphere = spheres[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 					sphere.transform.parent = seedsParent.transform;
-					sphere.transform.SetLocalPositionAndRotation(seed.ToV3xz(), Quaternion.identity);
+					sphere.transform.SetLocalPositionAndRotation(
+						seed.ToV3xz().WithY(heightOffset),
+						Quaternion.identity
+					);
 
 					// Compensa el Scale Global para verse siempre del mismo tamaño
-					sphere.transform.SetLossyScale(Vector3.one * sphereScale / sphere.transform.lossyScale.x);
+					sphere.transform.SetGlobalScale(Vector3.one * sphereScale / sphere.transform.lossyScale.x);
 
 					var mr = sphere.GetComponent<MeshRenderer>();
 					var mf = sphere.GetComponent<MeshFilter>();
@@ -194,7 +198,7 @@ namespace DavidUtils.Geometry.Generators
 				if (!active) return;
 
 				for (var i = 0; i < spheres.Length; i++)
-					spheres[i].transform.localPosition = seeds[i].ToV3xz();
+					spheres[i].transform.localPosition = seeds[i].ToV3xz().WithY(heightOffset);
 
 				UpdateVisibility();
 			}
@@ -211,14 +215,14 @@ namespace DavidUtils.Geometry.Generators
 			public void UpdateVisibility() => seedsParent.SetActive(active);
 
 			public void MoveSeed(int index, Vector2 newPos) =>
-				spheres[index].transform.localPosition = newPos.ToV3xz();
+				spheres[index].transform.localPosition = newPos.ToV3xz().WithY(heightOffset);
 
 			public void ProjectOnTerrain(Terrain terrain)
 			{
 				foreach (GameObject sphere in spheres)
 				{
 					Vector3 pos = sphere.transform.position;
-					pos.y = terrain.SampleHeight(pos);
+					pos.y = terrain.SampleHeight(pos) + heightOffset;
 					sphere.transform.position = pos;
 				}
 			}

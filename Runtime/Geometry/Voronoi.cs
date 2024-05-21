@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
+using DavidUtils.TerrainExtensions;
 using UnityEngine;
 #if UNITY_EDITOR
 using DavidUtils.DebugUtils;
@@ -274,20 +275,17 @@ namespace DavidUtils.Geometry
 					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
 					Vector2 intersections = borderEdge.MediatrizIntersetions_RIGHT(bounds).First();
 
+					Vector3 a = matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz());
+					Vector3 b = matrix.MultiplyPoint3x4(intersections.ToV3xz());
+
 					if (projectOnTerrain)
-						GizmosExtensions.DrawLineThick_OnTerrain(
-							matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz()),
-							matrix.MultiplyPoint3x4(intersections.ToV3xz()),
-							6,
-							Color.red
-						);
-					else
-						GizmosExtensions.DrawLineThick(
-							matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz()),
-							matrix.MultiplyPoint3x4(intersections.ToV3xz()),
-							6,
-							Color.red
-						);
+					{
+						var terrain = Terrain.activeTerrain;
+						a = terrain.Project(a);
+						b = terrain.Project(b);
+					}
+
+					GizmosExtensions.DrawLineThick(a, b, 6, Color.red);
 				}
 			}
 		}

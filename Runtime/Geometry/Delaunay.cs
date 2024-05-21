@@ -90,12 +90,17 @@ namespace DavidUtils.Geometry
 		///     Comprueba despues todos los vecinos de forma recursiva hasta que todos sean legales
 		/// </summary>
 		/// <returns>True si era ilegal y se legalizo</returns>
-		private bool Legalize(Triangle tri, out Triangle[] flippedTris)
+		private bool Legalize(Triangle tri, out Triangle[] flippedTris, int recursiveCalls = 0, int maxCalls = 100)
 		{
 			flippedTris = null;
+
 			if (IsLegal(tri, out List<int> illegalSides)) return false;
 
 			Flip(tri, illegalSides[0], out flippedTris);
+
+			// PARA si supera el maximo de llamadas recursivas
+			if (recursiveCalls >= maxCalls) return true;
+			recursiveCalls++;
 
 			// Comprobamos vecinos de forma recursiva
 			foreach (Triangle flippedTri in flippedTris)
@@ -104,7 +109,7 @@ namespace DavidUtils.Geometry
 				Triangle[] flippedTemp = flippedTris;
 				foreach (Triangle neighbour in flippedTri.neighbours.Where(t => !flippedTemp.Contains(t)))
 					if (neighbour != null)
-						Legalize(neighbour, out Triangle[] _);
+						Legalize(neighbour, out Triangle[] _, recursiveCalls, maxCalls);
 			}
 
 			return true;

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.Geometry;
 using UnityEngine;
 
 namespace DavidUtils.ExtensionMethods
@@ -104,6 +103,50 @@ namespace DavidUtils.ExtensionMethods
 
 		#endregion
 
+
+		#region SCALE
+
+		/// <summary>
+		///     Sets the Global Scale of the source Transform.
+		/// </summary>
+		public static Transform SetGlobalScale(this Transform source, Vector3 targetLossyScale)
+		{
+			source.localScale = source.lossyScale.Pow(-1).ScaleBy(targetLossyScale).ScaleBy(source.localScale);
+			return source;
+		}
+
+		/// <summary>
+		///     Immutably returns the result of the source vector multiplied with
+		///     another vector component-wise.
+		/// </summary>
+		public static Vector2 ScaleBy(this Vector2 pos, Vector2 scaleFactor) => Vector2.Scale(pos, scaleFactor);
+
+		/// <summary>
+		///     Immutably returns the result of the source vector multiplied with
+		///     another vector component-wise.
+		/// </summary>
+		public static Vector3 ScaleBy(this Vector3 pos, Vector3 scaleFactor) => Vector3.Scale(pos, scaleFactor);
+
+		#endregion
+
+
+		#region POW
+
+		/// <summary>
+		///     Raise each component of the source Vector2 to the specified power.
+		/// </summary>
+		public static Vector2 Pow(this Vector2 pos, float exponent)
+			=> new(Mathf.Pow(pos.x, exponent), Mathf.Pow(pos.y, exponent));
+
+		/// <summary>
+		///     Raise each component of the source Vector3 to the specified power.
+		/// </summary>
+		public static Vector3 Pow(this Vector3 pos, float exponent)
+			=> new(Mathf.Pow(pos.x, exponent), Mathf.Pow(pos.y, exponent), Mathf.Pow(pos.z, exponent));
+
+		#endregion
+
+
 		#region SORTING
 
 		// Ordena los puntos por angulo respecto a un centroide
@@ -120,10 +163,8 @@ namespace DavidUtils.ExtensionMethods
 
 		#endregion
 
-		#region BOUNDING BOX
 
-		public static Bounds2D GetBoundingBox(this Vector2[] points) =>
-			new(points.MinPosition(), points.MaxPosition());
+		#region BOUNDING BOX
 
 		public static Bounds GetBoundingBox(this Vector3[] points)
 		{

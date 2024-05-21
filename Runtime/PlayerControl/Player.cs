@@ -11,7 +11,7 @@ namespace DavidUtils.PlayerControl
 	}
 
 	// Controla el movimiento en 2D con OnMove
-	public abstract class Player: MonoBehaviour
+	public abstract class Player : Singleton<Player>
 	{
 		public Vector3 Position => transform.position;
 		public Vector3 Forward => transform.forward;
@@ -34,7 +34,7 @@ namespace DavidUtils.PlayerControl
 		}
 
 		#region STATE
-		
+
 		public event Action<PlayerState> OnStateChanged;
 		[SerializeField] protected PlayerState state = PlayerState.Playing;
 		public PlayerState State

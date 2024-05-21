@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace DavidUtils.ExtensionMethods
+namespace DavidUtils.TerrainExtensions
 {
 	public static class TerrainExtensionMethods
 	{
@@ -226,21 +226,6 @@ namespace DavidUtils.ExtensionMethods
 				triangles[triangleIndex + 4] = vertexIndex + sideVerticesCount + 1;
 				triangles[triangleIndex + 5] = vertexIndex + 1;
 			}
-		}
-
-		// Extract Patch from Terrain (Mesh proyectada sobre el terreno)
-		public static Mesh CreateMeshPatch(
-			this Terrain terrain,
-			Transform meshTransform,
-			Vector3 worldCenter,
-			float size,
-			float heightOffset
-		)
-		{
-			float cellSize = terrain.terrainData.heightmapScale.x / 2;
-			Mesh meshPlane = MeshExtensions.GenerateMeshPlane(cellSize, Vector2.one * size);
-
-			return terrain.ProjectMeshInTerrain(meshPlane, meshTransform, heightOffset);
 		}
 
 		// Crea el Patch en la posicion central dada
