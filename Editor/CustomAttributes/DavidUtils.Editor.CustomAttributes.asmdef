@@ -1,11 +1,10 @@
 {
-    "name": "DavidUtils.UI",
+    "name": "DavidUtils.Editor.CustomAttributes",
     "rootNamespace": "DavidUtils",
-    "references": [
-        "GUID:6055be8ebefd69e48b49212b09b47b2f",
-        "GUID:c3de39868c88ead43980643f130ae457"
+    "references": [],
+    "includePlatforms": [
+        "Editor"
     ],
-    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

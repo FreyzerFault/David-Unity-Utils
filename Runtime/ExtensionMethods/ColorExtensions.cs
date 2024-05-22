@@ -1,61 +1,121 @@
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DavidUtils.ExtensionMethods
 {
+	/// <summary>
+	///     Represents list of supported by Unity Console color names
+	/// </summary>
+	public enum Colors
+	{
+		aqua,
+		black,
+		blue,
+		brown,
+		cyan,
+		darkblue,
+		fuchsia,
+		green,
+		grey,
+		lightblue,
+		lime,
+		magenta,
+		maroon,
+		navy,
+		olive,
+		purple,
+		red,
+		silver,
+		teal,
+		white,
+		yellow
+	}
+
 	public static class ColorExtensions
 	{
-		// Rota en la rueda HSV el Hue (Tonalidad) del color
-		public static Color RotateHue(this Color color, float hueRotation)
-		{
-			// Convertir el color RGB a HSV
-			Color.RGBToHSV(color, out float H, out float S, out float V);
+		#region GENERATE COLORS
 
-			// Rotar el Hue
-			H = (H + hueRotation) % 1;
+		/// <summary>
+		///     Color Random con la mayor saturación
+		/// </summary>
+		public static Color RandomColorSaturated() =>
+			Random.ColorHSV(0, 1, 1, 1, 1, 1);
 
-			// Convertir el color HSV de vuelta a RGB
-			return Color.HSVToRGB(H, S, V);
-		}
-
-
-		public static Color Darken(this Color color, float darkenAmount)
-		{
-			// Convertir el color RGB a HSV
-			Color.RGBToHSV(color, out float H, out float S, out float V);
-
-			// Oscurecer el color
-			V = Mathf.Max(0, V - darkenAmount);
-
-			// Convertir el color HSV de vuelta a RGB
-			return Color.HSVToRGB(H, S, V);
-		}
-
-		public static Color Lighten(this Color color, float lightenAmount)
-		{
-			// Convertir el color RGB a HSV
-			Color.RGBToHSV(color, out float H, out float S, out float V);
-
-			// Oscurecer el color
-			V = Mathf.Max(0, V + lightenAmount);
-
-			// Convertir el color HSV de vuelta a RGB
-			return Color.HSVToRGB(H, S, V);
-		}
-
-
-		// Color Random con la mayor saturacion
-		public static Color RandomColorSaturated() => Random.ColorHSV(0, 1, 1, 1, 1, 1);
-
-
-		// COLORES Dinamicos
-
+		/// <summary>
+		///     Array de Colores rotados en la rueda HSV como en un Arcoiris
+		/// </summary>
+		/// <param name="initColor">Empieza aqui</param>
+		/// <param name="count">Numero de Colores</param>
+		/// <param name="step">Salto de Tono entre Color y Color</param>
+		/// <param name="range">Rango de colores generados (util para generar una paleta de colores cercanos)</param>
+		/// <returns></returns>
 		public static Color[] GetRainBowColors(this Color initColor, int count, float step = 0.1f, int range = 0) =>
 			new Color[count].Select((value, index) => initColor.RotateHue(step * (range == 0 ? index : index % range)))
 				.ToArray();
 
-		public static Color SetAlpha(this Color color, float newAlpha) => new(color.r, color.g, color.b, newAlpha);
+		#endregion
 
+
+		#region MODIFICATIONS
+
+		#region HUE (HSV)
+
+		// Rota en la rueda HSV el Hue (Tonalidad) del color
+		public static Color RotateHue(this Color color, float hueRotation)
+		{
+			// RGB -> HSV -> RGB
+			Color.RGBToHSV(color, out float h, out float s, out float v);
+			h = (h + hueRotation) % 1;
+			return Color.HSVToRGB(h, s, v);
+		}
+
+		#endregion
+
+		#region VALUE (HSV)
+
+		private const float DefaultLightOffset = 0.0625f;
+
+		public static Color Darken(this Color color, float? darkenAmount = null) =>
+			color.OffsetValue(-darkenAmount ?? DefaultLightOffset);
+
+		public static Color Lighten(this Color color, float? lightenAmount = null) =>
+			color.OffsetValue(lightenAmount ?? DefaultLightOffset);
+
+		private static Color OffsetValue(this Color color, float offset)
+		{
+			// RGB -> HSV -> RGB
+			Color.RGBToHSV(color, out float h, out float s, out float v);
+			v = Mathf.Max(0, v + offset);
+			return Color.HSVToRGB(h, s, v);
+		}
+
+		#endregion
+
+		#region ALPHA
+
+		/// <summary>
+		///     Returns new Color with Alpha set to a
+		/// </summary>
+		public static Color WithAlpha(this Color color, float a) => new(color.r, color.g, color.b, a);
+
+		/// <summary>
+		///     Set Alpha of Image.Color
+		/// </summary>
+		public static void SetAlpha(this Graphic graphic, float a) => graphic.color = graphic.color.WithAlpha(a);
+
+		/// <summary>
+		///     Set Alpha of Renderer.Color
+		/// </summary>
+		public static void SetAlpha(this SpriteRenderer renderer, float a) =>
+			renderer.color = renderer.color.WithAlpha(a);
+
+		#endregion
+
+		#endregion
+
+
+		#region CONVERSIONS
 
 		public static Gradient ToGradient(this Color[] colors)
 		{
@@ -67,5 +127,28 @@ namespace DavidUtils.ExtensionMethods
 			gradient.SetKeys(colorKeys, alphaKeys);
 			return gradient;
 		}
+
+		#endregion
+
+
+		#region COLOR FORMATS
+
+		/// <summary>
+		///     To string of "#b5ff4f" format
+		/// </summary>
+		public static string ToHex(this Color color) =>
+			$"#{(int)(color.r * 255):X2}{(int)(color.g * 255):X2}{(int)(color.b * 255):X2}";
+
+		/// <summary>
+		///     Converts a HTML color string into UnityEngine.Color.
+		///     See UnityEngine.ColorUtility.TryParseHtmlString for conversion conditions.
+		/// </summary>
+		public static Color ToUnityColor(this string source)
+		{
+			ColorUtility.TryParseHtmlString(source, out Color res);
+			return res;
+		}
+
+		#endregion
 	}
 }

@@ -11,9 +11,9 @@ namespace DavidUtils.Geometry
 		// Vertices in Counter-Clockwise order
 		public Vector2[] vertices;
 		public Vector2 centroid;
-		
+
 		public int VextexCount => vertices.Length;
-		
+
 		public Vector3[] Vertices3D_XZ => vertices.Select(v => v.ToV3xz()).ToArray();
 		public Vector3[] Vertices3D_XY => vertices.Select(v => v.ToV3xy()).ToArray();
 
@@ -35,9 +35,8 @@ namespace DavidUtils.Geometry
 			return vertices.Select(v => c + (v - c) * centeredScale).ToArray();
 		}
 
-		public Polygon ScaleByCenter(float centeredScale) => 
-			Mathf.Approximately(centeredScale, 1) ? this :
-			new(VerticesScaledByCenter(centeredScale), centroid);
+		public Polygon ScaleByCenter(float centeredScale) =>
+			Mathf.Approximately(centeredScale, 1) ? this : new Polygon(VerticesScaledByCenter(centeredScale), centroid);
 
 		#region TESTS
 
@@ -94,7 +93,7 @@ namespace DavidUtils.Geometry
 		#region MESH
 
 		/// <summary>
-		/// Triangula creando un triangulo por arista, siendo el centroide el tercer vertice
+		///     Triangula creando un triangulo por arista, siendo el centroide el tercer vertice
 		/// </summary>
 		public Triangle[] Triangulate()
 		{
@@ -105,8 +104,9 @@ namespace DavidUtils.Geometry
 		}
 
 		#endregion
-		
+
 		#region DEBUG
+
 #if UNITY_EDITOR
 
 
@@ -138,6 +138,7 @@ namespace DavidUtils.Geometry
 		}
 
 #endif
+
 		#endregion
 
 		public bool Equals(Polygon other) => Equals(vertices, other.vertices) && centroid.Equals(other.centroid);
