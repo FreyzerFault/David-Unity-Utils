@@ -18,7 +18,11 @@ namespace DavidUtils.PlayerControl
 		public Vector3 Right => transform.right;
 		public Quaternion Rotation => transform.rotation;
 
-		protected virtual void Awake() => HandleStateChanged(state);
+		protected override void Awake()
+		{
+			base.Awake();
+			HandleStateChanged(state);
+		}
 
 		protected virtual void Start()
 		{
