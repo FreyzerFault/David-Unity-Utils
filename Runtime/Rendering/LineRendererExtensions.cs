@@ -1,7 +1,8 @@
-﻿using DavidUtils.Geometry;
+﻿using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry;
 using UnityEngine;
 
-namespace DavidUtils.ExtensionMethods
+namespace DavidUtils.Rendering
 {
 	public static class LineRendererExtensions
 	{

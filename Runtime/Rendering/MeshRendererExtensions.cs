@@ -1,10 +1,15 @@
+using System;
+using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using UnityEngine;
 
-namespace DavidUtils.Geometry.Rendering
+namespace DavidUtils.Rendering
 {
 	public static class MeshRendererExtensions
 	{
+		private static Material DefaultMaterial => Resources.Load<Material>("Materials/Geometry Unlit");
+
+
 		#region MESH => MESH RENDERER
 
 		public static void InstantiateMeshRenderer(
@@ -40,6 +45,7 @@ namespace DavidUtils.Geometry.Rendering
 		) => mesh.InstantiateMeshRenderer(out mr, out mf, parent, name);
 
 		#endregion
+
 
 		#region TRIANGLE & Tri-SHAPES => MESH RENDERER
 
@@ -78,6 +84,7 @@ namespace DavidUtils.Geometry.Rendering
 
 		#endregion
 
+
 		#region PLANE MESH => MESH RENDERER
 
 		// PLANE
@@ -89,6 +96,35 @@ namespace DavidUtils.Geometry.Rendering
 			float resolution = 10,
 			Vector2 size = default
 		) => InstantiateMeshRenderer(out mr, out mf, MeshGeneration.GenerateMeshPlane(resolution, size), parent, name);
+
+		#endregion
+
+
+		#region SPHERE
+
+		public static void InstantiateSphere(
+			out MeshRenderer mr,
+			out MeshFilter mf,
+			Transform parent = null,
+			string name = "Sphere",
+			Color color = default,
+			Material material = null
+		)
+		{
+			var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			sphere.transform.parent = parent;
+
+			mr = sphere.GetComponent<MeshRenderer>();
+			mf = sphere.GetComponent<MeshFilter>();
+
+			// COLOR
+			var colors = new Color[mf.sharedMesh.vertexCount];
+			Array.Fill(colors, color);
+			mf.mesh.SetColors(colors);
+
+			// MATERIAL
+			mr.sharedMaterial = material ?? DefaultMaterial;
+		}
 
 		#endregion
 	}

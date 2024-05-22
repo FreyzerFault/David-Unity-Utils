@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Rendering;
 using DavidUtils.TerrainExtensions;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -96,7 +96,7 @@ namespace DavidUtils.Geometry.Generators
 
 			seeds[index] = newPos;
 
-			seedsRenderer.MoveSeed(index, newPos);
+			seeds2DRenderer.MoveSeed(index, newPos);
 
 			return true;
 		}
@@ -106,137 +106,31 @@ namespace DavidUtils.Geometry.Generators
 
 		#region RENDERER
 
-		[SerializeField] private Renderer seedsRenderer;
+		[SerializeField] private Points2DRenderer seeds2DRenderer = new();
 
 		public bool projectOnTerrain = true;
 
 		public bool DrawSeeds
 		{
-			get => seedsRenderer.active;
+			get => seeds2DRenderer.active;
 			set
 			{
-				seedsRenderer.active = value;
-				seedsRenderer.UpdateVisibility();
+				seeds2DRenderer.active = value;
+				seeds2DRenderer.UpdateVisibility();
 			}
 		}
 
 		protected virtual void InitializeRenderer() =>
-			seedsRenderer.Initialize(transform);
+			seeds2DRenderer.Initialize(transform);
 
 		protected virtual void InstantiateRenderer()
 		{
-			seedsRenderer.Instantiate(seeds.ToArray());
+			seeds2DRenderer.Instantiate(seeds.ToArray());
 			if (projectOnTerrain && Terrain.activeTerrain != null)
-				seedsRenderer.ProjectOnTerrain(Terrain.activeTerrain);
+				seeds2DRenderer.ProjectOnTerrain(Terrain.activeTerrain);
 		}
 
-		protected virtual void UpdateRenderer() => seedsRenderer.Update(seeds.ToArray());
-
-		[Serializable]
-		private class Renderer
-		{
-			public GameObject seedsParent;
-			public GameObject[] spheres = Array.Empty<GameObject>();
-
-			public float sphereScale = .3f;
-			private float heightOffset = .2f;
-
-			public Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
-
-			public bool active = true;
-
-			public void Initialize(Transform parent) => seedsParent = new GameObject("SEEDS")
-			{
-				transform =
-				{
-					parent = parent,
-					localPosition = Vector3.zero,
-					localRotation = Quaternion.identity,
-					localScale = Vector3.one
-				}
-			};
-
-			public void Instantiate(Vector2[] seeds)
-			{
-				if (seeds.Length == 0) return;
-
-				if (seedColors.Length != seeds.Length)
-					SetSeedsRainbowColors(seeds.Length);
-
-				Clear();
-
-				spheres = new GameObject[seeds.Length];
-				for (var i = 0; i < seeds.Length; i++)
-				{
-					Vector2 seed = seeds[i];
-					GameObject sphere = spheres[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-					sphere.transform.parent = seedsParent.transform;
-					sphere.transform.SetLocalPositionAndRotation(
-						seed.ToV3xz().WithY(heightOffset),
-						Quaternion.identity
-					);
-
-					// Compensa el Scale Global para verse siempre del mismo tamaño
-					sphere.transform.SetGlobalScale(Vector3.one * sphereScale / sphere.transform.lossyScale.x);
-
-					var mr = sphere.GetComponent<MeshRenderer>();
-					var mf = sphere.GetComponent<MeshFilter>();
-
-					// COLOR
-					Color[] colors = mf.sharedMesh.vertices.Select(_ => seedColors[i].RotateHue(.5f)).ToArray();
-					mf.mesh.SetColors(colors);
-
-					// MATERIAL
-					mr.sharedMaterial = Material;
-				}
-
-				UpdateVisibility();
-			}
-
-			public void Update(Vector2[] seeds)
-			{
-				if (!active) return;
-
-				for (var i = 0; i < spheres.Length; i++)
-					spheres[i].transform.localPosition = seeds[i].ToV3xz().WithY(heightOffset);
-
-				UpdateVisibility();
-			}
-
-			public void Clear()
-			{
-				if (spheres == null) return;
-				foreach (GameObject meshFilter in spheres)
-					Destroy(meshFilter);
-
-				spheres = Array.Empty<GameObject>();
-			}
-
-			public void UpdateVisibility() => seedsParent.SetActive(active);
-
-			public void MoveSeed(int index, Vector2 newPos) =>
-				spheres[index].transform.localPosition = newPos.ToV3xz().WithY(heightOffset);
-
-			public void ProjectOnTerrain(Terrain terrain)
-			{
-				foreach (GameObject sphere in spheres)
-				{
-					Vector3 pos = sphere.transform.position;
-					pos.y = terrain.SampleHeight(pos) + heightOffset;
-					sphere.transform.position = pos;
-				}
-			}
-
-
-			#region COLOR
-
-			public Color[] seedColors = Array.Empty<Color>();
-
-			private void SetSeedsRainbowColors(int numColors) =>
-				seedColors = Color.red.GetRainBowColors(numColors);
-
-			#endregion
-		}
+		protected virtual void UpdateRenderer() => seeds2DRenderer.Update(seeds.ToArray());
 
 		#endregion
 
@@ -375,15 +269,15 @@ namespace DavidUtils.Geometry.Generators
 
 		protected void GizmosSeeds()
 		{
-			Gizmos.color = seedsRenderer.seedColors?.Length > 0 ? seedsRenderer.seedColors[0] : Color.grey;
+			Gizmos.color = seeds2DRenderer.colors?.Length > 0 ? seeds2DRenderer.colors[0] : Color.grey;
 			var terrain = Terrain.activeTerrain;
 			Vector3[] seedsInWorld = projectOnTerrain
 				? SeedsInWorld_XZ.Select(s => terrain.Project(s)).ToArray()
 				: SeedsInWorld_XZ;
 			for (var i = 0; i < seedsInWorld.Length; i++)
 			{
-				if (seedsRenderer.seedColors?.Length > 0)
-					Gizmos.color = seedsRenderer.seedColors[i];
+				if (seeds2DRenderer.colors?.Length > 0)
+					Gizmos.color = seeds2DRenderer.colors[i];
 				Gizmos.DrawSphere(seedsInWorld[i], 0.1f);
 			}
 		}

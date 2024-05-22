@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Globalization;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry.MeshExtensions;
-using DavidUtils.Geometry.Rendering;
 using DavidUtils.MouseInput;
-using DavidUtils.TerrainExtensions;
+using DavidUtils.Rendering;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.Generators
@@ -103,12 +99,11 @@ namespace DavidUtils.Geometry.Generators
 
 		#region RENDERING
 
-		[SerializeField] private Renderer voronoiRenderer;
+		[SerializeField] private PolygonRenderer voronoiRenderer = new();
 
 		protected override void InitializeRenderer()
 		{
 			base.InitializeRenderer();
-
 			voronoiRenderer.Initialize(transform);
 		}
 
@@ -124,178 +119,6 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.UpdateRenderer();
 			voronoiRenderer.Update(Regions);
-		}
-
-		[Serializable]
-		private class Renderer
-		{
-			// Parents
-			public Transform lineParent;
-			public Transform meshParent;
-
-			public readonly List<LineRenderer> lineRenderers = new();
-			public readonly List<MeshRenderer> meshRenderers = new();
-			public readonly List<MeshFilter> meshFilters = new();
-
-			[SerializeField] [Range(.2f, 1)]
-			public float regionScale = .9f;
-
-			public bool active = true;
-			public bool wire;
-
-			public void Initialize(Transform parent)
-			{
-				lineParent = ObjectGenerator.InstantiateEmptyObject(parent, "VORONOI Line Renderers").transform;
-				meshParent = ObjectGenerator.InstantiateEmptyObject(parent, "VORONOI Mesh Renderers").transform;
-
-				UpdateVisibility();
-
-				InitializeSpetialRenderers(parent);
-			}
-
-			/// <summary>
-			///     Update ALL Renderers
-			///     Si hay mas Regions que Renderers, instancia nuevos
-			///     Elimina los Renderers sobrantes
-			/// </summary>
-			public void Update(Polygon[] regions)
-			{
-				if (!active) return;
-
-				if (regions.Length != colors.Count)
-					SetRainbowColors(regions.Length);
-
-				for (var i = 0; i < regions.Length; i++)
-				{
-					Polygon region = regions[i];
-					UpdateRegion(region, i);
-				}
-
-				if (regions.Length >= meshFilters.Count) return;
-
-				// Elimina los Renderers sobrantes
-				int removeCount = meshFilters.Count - regions.Length;
-
-				for (int i = regions.Length; i < meshFilters.Count; i++)
-				{
-					Destroy(meshFilters[i].gameObject);
-					Destroy(lineRenderers[i].gameObject);
-				}
-
-				meshFilters.RemoveRange(regions.Length, removeCount);
-				meshRenderers.RemoveRange(regions.Length, removeCount);
-				lineRenderers.RemoveRange(regions.Length, removeCount);
-			}
-
-			public void UpdateRegion(Polygon region, int i)
-			{
-				Polygon scaledRegion = region.ScaleByCenter(regionScale);
-				if (i >= meshRenderers.Count)
-				{
-					SetRainbowColors(i + 1);
-					InstatiateRegion(scaledRegion, colors[i]);
-				}
-				else
-				{
-					meshFilters[i].sharedMesh.SetPolygon(scaledRegion);
-					lineRenderers[i].SetPolygon(scaledRegion);
-				}
-			}
-
-			private void InstatiateRegion(Polygon region, Color color)
-			{
-				// LINE
-				lineRenderers.Add(region.LineRenderer(lineParent, color));
-
-				// MESH
-				region.InstantiateMesh(out MeshRenderer mr, out MeshFilter mf, meshParent, "Region", color);
-				meshRenderers.Add(mr);
-				meshFilters.Add(mf);
-			}
-
-			public void UpdateVisibility()
-			{
-				lineParent.gameObject.SetActive(active && wire);
-				meshParent.gameObject.SetActive(active && !wire);
-			}
-
-			public void Clear()
-			{
-				for (var i = 0; i < meshFilters.Count; i++)
-				{
-					Destroy(meshFilters[i].gameObject);
-					Destroy(lineRenderers[i].gameObject);
-				}
-
-				lineRenderers.Clear();
-				meshFilters.Clear();
-				meshRenderers.Clear();
-			}
-
-			public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f)
-			{
-				foreach (MeshFilter mf in meshFilters)
-					terrain.ProjectMeshInTerrain(mf.sharedMesh, mf.transform, offset);
-
-				foreach (LineRenderer lr in lineRenderers)
-					lr.SetPoints(lr.GetPoints().Select(p => terrain.Project(p, offset)).ToArray());
-			}
-
-
-			#region COLOR
-
-			public List<Color> colors = new();
-
-			protected void SetRainbowColors(int numColors)
-			{
-				colors = Color.cyan.Darken(.3f).GetRainBowColors(numColors, .005f, 20).ToList();
-				return;
-				if (numColors == colors.Count) return;
-				if (numColors > colors.Count)
-					colors.AddRange(
-						(colors.Count == 0 ? Color.magenta : colors.Last())
-						.GetRainBowColors(numColors - colors.Count + 1, .05f, 2)
-						.Skip(1)
-					);
-				else
-					colors.RemoveRange(numColors, colors.Count - numColors);
-			}
-
-			#endregion
-
-			#region SPETIAL REGIONS
-
-			public LineRenderer hightlightedRegionLineRenderer;
-			public LineRenderer selectedRegionLineRenderer;
-
-			public void SetHightlightedRegion(Polygon region) =>
-				hightlightedRegionLineRenderer.SetPolygon(region.ScaleByCenter(regionScale));
-
-			public void SetSelectedRegion(Polygon region) =>
-				selectedRegionLineRenderer.SetPolygon(region.ScaleByCenter(regionScale));
-
-			public void ToggleHightlighted(bool toggle) => hightlightedRegionLineRenderer.gameObject.SetActive(toggle);
-			public void ToggleSelected(bool toggle) => selectedRegionLineRenderer.gameObject.SetActive(toggle);
-
-			private void InitializeSpetialRenderers(Transform parent)
-			{
-				// SELECTED & HIGHTLIGHTED (hovered)
-				hightlightedRegionLineRenderer = LineRendererExtensions.LineRenderer(
-					parent,
-					"Hightlighted Region",
-					colors: new[] { Color.yellow },
-					loop: true
-				);
-				selectedRegionLineRenderer = LineRendererExtensions.LineRenderer(
-					parent,
-					"Selected Region",
-					colors: new[] { Color.yellow },
-					thickness: .2f,
-					loop: true
-				);
-			}
-
-			#endregion
 		}
 
 		#endregion
