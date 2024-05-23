@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 // Objeto que puede usarse en un Pool de un Spawner
@@ -11,21 +10,8 @@ namespace DavidUtils.Spawning
 	{
 		public Spawner spawner;
 
-		private void Awake()
-		{
-			// Ignora colisiones entre el item y la caja del Spawner
-			Physics.IgnoreLayerCollision(LayerMask.NameToLayer("Spawner"), 0);
-		}
-
-		protected virtual void OnEnable()
-		{
-			// SPAWNED
-		}
-
-		protected virtual void OnDisable()
-		{
-			// DESPAWNED
-		}
+		// protected virtual void OnDisable() => Despawn();
+		// private void OnDestroy() => Destroy();
 
 		// Cuando se destruye el objeto se devuelve a la pool
 		public virtual void Despawn()
@@ -34,6 +20,20 @@ namespace DavidUtils.Spawning
 				spawner.Despawn(this);
 			else
 				Debug.Log("El objeto no esta volviendo a su pool: " + ToString(), this);
+		}
+
+		public virtual void Destroy()
+		{
+			if (!spawner)
+			{
+				Debug.Log("El objeto no esta volviendo a su pool: " + ToString(), this);
+				return;
+			}
+
+			if (spawner.IsInPool(this))
+				spawner.RemoveFromPool(this);
+
+			Destroy(this);
 		}
 	}
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DavidUtils
+namespace DavidUtils.Billboard
 {
 	// Swap between different sprites dependant on the player distance to Obj
 	public class BillboardObj_DynamicRes : BillboardObject
@@ -21,14 +21,11 @@ namespace DavidUtils
 		public List<SpriteWithRes> sprites = new();
 		private Dictionary<float, Sprite> _spritesDic = new();
 
-		protected virtual void Awake()
-		{
-			_spritesDic = new Dictionary<float, Sprite>(
-				new List<KeyValuePair<float, Sprite>>(
-					sprites.ConvertAll(s => s.ToKeyValuePair())
-				)
-			);
-		}
+		protected virtual void Awake() => _spritesDic = new Dictionary<float, Sprite>(
+			new List<KeyValuePair<float, Sprite>>(
+				sprites.ConvertAll(s => s.ToKeyValuePair())
+			)
+		);
 
 		private void Start() => Player.OnPlayerMove += HandlePlayerMove;
 

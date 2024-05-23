@@ -3,8 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
-using MyBox;
 using UnityEditor;
 
 namespace DavidUtils.CustomAttributes

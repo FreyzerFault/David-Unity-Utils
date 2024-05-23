@@ -26,7 +26,7 @@ namespace DavidUtils.Spawning
 
 		protected Vector3 GetRandomPosInTerrain()
 		{
-			Vector3 pos = box.bounds.GetRandomPointInBounds(offset, ignoreHeight);
+			Vector3 pos = bounds.GetRandomPointInBounds(offset, ignoreHeight);
 			pos.y = _terrain.GetInterpolatedHeight(pos) + offset.y;
 			return pos;
 		}

@@ -4,11 +4,14 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.PlayerControl;
 using UnityEngine;
 
-namespace DavidUtils
+namespace DavidUtils.Billboard
 {
 	public class BillboardObject : MonoBehaviour
 	{
-		protected static Player Player => Player.Instance;
+		private Player player;
+		private Vector3 playerPos = Vector3.zero;
+
+		protected static Player Player => Player.Instance ?? FindObjectOfType<Player>();
 		protected static Camera Camera => CameraManager.MainCam;
 
 		public bool verticalLock;
@@ -25,13 +28,19 @@ namespace DavidUtils
 			set => SpriteRenderer.sprite = value;
 		}
 
-		private void Update() => transform.Billboard(Camera.transform, verticalLock);
+		private void Awake() => player = Player.Instance ?? FindObjectOfType<Player>();
+
+		private void Update()
+		{
+			playerPos = player != null ? player.Position : FindObjectOfType<Player>().transform.position;
+			transform.Billboard(Camera.transform, verticalLock);
+		}
 
 		private void OnDrawGizmos()
 		{
 			if (!showColliderNearPlayer) return;
 
-			if (Vector3.Distance(transform.position, Player.Position) > 10) return;
+			if (Vector3.Distance(transform.position, playerPos) > 10) return;
 
 			var col = GetComponent<Collider>();
 			if (col == null) return;

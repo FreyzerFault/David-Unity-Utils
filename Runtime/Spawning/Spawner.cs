@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using DavidUtils.ExtensionMethods;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 // Utiliza POOLING
 // Spawnea objetos en la posicion dada
@@ -10,97 +13,99 @@ namespace DavidUtils.Spawning
 	{
 		public Spawneable objectPrefab;
 
-		public int initialNumItems = 0;
-		public float spawnFrequency = -1; // Seconds between spawns (-1 = desactivado)
-		public int burstSpawn = 0;
+		public Spawneable[] SpawnedItems => Parent.GetComponentsInChildren<Spawneable>();
 
 		public Transform parent;
-
 		public Transform Parent => parent ? parent : transform;
 
-		// POOLING
-		private readonly Stack<Spawneable> _pool = new();
+		public int initialNumItems;
 
-		private IEnumerator spawnCoroutine;
 
-		// Start is called before the first frame update
-		protected virtual void Awake()
+		#region UNITY
+
+		// Cache la Pool
+		protected virtual void Awake() => InitializePool();
+
+		// Spawnea los items iniciales
+		protected virtual void Start()
 		{
-			// Puebla la Pool con un numero inicial de items
-			LoadPool(initialNumItems);
+			for (var i = 0; i < initialNumItems; i++) Spawn();
 		}
 
-		private void OnEnable()
-		{
-			if (!(spawnFrequency >= 0)) return;
-			spawnCoroutine = SpawnCoroutine();
-			StartCoroutine(spawnCoroutine);
-		}
+		private void OnEnable() => StartSpawnRoutine();
+		private void OnDisable() => StopSpawnRoutine();
 
-		private void OnDisable()
-		{
-			if (spawnCoroutine != null)
-				StopCoroutine(spawnCoroutine);
-		}
+		#endregion
 
-		// Carga la pool con un numero de objetos inicial
-		public void LoadPool(int numObjects)
-		{
-			// Spawn Objects
-			for (var i = 0; i < numObjects; i++) 
-				Generate();
-		}
 
-		// Genera el Objeto pero sin activarlo
-		private Spawneable Generate()
-		{
-			// Toma como padre el spawner si no se le pasa un padre
-			Spawneable item = Instantiate(objectPrefab, Parent);
-			item.spawner = this;
-			item.gameObject.SetActive(false);
-			_pool.Push(item);
+		#region SPAWNING
 
-			return item;
-		}
-
-		// Guarda el objeto en la pool para volverlo a spawnear luego
-		// Esto debe llamarlo el propio objeto que debe heredar de Spawneable
-		public void Despawn(Spawneable item)
-		{
-			item.gameObject.SetActive(false);
-			_pool.Push(item);
-		}
-
-		// Destruye todos los objetos del pool
-		public void Clear()
-		{
-			for (var i = 0; i < _pool.Count; i++)
-				Destroy(_pool.Pop());
-		}
-
-		// Spawnea el objeto sacandolo de la Pool
+		/// <summary>
+		///     Lo spawnea de la pool
+		///     Si la pool está vacía, Instancia un item
+		/// </summary>
 		protected virtual Spawneable Spawn(Vector3? position = null, Quaternion? rotation = null)
 		{
-			// Si esta vacio creamos otro
-			if (_pool.Count == 0)
-				Generate();
+			// Sacamos el item de la pool o lo generamos si esta vacia
+			Spawneable item;
+			if (PoolCount == 0)
+			{
+				item = InstantiateItem();
+				item.gameObject.SetActive(true);
+			}
+			else
+			{
+				item = SpawnFromPool();
+			}
 
-			// Sacar de la Pool
-			Spawneable item = _pool.Pop();
-			item.gameObject.SetActive(true);
-
-			// To World Space
-			// if (position != null)
-			// 	position = Parent.TransformPoint(position.Value);
-		
-			// Si no se han asignado posicion o rotacion por defecto sera en el centro y su rotacion por defecto
-			item.transform.SetPositionAndRotation(
-				position ?? (Parent.position),
-				rotation ?? (objectPrefab.transform.rotation)
-			);
+			// Asignar nueva Posicion y Rotacion
+			item.transform.SetLocalPositionAndRotation(position ?? Vector3.zero, rotation ?? Quaternion.identity);
 
 			return item;
 		}
+
+		public void Despawn(Spawneable item) => DespawnToPool(item);
+		public void DespawnAll() => SpawnedItems.ForEach(Despawn);
+
+		public void Clear()
+		{
+			ClearPool();
+			SpawnedItems.ForEach(UnityUtils.DestroySafe);
+		}
+
+		#endregion
+
+
+		#region INSTANTIATION
+
+		/// <summary>
+		///     Instancia el Objeto inactivo y lo guarda en la Pool
+		/// </summary>
+		private Spawneable InstantiateDespawned()
+		{
+			Spawneable item = InstantiateItem();
+			Despawn(item);
+			return item;
+		}
+
+		private Spawneable InstantiateItem()
+		{
+			Spawneable item = Instantiate(objectPrefab, Parent);
+			item.spawner = this;
+			return item;
+		}
+
+		#endregion
+
+
+		#region SPAWN ROUTINE
+
+		[Space]
+		[Header("Spawn Routine")]
+		public float spawnFrequency = -1; // Seconds between spawns (-1 = desactivado)
+		public int burstSpawn;
+
+		private IEnumerator spawnCoroutine;
 
 		protected virtual IEnumerator SpawnCoroutine()
 		{
@@ -109,10 +114,74 @@ namespace DavidUtils.Spawning
 				yield return new WaitForSeconds(spawnFrequency);
 
 				for (var i = 0; i < burstSpawn; i++)
-					Spawn();		
+					Spawn();
 			}
 		}
 
-		protected Quaternion GetRandomRotation() => Quaternion.Euler(0, Random.Range(-180, 180), 0);
+		public void StartSpawnRoutine()
+		{
+			if (spawnCoroutine != null) StopSpawnRoutine();
+			spawnCoroutine = SpawnCoroutine();
+			StartCoroutine(spawnCoroutine);
+		}
+
+		public void StopSpawnRoutine() => StopCoroutine(spawnCoroutine);
+
+		#endregion
+
+
+		#region POOLING
+
+		[Space]
+		[Header("Pooling")]
+		public int initialPoolSize = 10;
+		private readonly Stack<Spawneable> _pool = new();
+		protected int PoolCount => _pool.Count;
+
+		// Puebla la Pool con un numero inicial de items para mejor Performance
+		private void InitializePool()
+		{
+			ClearPool();
+			LoadPool(initialPoolSize);
+		}
+
+		/// <summary>
+		///     Carga X items en la pool (NO Activos)
+		/// </summary>
+		public void LoadPool(int numObjects)
+		{
+			// Spawn Objects
+			for (var i = 0; i < numObjects; i++)
+				InstantiateDespawned();
+		}
+
+		private Spawneable SpawnFromPool()
+		{
+			if (_pool.IsNullOrEmpty()) return null;
+			Spawneable item = _pool.Pop();
+			item.gameObject.SetActive(true);
+			return item;
+		}
+
+		private void DespawnToPool(Spawneable item)
+		{
+			item.gameObject.SetActive(false);
+			_pool.Push(item);
+		}
+
+		public bool IsInPool(Spawneable item) => _pool.Contains(item);
+		public void RemoveFromPool(Spawneable item) => _pool.ToList().Remove(item);
+
+		// Destruye todos los objetos del pool
+		public void ClearPool()
+		{
+			while (PoolCount != 0)
+				UnityUtils.DestroySafe(_pool.Pop());
+		}
+
+		#endregion
+
+
+		protected static Quaternion GetRandomRotation() => Quaternion.Euler(0, Random.Range(-180, 180), 0);
 	}
 }

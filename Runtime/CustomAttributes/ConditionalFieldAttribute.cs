@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
-using DavidUtils.CustomAttributes;
+using DavidUtils.DebugUtils;
 using UnityEditor;
 using UnityEngine;
 
-namespace MyBox
+namespace DavidUtils.CustomAttributes
 {
 	/// <summary>
 	///     Conditionally Show/Hide field in inspector, based on some other field or property value
@@ -30,11 +30,8 @@ namespace MyBox
 		public ConditionalFieldAttribute(bool useMethod, string method, bool inverse = false)
 			=> Data = new ConditionalData(useMethod, method, inverse);
 	}
-}
 
 #if UNITY_EDITOR
-namespace MyBox.Internal
-{
 	[CustomPropertyDrawer(typeof(ConditionalFieldAttribute))]
 	public class ConditionalFieldAttributeDrawer : PropertyDrawer
 	{
@@ -119,5 +116,6 @@ namespace MyBox.Internal
 			}
 		}
 	}
-}
+
 #endif
+}

@@ -17,12 +17,26 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 		private Vector2[] seedDirections = Array.Empty<Vector2>();
 
+		#region UNITY
+
 		protected override void Awake()
 		{
 			Animated = false;
 
 			base.Awake();
 		}
+
+		protected override void Update()
+		{
+			base.Update();
+
+			MoveSeedsRandom();
+			OnSeedsUpdated();
+		}
+
+		#endregion
+
+		#region SEED MOVING
 
 		private void InitializeDirections() =>
 			seedDirections = seeds.Select(_ => Random.insideUnitCircle).ToArray();
@@ -35,13 +49,6 @@ namespace DavidUtils.Geometry.Generators.Showcase
 				InitializeDirections();
 		}
 
-		protected override void Update()
-		{
-			base.Update();
-
-			MoveSeedsRandom();
-			OnSeedsUpdated();
-		}
 
 		private Vector2 currentVel = Vector2.zero;
 
@@ -90,6 +97,28 @@ namespace DavidUtils.Geometry.Generators.Showcase
 				   // Si alguno de los seeds esta demasiado cerca, no es valida
 				   .Any(s => Vector2.Distance(newPos, s) < collisionMargin);
 
+		#endregion
+
+
+		#region UI CONTROL
+
+		public float Speed
+		{
+			get => speed;
+			set => speed = value;
+		}
+
+		public float TurnSpeed
+		{
+			get => turnSpeed;
+			set => turnSpeed = value;
+		}
+
+		#endregion
+
+
+		#region DEBUG
+
 		protected override void OnDrawGizmos()
 		{
 			Matrix4x4 m = transform.localToWorldMatrix;
@@ -108,5 +137,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 				);
 			}
 		}
+
+		#endregion
 	}
 }

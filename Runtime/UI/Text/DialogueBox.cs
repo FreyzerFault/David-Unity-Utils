@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using MyBox;
+using DavidUtils.CustomAttributes;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

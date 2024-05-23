@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
-namespace MyBox
+namespace DavidUtils.DebugUtils
 {
 	/// <summary>
-	/// This pool is used to prevent warning message spamming.
-	/// If something was logged once it wont be logged again
+	///     This pool is used to prevent warning message spamming.
+	///     If something was logged once it wont be logged again
 	/// </summary>
 	public static class WarningsPool
 	{
@@ -31,19 +32,26 @@ namespace MyBox
 			return true;
 		}
 
-		#if UNITY_EDITOR
+#if UNITY_EDITOR
 		public static bool LogWarning(Object owner, string message, Object target = null)
 			=> LogWarning($"<color=#7B3F00>{owner.name}</color> caused: " + message, target);
 
-		public static bool LogWarning(UnityEditor.SerializedProperty property, string message, Object target = null)
-			=> LogWarning($"Property <color=#7B3F00>{property.name}</color> " +
-			              $"in Object <color=brown>{property.serializedObject.targetObject.name}</color> caused: " + message, target);
+		public static bool LogWarning(SerializedProperty property, string message, Object target = null)
+			=> LogWarning(
+				$"Property <color=#7B3F00>{property.name}</color> " +
+				$"in Object <color=brown>{property.serializedObject.targetObject.name}</color> caused: " + message,
+				target
+			);
 
-		public static bool LogCollectionsNotSupportedWarning(UnityEditor.SerializedProperty property, string nameOfType)
-			=> LogWarning(property, $"Array fields are not supported by <color=#7B3F00>[{nameOfType}]</color>. " +
-			                        "Consider to use <color=blue>CollectionWrapper</color>", property.serializedObject.targetObject);
-		#endif
-		
+		public static bool LogCollectionsNotSupportedWarning(SerializedProperty property, string nameOfType)
+			=> LogWarning(
+				property,
+				$"Array fields are not supported by <color=#7B3F00>[{nameOfType}]</color>. " +
+				"Consider to use <color=blue>CollectionWrapper</color>",
+				property.serializedObject.targetObject
+			);
+#endif
+
 
 		public static bool LogError(string message, Object target = null)
 		{
@@ -56,6 +64,6 @@ namespace MyBox
 			return true;
 		}
 
-		private static readonly HashSet<string> Pool = new HashSet<string>();
+		private static readonly HashSet<string> Pool = new();
 	}
 }

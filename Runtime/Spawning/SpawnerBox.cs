@@ -4,44 +4,38 @@ using UnityEngine;
 
 namespace DavidUtils.Spawning
 {
-	[RequireComponent(typeof(BoxCollider))]
 	public class SpawnerBox : Spawner
 	{
-		protected BoxCollider box;
-		
-		public bool ignoreHeight = false;
-		public Vector3 offset = new Vector3(0, 0, 0);
-		
-		private Vector3 Center => box.bounds.center;
+		[Space]
+		public Bounds bounds = new(Vector3.zero, Vector3.one);
 
-		// Start is called before the first frame update
-		protected override void Awake()
+		public Vector3 offset = new(0, 0, 0);
+		public bool ignoreHeight;
+
+		public Vector3 Center
 		{
-			base.Awake();
-
-			// Ignora las colisiones de cualquier objeto de tipo Spawner
-			Physics.IgnoreLayerCollision(0, gameObject.layer);
-
-			box = GetComponent<BoxCollider>();
+			get => bounds.center;
+			set => bounds.center = value;
+		}
+		public Vector3 Size
+		{
+			get => bounds.size;
+			set => bounds.size = value;
 		}
 
-		protected void Start()
+		protected override void Start()
 		{
-			for (var i = 0; i < initialNumItems; i++) 
-				SpawnRandom();
-		
-			if (spawnFrequency >= 0)
-				StartCoroutine(SpawnCoroutine());
+			for (var i = 0; i < initialNumItems; i++) SpawnRandom();
 		}
 
 		// Spawnea el objeto de forma random dentro de la caja
 		// spawnWithRandomRotation = true -> Randomiza la rotacion en el Eje Y
 		public virtual Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
 		{
-			Vector3 position = box.bounds.GetRandomPointInBounds(offset, ignoreHeight);
+			Vector3 position = bounds.GetRandomPointInBounds(offset, ignoreHeight);
 
 			return Spawn(
-				position, 
+				position,
 				spawnWithRandomRotation
 					? Quaternion.Euler(0, Random.Range(-180, 180), 0)
 					: null
@@ -62,9 +56,9 @@ namespace DavidUtils.Spawning
 			while (true)
 			{
 				yield return new WaitForSeconds(spawnFrequency);
-			
+
 				for (var i = 0; i < burstSpawn; i++)
-					SpawnRandom();	
+					SpawnRandom();
 			}
 		}
 	}
