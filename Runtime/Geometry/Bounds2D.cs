@@ -41,6 +41,14 @@ namespace DavidUtils.Geometry
 			max = pointsInsideBound.MaxPosition();
 		}
 
+		public Bounds2D(Bounds bounds3D, bool XZplane = true)
+			: this(
+				XZplane ? bounds3D.min.ToV2xz() : bounds3D.min.ToV2xy(),
+				XZplane ? bounds3D.max.ToV2xz() : bounds3D.max.ToV2xy()
+			)
+		{
+		}
+
 		public Vector2 TransformNormalized(Vector2 normalized) => min + normalized * Size;
 
 		#region TEST INSIDE
@@ -227,6 +235,13 @@ namespace DavidUtils.Geometry
 	public static class Bounds2DExtensions
 	{
 		public static Bounds2D GetBoundingBox(this Vector2[] points) => new(points);
+
+		/// <summary>
+		///     Devuelve un punto aleatorio dentro de los limites de la Bounding Box.
+		///     Respetando un offset para que objetos extensos no sobresalgan.
+		/// </summary>
+		public static Vector2 GetRandomPointInBounds(this Bounds2D bounds, Vector2 offsetPadding) =>
+			VectorExtensions.GetRandomPos(bounds.min + offsetPadding, bounds.max - offsetPadding);
 	}
 
 	#endregion

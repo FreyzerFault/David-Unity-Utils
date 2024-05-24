@@ -1,5 +1,6 @@
 using System.Collections;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry;
 using UnityEngine;
 
 namespace DavidUtils.Spawning
@@ -8,9 +9,13 @@ namespace DavidUtils.Spawning
 	{
 		[Space]
 		public Bounds bounds = new(Vector3.zero, Vector3.one);
+		protected Bounds2D Bounds2D => new(bounds);
 
 		public Vector3 offset = new(0, 0, 0);
-		public bool ignoreHeight;
+		public Vector2 offset2D => offset.ToV2(XZplane);
+
+		public bool is2D;
+		public bool XZplane = true;
 
 		public Vector3 Center
 		{
@@ -23,33 +28,35 @@ namespace DavidUtils.Spawning
 			set => bounds.size = value;
 		}
 
+		public Vector2 Center2D
+		{
+			get => bounds.center.ToV2(XZplane);
+			set => bounds.center = value.ToV3(XZplane);
+		}
+
+		protected Quaternion RandomRotation =>
+			XZplane
+				? Quaternion.Euler(0, Random.Range(-180, 180), 0)
+				: Quaternion.Euler(0, 0, Random.Range(-180, 180));
+
 		protected override void Start()
 		{
 			for (var i = 0; i < initialNumItems; i++) SpawnRandom();
 		}
 
+		// Spawnea el objeto sacandolo de la Pool
+		protected override Spawneable Spawn(Vector3 position = default, Quaternion rotation = default) =>
+			base.Spawn(position + Center, rotation);
+
 		// Spawnea el objeto de forma random dentro de la caja
 		// spawnWithRandomRotation = true -> Randomiza la rotacion en el Eje Y
-		public virtual Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
-		{
-			Vector3 position = bounds.GetRandomPointInBounds(offset, ignoreHeight);
+		public virtual Spawneable SpawnRandom(bool setRandomRotation = true) =>
+			Spawn(GetRandomPointInBounds(), setRandomRotation ? RandomRotation : default);
 
-			return Spawn(
-				position,
-				spawnWithRandomRotation
-					? Quaternion.Euler(0, Random.Range(-180, 180), 0)
-					: null
-			);
-		}
+		protected Vector3 GetRandomPointInBounds() => is2D
+			? Bounds2D.GetRandomPointInBounds(offset2D).ToV3(XZplane)
+			: bounds.GetRandomPointInBounds(offset);
 
-		// Spawnea el objeto sacandolo de la Pool
-		protected override Spawneable Spawn(Vector3? position = null, Quaternion? rotation = null)
-		{
-			// Lo spawnwea en el centro si no se ha elegido posicion
-			Spawneable obj = base.Spawn(position ?? Center, rotation);
-
-			return obj;
-		}
 
 		protected override IEnumerator SpawnCoroutine()
 		{

@@ -74,9 +74,7 @@ namespace DavidUtils.Geometry.Generators
 			else
 			{
 				voronoi.GenerateVoronoi();
-
-				for (var i = 0; i < RegionsCount; i++)
-					OnRegionCreated(voronoi.regions[i], i);
+				OnAllRegionsCreated();
 			}
 		}
 
@@ -93,13 +91,15 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
-		private void OnRegionCreated(Polygon region, int i) =>
+		protected void OnRegionCreated(Polygon region, int i) =>
 			voronoiRenderer.UpdateRegion(region, i);
 
+		protected void OnAllRegionsCreated() =>
+			voronoiRenderer.Update(Regions);
 
 		#region RENDERING
 
-		[SerializeField] private PolygonRenderer voronoiRenderer = new();
+		[SerializeField] private readonly PolygonRenderer voronoiRenderer = new();
 
 		protected override void InitializeRenderer()
 		{

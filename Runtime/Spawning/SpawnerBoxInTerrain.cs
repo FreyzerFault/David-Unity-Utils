@@ -6,29 +6,29 @@ namespace DavidUtils.Spawning
 {
 	public class SpawnerBoxInTerrain : SpawnerBox
 	{
-		private Terrain _terrain;
+		public static Terrain Terrain => Terrain.activeTerrain;
+
+		private bool NoTerrainInWorld => Terrain.activeTerrain == null;
 
 		protected override void Awake()
 		{
+			XZplane = true; // XZ obligatorio
 			base.Awake();
-			_terrain = Terrain.activeTerrain;
-			ignoreHeight = true;
 		}
 
-		public override Spawneable SpawnRandom(bool spawnWithRandomRotation = true)
+		/// <summary>
+		///     Spawnea el objeto en la posición, con la altura del terreno
+		///     Si la Bounding Box es 3D, la posicion del terreno debe estar contenida
+		///     (Clamp de Y entre MIN y MAX de la BB)
+		/// </summary>
+		protected override Spawneable Spawn(Vector3 position = default, Quaternion rotation = default)
 		{
-			if (_terrain == null) return base.SpawnRandom(spawnWithRandomRotation);
+			position = Terrain.Project(position);
 
-			return spawnWithRandomRotation
-				? Spawn(GetRandomPosInTerrain(), Quaternion.Euler(0, Random.Range(-180, 180), 0))
-				: Spawn(GetRandomPosInTerrain());
-		}
+			// Si es 3D Contenida en la BB
+			if (!is2D) position.WithY(Mathf.Clamp(position.y, bounds.min.y, bounds.max.y));
 
-		protected Vector3 GetRandomPosInTerrain()
-		{
-			Vector3 pos = bounds.GetRandomPointInBounds(offset, ignoreHeight);
-			pos.y = _terrain.GetInterpolatedHeight(pos) + offset.y;
-			return pos;
+			return base.Spawn(position, rotation);
 		}
 	}
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 // Utiliza POOLING
 // Spawnea objetos en la posicion dada
@@ -11,7 +10,7 @@ namespace DavidUtils.Spawning
 {
 	public class Spawner : MonoBehaviour
 	{
-		public Spawneable objectPrefab;
+		public Spawneable defaultPrefab;
 
 		public Spawneable[] SpawnedItems => Parent.GetComponentsInChildren<Spawneable>();
 
@@ -32,8 +31,8 @@ namespace DavidUtils.Spawning
 			for (var i = 0; i < initialNumItems; i++) Spawn();
 		}
 
-		private void OnEnable() => StartSpawnRoutine();
-		private void OnDisable() => StopSpawnRoutine();
+		protected virtual void OnEnable() => StartSpawnRoutine();
+		protected virtual void OnDisable() => StopSpawnRoutine();
 
 		#endregion
 
@@ -44,7 +43,7 @@ namespace DavidUtils.Spawning
 		///     Lo spawnea de la pool
 		///     Si la pool está vacía, Instancia un item
 		/// </summary>
-		protected virtual Spawneable Spawn(Vector3? position = null, Quaternion? rotation = null)
+		protected virtual Spawneable Spawn(Vector3 position = default, Quaternion rotation = default)
 		{
 			// Sacamos el item de la pool o lo generamos si esta vacia
 			Spawneable item;
@@ -59,10 +58,20 @@ namespace DavidUtils.Spawning
 			}
 
 			// Asignar nueva Posicion y Rotacion
-			item.transform.SetLocalPositionAndRotation(position ?? Vector3.zero, rotation ?? Quaternion.identity);
+			item.transform.SetLocalPositionAndRotation(position, rotation);
 
 			return item;
 		}
+
+		protected virtual Spawneable Spawn2D(Vector2 position = default, Quaternion rotation = default) =>
+			Spawn(position.ToV3xz(), rotation);
+
+		// MULTIPLES SPAWNS
+		protected virtual Spawneable[] Spawn(Vector3[] positions, Quaternion[] rotations = null) =>
+			positions.Select((p, i) => Spawn(p, rotations?.ElementAtOrDefault(i) ?? default)).ToArray();
+
+		protected virtual Spawneable[] Spawn2D(Vector2[] positions, Quaternion[] rotations = null) =>
+			positions.Select((p, i) => Spawn2D(p, rotations?.ElementAtOrDefault(i) ?? default)).ToArray();
 
 		public void Despawn(Spawneable item) => DespawnToPool(item);
 		public void DespawnAll() => SpawnedItems.ForEach(Despawn);
@@ -81,16 +90,16 @@ namespace DavidUtils.Spawning
 		/// <summary>
 		///     Instancia el Objeto inactivo y lo guarda en la Pool
 		/// </summary>
-		private Spawneable InstantiateDespawned()
+		private Spawneable InstantiateDespawned(Spawneable prefab = null)
 		{
-			Spawneable item = InstantiateItem();
+			Spawneable item = InstantiateItem(prefab ?? defaultPrefab);
 			Despawn(item);
 			return item;
 		}
 
-		private Spawneable InstantiateItem()
+		protected virtual Spawneable InstantiateItem(Spawneable prefab = null)
 		{
-			Spawneable item = Instantiate(objectPrefab, Parent);
+			Spawneable item = Instantiate(prefab ?? defaultPrefab, Parent);
 			item.spawner = this;
 			return item;
 		}
@@ -180,8 +189,5 @@ namespace DavidUtils.Spawning
 		}
 
 		#endregion
-
-
-		protected static Quaternion GetRandomRotation() => Quaternion.Euler(0, Random.Range(-180, 180), 0);
 	}
 }
