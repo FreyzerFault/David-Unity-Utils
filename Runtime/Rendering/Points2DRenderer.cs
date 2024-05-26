@@ -1,5 +1,6 @@
 ﻿using System;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Rendering.Extensions;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -8,35 +9,36 @@ namespace DavidUtils.Rendering
 	[Serializable]
 	public class Points2DRenderer : DynamicRenderer<Vector2[]>
 	{
-		public MeshRenderer[] spheresMr = Array.Empty<MeshRenderer>();
-
-		public float sphereScale = .3f;
-		private float heightOffset = .2f;
+		protected MeshRenderer[] spheresMr = Array.Empty<MeshRenderer>();
 
 		protected override string DefaultName => "Points 2D Renderer";
-
+		protected override string DefaultChildName => "Point";
+		
+		[Range(0.1f, 1)]
+		public float sphereScale = .3f;
+		
 		// protected override Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
 
-		public override void Instantiate(Vector2[] seeds)
+		public override void Instantiate(Vector2[] points, string childName = null)
 		{
-			if (seeds.Length == 0) return;
+			if (points.Length == 0) return;
 
 			if (spheresMr.Length != 0) Clear();
 
-			if (colors.Length != seeds.Length)
-				SetRainbowColors(seeds.Length);
+			if (colors.Length != points.Length)
+				SetRainbowColors(points.Length);
 
 
-			spheresMr = new MeshRenderer[seeds.Length];
-			for (var i = 0; i < seeds.Length; i++)
+			spheresMr = new MeshRenderer[points.Length];
+			for (var i = 0; i < points.Length; i++)
 			{
-				Vector2 seed = seeds[i];
+				Vector2 point = points[i];
 
 				MeshRendererExtensions.InstantiateSphere(
 					out MeshRenderer mr,
 					out MeshFilter mf,
 					renderObj.transform,
-					$"Seed {i}",
+					$"{childName ?? DefaultChildName} {i}",
 					colors[i],
 					Material
 				);
@@ -46,7 +48,7 @@ namespace DavidUtils.Rendering
 				// Actualiza posicion y escala
 				Transform sphereTransform = mr.transform;
 				sphereTransform.SetLocalPositionAndRotation(
-					seed.ToV3xz().WithY(heightOffset),
+					point.ToV3xz(),
 					Quaternion.identity
 				);
 				// Compensa el Scale Global para verse siempre del mismo tamaño
@@ -59,23 +61,23 @@ namespace DavidUtils.Rendering
 			UpdateVisibility();
 		}
 
-		public override void Update(Vector2[] seeds)
+		public override void Update(Vector2[] points)
 		{
+			UpdateVisibility();
+			
 			if (!active) return;
 
-			// Faltan o sobran MeshRenderers para las seeds dadas
-			if (spheresMr.Length != seeds.Length)
+			// Faltan o sobran MeshRenderers para los puntos dados
+			if (spheresMr.Length != points.Length)
 			{
 				Clear();
-				Instantiate(seeds);
+				Instantiate(points);
 				return;
 			}
 
 			// Actualiza la posición de las semillas
 			for (var i = 0; i < spheresMr.Length; i++)
-				spheresMr[i].transform.localPosition = seeds[i].ToV3xz().WithY(heightOffset);
-
-			UpdateVisibility();
+				spheresMr[i].transform.localPosition = points[i].ToV3xz();
 		}
 
 		public override void Clear()
@@ -87,15 +89,15 @@ namespace DavidUtils.Rendering
 			spheresMr = Array.Empty<MeshRenderer>();
 		}
 
-		public void MoveSeed(int index, Vector2 newPos) =>
-			spheresMr[index].transform.localPosition = newPos.ToV3xz().WithY(heightOffset);
+		public void MovePoint(int index, Vector2 newPos) =>
+			spheresMr[index].transform.localPosition = newPos.ToV3xz();
 
 		public void ProjectOnTerrain(Terrain terrain)
 		{
 			foreach (MeshRenderer sphere in spheresMr)
 			{
 				Vector3 pos = sphere.transform.position;
-				pos.y = terrain.SampleHeight(pos) + heightOffset;
+				pos.y = terrain.SampleHeight(pos);
 				sphere.transform.position = pos;
 			}
 		}

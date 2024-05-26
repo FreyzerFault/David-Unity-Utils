@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using DavidUtils.ExtensionMethods;
+using UnityEngine;
 
-namespace DavidUtils.ExtensionMethods
+namespace DavidUtils.Geometry.Bounding_Box
 {
 	public static class BoundsExtensions
 	{
@@ -10,5 +11,11 @@ namespace DavidUtils.ExtensionMethods
         /// </summary>
         public static Vector3 GetRandomPointInBounds(this Bounds bounds, Vector3 offsetPadding) =>
 			VectorExtensions.GetRandomPos(bounds.min + offsetPadding, bounds.max - offsetPadding);
+
+        public static void DrawGizmos(this Bounds bounds, float thickness = 1, Color color = default)
+        {
+	        Gizmos.color = color;
+	        Gizmos.DrawWireCube(bounds.center, bounds.size);
+        }
 	}
 }

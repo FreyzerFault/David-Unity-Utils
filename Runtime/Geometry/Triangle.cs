@@ -31,8 +31,6 @@ namespace DavidUtils.Geometry
 
 		public Edge[] BorderEdges => Edges.Where((e, i) => neighbours[i] == null).ToArray();
 
-		public Delaunay.Border[] Borders => BorderEdges.Select(e => new Delaunay.Border(this, e)).ToArray();
-
 		public Triangle(Vector2[] vertices, Triangle[] neighbours = null)
 		{
 			v1 = vertices[0];

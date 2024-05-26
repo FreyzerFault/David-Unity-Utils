@@ -1,5 +1,5 @@
 ﻿using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry;
+using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Geometry.Generators;
 using DavidUtils.MouseInput;
 using UnityEditor;
@@ -19,8 +19,6 @@ namespace DavidUtils.Editor.Geometry_Generators
 		private Vector2 MousePosNorm => Bounds.Normalize(LocalMousePos);
 		private bool MouseInBounds => MousePosNorm.IsIn01();
 
-		public int SelectedRegionIndex => VoronoiGen.selectedRegionIndex;
-		public Polygon? SelectedRegion => VoronoiGen.SelectedRegion;
 
 		public override void OnInspectorGUI()
 		{
@@ -59,15 +57,14 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 			// Esto se asegura que se mantiene seleccionado al hacer click dentro, pero si clickas fuera se deselecciona
 			// Asi no necesito tener un Bounds
-			if (Event.current.type == EventType.Used && voronoiGen.hoveredRegionIndex != -1)
+			if (Event.current.type == EventType.Used && voronoiGen.IsRegionHovering)
 				Selection.activeGameObject = VoronoiGen.gameObject;
 
-			int selectedRegion = voronoiGen.selectedRegionIndex;
 
-			if (selectedRegion != -1)
+			// MOVE HANDLE
+			if (voronoiGen.IsRegionSelected)
 			{
-				// MOVE HANDLE
-				Vector2 seed = voronoiGen.Regions[selectedRegion].centroid;
+				Vector2 seed = voronoiGen.SelectedRegion!.Value.centroid;
 
 				EditorGUI.BeginChangeCheck();
 
@@ -78,9 +75,9 @@ namespace DavidUtils.Editor.Geometry_Generators
 				if (EditorGUI.EndChangeCheck())
 				{
 					Vector2 newLocalPos = transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToV2xz().Clamp01();
-					voronoiGen.MoveSeed(selectedRegion, newLocalPos);
+					voronoiGen.MoveSeed(voronoiGen.selectedRegionIndex, newLocalPos);
 
-					voronoiGen.hoveredRegionIndex = selectedRegion;
+					voronoiGen.HoverRegion(voronoiGen.selectedRegionIndex);
 
 					return;
 				}
@@ -88,28 +85,6 @@ namespace DavidUtils.Editor.Geometry_Generators
 
 			if (Event.current.isMouse)
 				ProcessMouseEvents();
-
-
-			// Vector2[] seeds = voronoiGen.voronoi.Seeds.ToArray();
-			//
-			// for (var i = 0; i < seeds.Length; i++)
-			// {
-			// 	EditorGUI.BeginChangeCheck();
-			//
-			// 	Vector2 seed = seeds[i];
-			// 	Transform transform = voronoiGen.transform;
-			// 	Vector3 pos = transform.localToWorldMatrix.MultiplyPoint3x4(seed.ToVector3xz());
-			// 	pos = Handles.PositionHandle(pos, transform.rotation);
-			//
-			// 	if (!EditorGUI.EndChangeCheck()) continue;
-			//
-			// 	Undo.RecordObject(target, "Update Seed");
-			//
-			// 	Vector2 newLocalPos = transform.worldToLocalMatrix.MultiplyPoint3x4(pos).ToVector2xz();
-			// 	voronoiGen.voronoi.MoveSeed(i, newLocalPos.Clamp01());
-			//
-			// 	break;
-			// }
 		}
 
 		private void ProcessMouseEvents()

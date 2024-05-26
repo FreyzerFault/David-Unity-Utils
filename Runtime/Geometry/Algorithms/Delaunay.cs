@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.ExtensionMethods;
-using UnityEngine;
-#if UNITY_EDITOR
 using DavidUtils.DebugUtils;
-#endif
+using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry;
+using DavidUtils.Geometry.Bounding_Box;
+using UnityEngine;
 
-namespace DavidUtils.Geometry
+namespace Geometry.Algorithms
 {
 	[Serializable]
 	public class Delaunay
@@ -259,106 +259,6 @@ namespace DavidUtils.Geometry
 			addedTris = newTris.ToList();
 		}
 
-
-		// NO FUNCA, ALTERNATIVA => Al mover un vertice modificar los triangulos y legalizarlos en MoveSeed()
-
-		// /// <summary>
-		// ///     Deshace la Triangulacion del vertice con el indice dado
-		// ///     Eliminando los Triangulos a los que pertenece el Vertice
-		// ///     Y creando nuevos triangulos con los vertices que forman el poligono que queda como hueco
-		// /// </summary>
-		// public void UndoTriangulation(int vertexIndex)
-		// {
-		// 	Vector2 point = vertices[vertexIndex];
-		// 	// Buscamos los triangulos que contengan el vertice
-		// 	removedTris = FindTrianglesAroundVertex(point).ToList();
-		//
-		// 	// Border ordered CCW
-		// 	Border[] borders = GetBordersAround(point, removedTris);
-		//
-		// 	Triangulate_Hole(borders);
-		//
-		// 	// Eliminamos los triangulos que contengan el vertice
-		// 	foreach (Triangle t in removedTris)
-		// 		triangles.Remove(t);
-		// }
-		//
-		// private void Triangulate_Hole(Border[] borderPolygon)
-		// {
-		// 	// Polygon hecho de los ejes del borde
-		// 	polygon = borderPolygon.Select(e => e.edge).ToList();
-		// 	addedTris.Clear();
-		//
-		// 	// Situacion TRIVIAL => 3 aristas => Creamos 1 Triangulo
-		// 	if (borderPolygon.Length == 3)
-		// 		addedTris.Add(
-		// 			new Triangle(
-		// 				polygon.Select(e => e.begin).ToArray(),
-		// 				borderPolygon[0].tri,
-		// 				borderPolygon[1].tri,
-		// 				borderPolygon[2].tri
-		// 			)
-		// 		);
-		// 	else
-		// 		// Buscamos las combinaciones de triangulos que formen el poligono
-		// 		// y cuyos vertices formen un ciruclo donde no entre ninguno de los demas vertices
-		// 		for (var i = 0; i < borderPolygon.Length; i++)
-		// 		{
-		// 			Edge edge = borderPolygon[i].edge;
-		// 			Edge nextEdge = borderPolygon[(i + 1) % borderPolygon.Length].edge;
-		// 			
-		// 			if (addedTris.Exists(t => t.Edges.Any(e => e == nextEdge)) nextEdge)
-		// 			
-		// 			Triangle neighbour = borderPolygon[i].tri;
-		// 			Triangle nextNeighbour = borderPolygon[(i + 1) % borderPolygon.Length].tri;
-		// 			Vector2 v1 = edge.begin, v2 = edge.end, v3 = nextEdge.end;
-		//
-		// 			// Deben ser convexos
-		// 			// Si no, ya tendran un triangulo asociado fuera del poligono que contiene el vertice eliminado
-		// 			if (GeometryUtils.IsLeft(v1, v3, v2)) continue;
-		//
-		// 			Vector2[] otherVertices = polygon.Select(e => e.begin)
-		// 				.Where(vertex => v1 != vertex && v2 != vertex && v3 != vertex)
-		// 				.ToArray();
-		//
-		// 			// Test Point in Circle / vertice
-		//
-		// 			var ilegalTriangle = false;
-		// 			foreach (Vector2 vertex in otherVertices)
-		// 			{
-		// 				// Si un vertice esta dentro del Circulo formado por v1,v2,v3, no es legal
-		// 				ilegalTriangle = GeometryUtils.PointInCirle(vertex, v1, v2, v3);
-		// 				if (ilegalTriangle) break;
-		// 			}
-		//
-		// 			if (ilegalTriangle) continue;
-		//
-		// 			// Creo el Triangulo y asigno vecinos
-		// 			addedTris.Add(
-		// 				new Triangle(
-		// 					v1,
-		// 					v2,
-		// 					v3,
-		// 					neighbour,
-		// 					nextNeighbour
-		// 				)
-		// 			);
-		// 			i++;
-		// 		}
-		//
-		// 	// Añadimos los nuevos triangulos
-		// 	triangles.AddRange(addedTris);
-		//
-		// 	// Asignamos vecinos entre ellos
-		// 	// Buscamos que triangulo comparte la arista v3->v1 (Edges[2])
-		// 	// Ambos ejes compartidos tendran direccion opuesta, por lo que end == begin
-		// 	foreach (Triangle tri in addedTris)
-		// 	{
-		// 		Triangle neighbour = addedTris.First(t => t != tri && tri.Edges[2].begin == t.Edges[2].end);
-		// 		tri.SetNeighbour(neighbour, 2);
-		// 	}
-		// }
-
 		#endregion
 
 
@@ -562,9 +462,9 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region DEBUG
 #if UNITY_EDITOR
 
-		#region DEBUG
 
 		public void OnDrawGizmos(Matrix4x4 matrix, bool wire = true, bool projectOnTerrain = false)
 		{
@@ -603,8 +503,8 @@ namespace DavidUtils.Geometry
 			Color.red
 		);
 
-		#endregion
 
 #endif
+		#endregion
 	}
 }

@@ -121,7 +121,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 		protected override void OnDrawGizmos()
 		{
-			Matrix4x4 m = transform.localToWorldMatrix;
+			Matrix4x4 m = LocalToWorldMatrix;
 
 			for (var i = 0; i < seeds.Count; i++)
 			{

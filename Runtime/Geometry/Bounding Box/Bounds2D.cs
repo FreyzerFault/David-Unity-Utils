@@ -1,11 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
 using UnityEngine;
 
-namespace DavidUtils.Geometry
+namespace DavidUtils.Geometry.Bounding_Box
 {
+	[Serializable]
 	public struct Bounds2D
 	{
 		public enum Side { Left, Right, Top, Bottom }
@@ -16,8 +19,19 @@ namespace DavidUtils.Geometry
 
 		public float Width => max.x - min.x;
 		public float Height => max.y - min.y;
-		public Vector2 Size => new(Width, Height);
 		public Vector2 Extent => Size / 2;
+		public Vector2 Size
+		{
+			get => new(Width, Height);
+			set
+			{
+				Vector2 halfSize = value / 2;
+				Vector2 center = Center;
+				min = center - halfSize;
+				max = center + halfSize;
+			}
+		}
+
 
 		public Vector2 BL => min;
 		public Vector2 BR => new(max.x, min.y);
@@ -48,6 +62,13 @@ namespace DavidUtils.Geometry
 			)
 		{
 		}
+
+		#region To 3D
+
+		public Bounds To3D(bool XZplane = true, float missingCoord = 1f) => new(Center.ToV3(XZplane), Size.ToV3(XZplane) + (XZplane ? Vector3.up  : Vector3.forward) * missingCoord);
+
+		#endregion
+		
 
 		public Vector2 TransformNormalized(Vector2 normalized) => min + normalized * Size;
 
@@ -226,6 +247,14 @@ namespace DavidUtils.Geometry
 				matrix.MultiplyPoint3x4(min.ToV3xz()).ToV2xz(),
 				matrix.MultiplyPoint3x4(max.ToV3xz()).ToV2xz()
 			);
+
+		#endregion
+
+
+		#region GIZMOS
+
+		public void DrawGizmos(Matrix4x4 matrix, bool XZplane = true, float thickness = 1, Color color = default) => 
+			GizmosExtensions.DrawQuadWire(matrix * Matrix4x4.Scale(Size.ToV3(XZplane)), thickness, color, true);
 
 		#endregion
 	}

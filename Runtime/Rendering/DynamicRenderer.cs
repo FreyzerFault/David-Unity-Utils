@@ -8,7 +8,7 @@ namespace DavidUtils.Rendering
 	[Serializable]
 	public abstract class DynamicRenderer<T>
 	{
-		public GameObject renderObj;
+		protected GameObject renderObj;
 		public Transform RenderParent => renderObj.transform;
 
 		public bool active = true;
@@ -16,6 +16,7 @@ namespace DavidUtils.Rendering
 		public bool IsInitialized => renderObj != null;
 
 		protected virtual string DefaultName => "Render Obj";
+		protected virtual string DefaultChildName => "Render Child";
 		protected virtual Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
 
 		public virtual void Initialize(Transform parent, string name = null) =>
@@ -30,8 +31,8 @@ namespace DavidUtils.Rendering
 				}
 			};
 
-		public abstract void Instantiate(T data);
-		public abstract void Update(T data);
+		public abstract void Instantiate(T points, string childName = null);
+		public abstract void Update(T points);
 
 		public abstract void Clear();
 
@@ -39,11 +40,15 @@ namespace DavidUtils.Rendering
 
 		#region COLOR
 
-		public Color[] colors = Array.Empty<Color>();
+		[HideInInspector] public Color[] colors = Array.Empty<Color>();
 		public Color DefaultColor => Color.cyan;
 
-		protected Color[] SetRainbowColors(int numColors, Color? initColor = null) =>
-			colors = (initColor ?? DefaultColor).Darken(.3f).GetRainBowColors(numColors, .005f, 20).ToArray();
+		public Color initColorPalette = Color.cyan;
+		[Min(-1)] public float colorPaletteStep = .1f;
+		[Min(0)] public int colorPaletteRange = 20;
+
+		public Color[] SetRainbowColors(int numColors, Color? initColor = null) =>
+			colors = (initColor ?? initColorPalette).Darken(.3f).GetRainBowColors(numColors, colorPaletteStep, colorPaletteRange).ToArray();
 
 		#endregion
 	}

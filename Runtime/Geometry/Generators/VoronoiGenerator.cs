@@ -4,17 +4,35 @@ using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.MouseInput;
 using DavidUtils.Rendering;
+using Geometry.Algorithms;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Geometry.Generators
 {
 	public class VoronoiGenerator : DelaunayGenerator
 	{
+		#region VORONOI
+
+		[Space]
+		[Header("VORONOI")]
+		
 		public Voronoi voronoi;
+		
 		public Polygon[] Regions => voronoi.regions.ToArray();
 		public int RegionsCount => voronoi.regions.Count;
 
-		public bool animatedVoronoi = true;
+		#endregion
+
+
+		#region UNITY
+
+		protected override void Update() => UpdateMouseRegion();
+
+		#endregion
+
+
+		#region MAIN METHODS
 
 		public override void Reset()
 		{
@@ -52,6 +70,13 @@ namespace DavidUtils.Geometry.Generators
 					OnRegionCreated(voronoi.regions[i], i);
 			}
 		}
+
+		#endregion
+
+
+		#region ANIMATION
+
+		public bool animatedVoronoi = true;
 
 		protected override IEnumerator RunCoroutine()
 		{
@@ -91,27 +116,39 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
+		#endregion
+
+
+		#region REGION EVENTS
+
 		protected void OnRegionCreated(Polygon region, int i) =>
 			voronoiRenderer.UpdateRegion(region, i);
 
 		protected void OnAllRegionsCreated() =>
 			voronoiRenderer.Update(Regions);
 
+		#endregion
+		
+
 		#region RENDERING
 
-		[SerializeField] private readonly PolygonRenderer voronoiRenderer = new();
+		[Space]
+		[SerializeField] private PolygonRenderer voronoiRenderer = new();
 
 		protected override void InitializeRenderer()
 		{
 			base.InitializeRenderer();
-			voronoiRenderer.Initialize(transform);
+			voronoiRenderer.Initialize(transform, "VORONOI Renderer");
+			
+			voronoiRenderer.RenderParent.transform.localPosition = Bounds.min.ToV3xz();
+			voronoiRenderer.RenderParent.transform.localScale = Bounds.Size.ToV3xz().WithY(1);
 		}
 
 		protected override void InstantiateRenderer()
 		{
 			base.InstantiateRenderer();
 			voronoiRenderer.Update(Regions);
-			if (projectOnTerrain && Terrain.activeTerrain != null)
+			if (CanProjectOnTerrain && Terrain.activeTerrain != null)
 				voronoiRenderer.ProjectOnTerrain(Terrain.activeTerrain);
 		}
 
@@ -120,11 +157,13 @@ namespace DavidUtils.Geometry.Generators
 			base.UpdateRenderer();
 			voronoiRenderer.Update(Regions);
 		}
-
+		
 		#endregion
 
 
-		#region MOUSE INPUTS
+		#region SELECT REGION with MOUSE
+
+		#region MOUSE
 
 		private Vector3 MousePos => MouseInputUtils.MouseWorldPosition;
 
@@ -132,52 +171,89 @@ namespace DavidUtils.Geometry.Generators
 		private Vector2 MousePosNorm =>
 			Bounds.ApplyTransform_XZ(transform.localToWorldMatrix).NormalizeMousePosition_XZ();
 		private bool MouseInBounds => MousePosNorm.IsIn01();
-
+		
 		// Region under Mouse
 		protected int MouseRegionIndex => MouseInBounds ? voronoi.GetRegionIndex(MousePosNorm) : -1;
 		protected Polygon? MouseRegion => MouseRegionIndex == -1 ? null : voronoi.regions[MouseRegionIndex];
 
+		#endregion
+
+
+		#region SELECTION
+		
+		[Space]
+		[Header("Region Selection")]
+		public bool canSelectRegion = true;
+		public bool drawSelectedTriangles = true;
+
 		// Region Hovered
-		public int hoveredRegionIndex = -1;
-		public Polygon? HoveredRegion => hoveredRegionIndex == -1 ? null : voronoi.regions[hoveredRegionIndex];
+		[HideInInspector] public int hoveredRegionIndex = -1;
+		public Polygon? HoveredRegion => IsRegionHovering ? voronoi.regions[hoveredRegionIndex] : null;
+		public bool IsRegionHovering => hoveredRegionIndex != -1;
 
 		// Region Selected when clicking
-		public int selectedRegionIndex = -1;
-		public Polygon? SelectedRegion => selectedRegionIndex == -1 ? null : voronoi.regions[selectedRegionIndex];
+		[HideInInspector] public int selectedRegionIndex = -1;
+		public Polygon? SelectedRegion => IsRegionSelected ? voronoi.regions[selectedRegionIndex] : null;
+		public bool IsRegionSelected => selectedRegionIndex != -1;
 
-		// For dragging a region
-		private Vector2 _draggingOffset = Vector2.zero;
-
-		protected override void Update()
+		private Polygon LastRegionGenerated => voronoi.regions[^1];
+		
+		private void UpdateMouseRegion()
 		{
 			voronoiRenderer.ToggleHightlighted(MouseRegion.HasValue);
 			voronoiRenderer.ToggleSelected(SelectedRegion.HasValue);
 
-			// Update Hover Region
-			if (MouseRegionIndex != -1) hoveredRegionIndex = MouseRegionIndex;
+			int mouseRegionIndex = MouseRegionIndex;
+			
+			if (mouseRegionIndex == -1) return;
+			
+			// HOVER
+			HoverRegion(mouseRegionIndex);
 
-			if (HoveredRegion.HasValue)
-				voronoiRenderer.SetHightlightedRegion(HoveredRegion.Value);
-
+			// Para seleccionar debe estar activa la selección y debe haber acabado la generación
 			if (!canSelectRegion || !voronoi.Ended) return;
 
-			// Update Selected Region if CLICK and start dragging
-			if (Input.GetMouseButtonDown(0))
-			{
-				selectedRegionIndex = MouseRegionIndex;
-				if (SelectedRegion.HasValue)
-					_draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
-			}
+			// CLICK DOWN => Select, and start dragging
+			if (Input.GetMouseButtonDown(0)) SelectRegion(MouseRegionIndex);
 
 			// DRAGGING
 			if (SelectedRegion.HasValue && Input.GetMouseButton(0))
 			{
-				voronoiRenderer.SetSelectedRegion(SelectedRegion.Value);
-				voronoiRenderer.ToggleHightlighted(false);
-
+				// NO HOVERING
+				HoverRegion(-1);
 				MoveSeed(selectedRegionIndex, MousePosNorm - _draggingOffset);
 			}
 		}
+
+		public void HoverRegion(int index)
+		{
+			hoveredRegionIndex = MouseRegionIndex;
+			
+			voronoiRenderer.ToggleHightlighted(index != -1);
+			
+			if (HoveredRegion.HasValue) 
+				voronoiRenderer.SetHightlightedRegion(HoveredRegion.Value);
+		}
+
+		public void SelectRegion(int index)
+		{
+			selectedRegionIndex = index;
+			voronoiRenderer.ToggleSelected(index != -1);
+			
+			if (SelectedRegion.HasValue)
+			{
+				voronoiRenderer.SetSelectedRegion(SelectedRegion.Value);
+				_draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
+			}
+		}
+		
+		#endregion
+
+		
+		#region DRAGGING
+		
+		// For dragging a region
+		private Vector2 _draggingOffset = Vector2.zero;
 
 		public override bool MoveSeed(int index, Vector2 newPos)
 		{
@@ -192,6 +268,14 @@ namespace DavidUtils.Geometry.Generators
 
 			return true;
 		}
+
+		private void UpdateDragRegion()
+		{
+			
+		}
+		
+		#endregion
+
 
 		#endregion
 
@@ -256,15 +340,13 @@ namespace DavidUtils.Geometry.Generators
 		#region DEBUG
 
 #if UNITY_EDITOR
-
-		public bool canSelectRegion = true;
-		public bool drawSelectedTriangles = true;
-
-		private Polygon LastRegionGenerated => voronoi.regions[^1];
-		private Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix;
-
+		
 		protected override void OnDrawGizmos()
 		{
+			base.OnDrawGizmos();
+			
+			if (!drawGizmos) return;
+			
 			if (DrawSeeds) GizmosSeeds();
 			if (drawGrid) GizmosBoundingBox();
 
@@ -285,21 +367,21 @@ namespace DavidUtils.Geometry.Generators
 					DrawRegionGizmos_Detailed(SelectedRegion.Value);
 			}
 
-			delaunay.OnDrawGizmos(LocalToWorldMatrix, projectOnTerrain);
+			delaunay.OnDrawGizmos(LocalToWorldMatrix, CanProjectOnTerrain);
 		}
 
 		public void DrawVoronoiGizmos() =>
 			voronoi.OnDrawGizmos(LocalToWorldMatrix, voronoiRenderer.regionScale, voronoiRenderer.colors.ToArray());
 
 		public void DrawRegionGizmos_Detailed(Polygon region) =>
-			voronoi.DrawRegionGizmos_Detailed(region, LocalToWorldMatrix, projectOnTerrain);
+			voronoi.DrawRegionGizmos_Detailed(region, LocalToWorldMatrix, CanProjectOnTerrain);
 
 		public void DrawRegionGizmos_Highlighted(Polygon region) =>
 			voronoi.DrawRegionGizmos_Highlighted(
 				region,
 				LocalToWorldMatrix,
 				voronoiRenderer.regionScale,
-				projectOnTerrain
+				CanProjectOnTerrain
 			);
 
 #endif

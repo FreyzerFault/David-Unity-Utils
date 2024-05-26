@@ -2,7 +2,7 @@
 using DavidUtils.Geometry;
 using UnityEngine;
 
-namespace DavidUtils.Rendering
+namespace DavidUtils.Rendering.Extensions
 {
 	public static class LineRendererExtensions
 	{
@@ -44,7 +44,7 @@ namespace DavidUtils.Rendering
 
 		#region INSTANTIATION
 
-		public static LineRenderer LineRenderer(
+		public static LineRenderer ToLineRenderer(
 			Transform parent,
 			string name = "Line",
 			Vector3[] points = null,
@@ -55,7 +55,7 @@ namespace DavidUtils.Rendering
 			bool loop = false
 		)
 		{
-			GameObject obj = ObjectGenerator.InstantiateEmptyObject(parent, name);
+			GameObject obj = UnityUtils.InstantiateEmptyObject(parent, name);
 			var lr = obj.AddComponent<LineRenderer>();
 
 			if (colors is { Length: > 1 })
@@ -81,7 +81,7 @@ namespace DavidUtils.Rendering
 			return lr;
 		}
 
-		public static LineRenderer DefaultLineRenderer(Transform parent = null) => LineRenderer(parent);
+		public static LineRenderer DefaultLineRenderer(Transform parent = null) => ToLineRenderer(parent);
 
 		#endregion
 
@@ -89,11 +89,11 @@ namespace DavidUtils.Rendering
 		#region WIRE SHAPES
 
 		// POLYLINE
-		public static LineRenderer LineRenderer(
+		public static LineRenderer ToLineRenderer(
 			this Polyline polyline, Transform parent, Color color = default,
 			float thickness = DEFAULT_THICKNESS,
 			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
-		) => LineRenderer(
+		) => ToLineRenderer(
 			parent,
 			"Line",
 			polyline.points,
@@ -104,13 +104,13 @@ namespace DavidUtils.Rendering
 		);
 
 		// TRIANGLE
-		public static LineRenderer LineRenderer(
-			this Triangle triangle, Transform parent, Color color = default,
+		public static LineRenderer ToLineRenderer(
+			this Triangle triangle, Transform parent, string name = "Triangle Line", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
 			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
-		) => LineRenderer(
+		) => ToLineRenderer(
 			parent,
-			"Triangle Line",
+			name,
 			XZplane ? triangle.Vertices3D_XZ : triangle.Vertices3D_XY,
 			new[] { color },
 			thickness,
@@ -119,11 +119,11 @@ namespace DavidUtils.Rendering
 		);
 
 		// POLYGON
-		public static LineRenderer LineRenderer(
+		public static LineRenderer ToLineRenderer(
 			this Polygon polygon, Transform parent, Color color = default,
 			float thickness = DEFAULT_THICKNESS,
 			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
-		) => LineRenderer(
+		) => ToLineRenderer(
 			parent,
 			"Polygon Line",
 			XZplane ? polygon.Vertices3D_XZ : polygon.Vertices3D_XY,

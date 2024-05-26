@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry;
+using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.MouseInput;
 using DavidUtils.TerrainExtensions;
 using UnityEngine;
-#if UNITY_EDITOR
-using DavidUtils.DebugUtils;
-#endif
 
-namespace DavidUtils.Geometry
+namespace Geometry.Algorithms
 {
 	[Serializable]
 	public class Voronoi
@@ -40,7 +40,7 @@ namespace DavidUtils.Geometry
 
 		public void Reset()
 		{
-			iteration = 0;
+			_iteration = 0;
 			regions = new List<Polygon>();
 			delaunay.Reset();
 		}
@@ -59,7 +59,7 @@ namespace DavidUtils.Geometry
 
 		#region PROGRESSIVE RUN
 
-		public int iteration;
+		private int _iteration;
 
 		// Habra terminado cuando para todas las semillas haya una region
 		public bool Ended => regions.Count == seeds.Count;
@@ -71,9 +71,9 @@ namespace DavidUtils.Geometry
 			if (!delaunay.ended)
 				delaunay.Run_OnePoint();
 			else
-				regions.Add(GenerateRegionPolygon(seeds[iteration]));
+				regions.Add(GenerateRegionPolygon(seeds[_iteration]));
 
-			iteration++;
+			_iteration++;
 		}
 
 		// Genera los vertices de una region a partir de la semilla y los triangulos generados con Delaunay
@@ -111,7 +111,7 @@ namespace DavidUtils.Geometry
 						// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
 						// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
 						// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
-						Vector2[] intersections = edge.MediatrizIntersetions_RIGHT(bounds);
+						Vector2[] intersections = bounds.Intersections_Ray(edge.Median, edge.MediatrizRight).ToArray();
 
 						vertices.AddRange(intersections);
 					}
@@ -273,7 +273,7 @@ namespace DavidUtils.Geometry
 
 					// Interseccion con la Bounding Box hacia fuera del triangulo
 					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
-					Vector2 intersections = borderEdge.MediatrizIntersetions_RIGHT(bounds).First();
+					Vector2 intersections = bounds.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRight).First();
 
 					Vector3 a = matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz());
 					Vector3 b = matrix.MultiplyPoint3x4(intersections.ToV3xz());

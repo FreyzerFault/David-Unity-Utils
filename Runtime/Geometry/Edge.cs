@@ -37,26 +37,6 @@ namespace DavidUtils.Geometry
 		// Dir IZQUIERDA => (90º CW) => [-y,x]
 		public Vector2 MediatrizLeft => new(-Dir.y, Dir.x);
 
-        /// <summary>
-        ///     Interseccion de la Mediatriz con la BoundingBox
-        ///     La direccion del rayo debe ser PERPENDICULAR a la arista
-        /// </summary>
-        public Vector2[] MediatrizIntersetions(Bounds2D bounds) =>
-			bounds.Intersections_Line(Median, MediatrizRight).ToArray();
-
-
-        /// <summary>
-        ///     Interseccion de la Mediatriz con la BoundingBox a la derecha de la arista
-        /// </summary>
-        public Vector2[] MediatrizIntersetions_RIGHT(Bounds2D bounds) =>
-			bounds.Intersections_Ray(Median, MediatrizRight).ToArray();
-
-        /// <summary>
-        ///     Interseccion de la Mediatriz con la BoundingBox a la izquierda de la arista
-        /// </summary>
-        public Vector2[] MediatrizIntersetions_LEFT(Bounds2D bounds) =>
-			bounds.Intersections_Ray(Median, MediatrizRight).ToArray();
-
 
 		// Ignora el la direccion
 		public override bool Equals(object obj)

@@ -62,19 +62,19 @@ namespace DavidUtils.DebugUtils
 
 		#region QUAD
 
-		public static Vector3[] QuadVertices(Matrix4x4 matrix) => new[]
+		public static Vector3[] QuadVertices(Matrix4x4 matrix, bool centered = false) => new[]
 		{
-			matrix.MultiplyPoint3x4(new Vector2(0, 0).ToV3xz()),
-			matrix.MultiplyPoint3x4(new Vector2(1, 0).ToV3xz()),
-			matrix.MultiplyPoint3x4(new Vector2(1, 1).ToV3xz()),
-			matrix.MultiplyPoint3x4(new Vector2(0, 1).ToV3xz())
+			matrix.MultiplyPoint3x4((centered ? new Vector2(-.5f, -.5f) : new Vector2(0, 0)).ToV3xz()),
+			matrix.MultiplyPoint3x4((centered ? new Vector2(.5f, -.5f) : new Vector2(1, 0)).ToV3xz()),
+			matrix.MultiplyPoint3x4((centered ? new Vector2(.5f, .5f) : new Vector2(1, 1)).ToV3xz()),
+			matrix.MultiplyPoint3x4((centered ? new Vector2(-.5f, .5f) : new Vector2(0, 1)).ToV3xz())
 		};
 
-		public static void DrawQuadWire(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
-			DrawLineThick(QuadVertices(matrix), thickness, color, true);
+		public static void DrawQuadWire(Matrix4x4 matrix, float thickness = 1, Color color = default, bool centered = false) =>
+			DrawLineThick(QuadVertices(matrix, centered), thickness, color, true);
 
-		public static void DrawQuad(Matrix4x4 matrix, Color color = default, Color outlineColor = default) =>
-			Handles.DrawSolidRectangleWithOutline(QuadVertices(matrix), color, outlineColor);
+		public static void DrawQuad(Matrix4x4 matrix, Color color = default, Color outlineColor = default, bool centered = false) =>
+			Handles.DrawSolidRectangleWithOutline(QuadVertices(matrix, centered), color, outlineColor);
 
 		public static void DrawQuad(Vector3[] vertices, Color color = default, Color outlineColor = default) =>
 			Handles.DrawSolidRectangleWithOutline(vertices, color, outlineColor);

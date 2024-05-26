@@ -2,6 +2,7 @@
 using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
 using DavidUtils.TerrainExtensions;
 using UnityEngine;
@@ -9,15 +10,17 @@ using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry.Generators
 {
+	[RequireComponent(typeof(BoundsComponent))]
 	public class SeedsGenerator : MonoBehaviour
 	{
 		public enum SeedsDistribution { Random, Regular, SinWave }
+		
+		[Header("SEEDS")]
 
 		public int randSeed = 10;
 
 		public int numSeeds = 10;
 		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
-
 
 		[HideInInspector] public List<Vector2> seeds = new();
 		public List<Vector2> Seeds
@@ -32,20 +35,19 @@ namespace DavidUtils.Geometry.Generators
 		}
 
 		public bool SeedsAreGenerated => seeds?.Count == numSeeds;
+		
+		#region BOUNDS
 
-		#region TO WORLD COORDS
-
-		protected Vector3[] Seeds3D_XY => Seeds.Select(seed => seed.ToV3xy()).ToArray();
-		protected Vector3[] Seeds3D_XZ => Seeds.Select(seed => seed.ToV3xz()).ToArray();
-
-		protected Vector3[] SeedsInWorld_XZ =>
-			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToV3xz())).ToArray();
-		protected Vector3[] SeedsInWorld_XY =>
-			Seeds.Select(s => transform.localToWorldMatrix.MultiplyPoint3x4(s.ToV3xy())).ToArray();
+		[Space] protected BoundsComponent boundsComp;
+		public Bounds2D Bounds => boundsComp?.bounds2D ?? (boundsComp = GetComponent<BoundsComponent>()).bounds2D;
+		
+		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * boundsComp.LocalToBoundsMatrix;
+		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix.MultiplyPoint3x4(pos.ToV3xz());
 
 		#endregion
 
-		public Bounds2D Bounds => Bounds2D.NormalizedBounds;
+		
+		#region UNITY
 
 		protected virtual void Awake()
 		{
@@ -56,6 +58,11 @@ namespace DavidUtils.Geometry.Generators
 		}
 
 		protected virtual void Start() => InstantiateRenderer();
+
+		#endregion
+
+
+		#region MAIN METHODS
 
 		public virtual void Reset()
 		{
@@ -72,8 +79,10 @@ namespace DavidUtils.Geometry.Generators
 
 		public void GenerateSeeds() => seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
 
-
-		#region MODIFICATION
+		#endregion
+		
+		
+		#region SEEDS MODIFICATION
 
 		/// <summary>
 		///     Mueve una semilla a una nueva posición siempre y cuando:
@@ -89,14 +98,14 @@ namespace DavidUtils.Geometry.Generators
 
 			// Si colisiona con otra semilla no la movemos
 			bool collision = seeds
-				.Where((p, i) => i != index)
+				.Where((_, i) => i != index)
 				.Any(p => Vector2.Distance(p, newPos) < 0.02f);
 
 			if (collision) return false;
 
 			seeds[index] = newPos;
 
-			seeds2DRenderer.MoveSeed(index, newPos);
+			seedsRenderer.MovePoint(index, newPos);
 
 			return true;
 		}
@@ -106,31 +115,39 @@ namespace DavidUtils.Geometry.Generators
 
 		#region RENDERER
 
-		[SerializeField] private Points2DRenderer seeds2DRenderer = new();
+		[Space]
+		[SerializeField] private Points2DRenderer seedsRenderer = new();
 
-		public bool projectOnTerrain = true;
+		private bool projectOnTerrain = true;
+		protected static Terrain Terrain => Terrain.activeTerrain;
+		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
 
 		public bool DrawSeeds
 		{
-			get => seeds2DRenderer.active;
+			get => seedsRenderer.active;
 			set
 			{
-				seeds2DRenderer.active = value;
-				seeds2DRenderer.UpdateVisibility();
+				seedsRenderer.active = value;
+				seedsRenderer.UpdateVisibility();
 			}
 		}
 
-		protected virtual void InitializeRenderer() =>
-			seeds2DRenderer.Initialize(transform);
+		protected virtual void InitializeRenderer()
+		{
+			seedsRenderer.Initialize(transform, "Seeds Renderer");
+			
+			seedsRenderer.RenderParent.transform.localPosition = Bounds.min.ToV3xz();
+			seedsRenderer.RenderParent.transform.localScale = Bounds.Size.ToV3xz().WithY(1);
+		}
 
 		protected virtual void InstantiateRenderer()
 		{
-			seeds2DRenderer.Instantiate(seeds.ToArray());
-			if (projectOnTerrain && Terrain.activeTerrain != null)
-				seeds2DRenderer.ProjectOnTerrain(Terrain.activeTerrain);
+			seedsRenderer.Instantiate(seeds.ToArray(), "Seed");
+			if (CanProjectOnTerrain && Terrain != null)
+				seedsRenderer.ProjectOnTerrain(Terrain);
 		}
 
-		protected virtual void UpdateRenderer() => seeds2DRenderer.Update(seeds.ToArray());
+		protected virtual void UpdateRenderer() => seedsRenderer.Update(seeds.ToArray());
 
 		#endregion
 
@@ -227,8 +244,10 @@ namespace DavidUtils.Geometry.Generators
 
 		#endregion
 
+		
 		#region DEBUG
 
+		protected bool drawGizmos = false;
 		public bool drawGrid = true;
 
 		private static readonly int BaseColorId = Shader.PropertyToID("_Base_Color");
@@ -236,6 +255,8 @@ namespace DavidUtils.Geometry.Generators
 		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
 		protected virtual void OnDrawGizmos()
 		{
+			if (!drawGizmos) return;
+
 			if (DrawSeeds) GizmosSeeds();
 			if (drawGrid) GizmosBoundingBox();
 		}
@@ -252,7 +273,7 @@ namespace DavidUtils.Geometry.Generators
 
 		private void GizmosBoundingBox(Matrix4x4 matrix, Color color = default)
 		{
-			if (projectOnTerrain)
+			if (CanProjectOnTerrain)
 				GizmosExtensions.DrawQuadWire_OnTerrain(matrix, 5, color);
 			else
 				GizmosExtensions.DrawQuadWire(matrix, 5, color);
@@ -261,7 +282,7 @@ namespace DavidUtils.Geometry.Generators
 		private void GizmosGrid(Matrix4x4 matrix, Color color = default)
 		{
 			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Count));
-			if (projectOnTerrain)
+			if (CanProjectOnTerrain)
 				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, matrix, 5, color);
 			else
 				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
@@ -269,16 +290,12 @@ namespace DavidUtils.Geometry.Generators
 
 		protected void GizmosSeeds()
 		{
-			Gizmos.color = seeds2DRenderer.colors?.Length > 0 ? seeds2DRenderer.colors[0] : Color.grey;
-			var terrain = Terrain.activeTerrain;
-			Vector3[] seedsInWorld = projectOnTerrain
-				? SeedsInWorld_XZ.Select(s => terrain.Project(s)).ToArray()
-				: SeedsInWorld_XZ;
-			for (var i = 0; i < seedsInWorld.Length; i++)
+			Gizmos.color = seedsRenderer.colors?.Length > 0 ? seedsRenderer.colors[0] : Color.grey;
+			for (var i = 0; i < seeds.Count; i++)
 			{
-				if (seeds2DRenderer.colors?.Length > 0)
-					Gizmos.color = seeds2DRenderer.colors[i];
-				Gizmos.DrawSphere(seedsInWorld[i], 0.1f);
+				if (seedsRenderer.colors?.Length > 0)
+					Gizmos.color = seedsRenderer.colors[i];
+				Gizmos.DrawSphere(CanProjectOnTerrain ? Terrain.Project(ToWorld(seeds[i])) : ToWorld(seeds[i]), 0.1f);
 			}
 		}
 

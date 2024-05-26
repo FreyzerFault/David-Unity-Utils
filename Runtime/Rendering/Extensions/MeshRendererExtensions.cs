@@ -3,7 +3,7 @@ using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using UnityEngine;
 
-namespace DavidUtils.Rendering
+namespace DavidUtils.Rendering.Extensions
 {
 	public static class MeshRendererExtensions
 	{
