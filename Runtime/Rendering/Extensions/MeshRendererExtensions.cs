@@ -17,11 +17,11 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshRenderer mr,
 			out MeshFilter mf,
 			Transform parent = null,
-			string name = "Mesh"
+			string name = ""
 		)
 		{
 			// LINE RENDERER
-			var mObj = new GameObject($"Mesh{(name == "" ? "" : " - " + name)}");
+			var mObj = new GameObject($"{name} [Mesh]");
 			mObj.transform.parent = parent;
 			mObj.transform.localPosition = Vector3.zero;
 			mObj.transform.localRotation = Quaternion.identity;
@@ -41,7 +41,7 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshFilter mf,
 			Mesh mesh = default,
 			Transform parent = null,
-			string name = "Mesh"
+			string name = ""
 		) => mesh.InstantiateMeshRenderer(out mr, out mf, parent, name);
 
 		#endregion
@@ -55,7 +55,7 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshRenderer mr,
 			out MeshFilter mf,
 			Transform parent = null,
-			string name = "Triangle Mesh",
+			string name = "Triangle",
 			Color color = default,
 			bool XZplane = true
 		) => InstantiateMeshRenderer(out mr, out mf, triangle.CreateMesh(color, XZplane), parent, name);
@@ -77,7 +77,7 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshRenderer mr,
 			out MeshFilter mf,
 			Transform parent = null,
-			string name = "Polygon Mesh",
+			string name = "Polygon",
 			Color color = default,
 			bool XZplane = true
 		) => InstantiateMeshRenderer(out mr, out mf, polygon.CreateMesh(color, XZplane), parent, name);
@@ -106,12 +106,13 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshRenderer mr,
 			out MeshFilter mf,
 			Transform parent = null,
-			string name = "Sphere",
+			string name = "",
 			Color color = default,
 			Material material = null
 		)
 		{
 			var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			sphere.name = $"{name} [Sphere]";
 			sphere.transform.parent = parent;
 
 			mr = sphere.GetComponent<MeshRenderer>();
@@ -120,7 +121,7 @@ namespace DavidUtils.Rendering.Extensions
 			// COLOR
 			var colors = new Color[mf.sharedMesh.vertexCount];
 			Array.Fill(colors, color);
-			mf.mesh.SetColors(colors);
+			mf.sharedMesh.SetColors(colors);
 
 			// MATERIAL
 			mr.sharedMaterial = material ?? DefaultMaterial;

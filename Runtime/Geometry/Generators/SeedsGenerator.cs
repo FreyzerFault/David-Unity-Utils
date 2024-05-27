@@ -14,9 +14,8 @@ namespace DavidUtils.Geometry.Generators
 	public class SeedsGenerator : MonoBehaviour
 	{
 		public enum SeedsDistribution { Random, Regular, SinWave }
-		
-		[Header("SEEDS")]
 
+		[Header("SEEDS")]
 		public int randSeed = 10;
 
 		public int numSeeds = 10;
@@ -35,18 +34,18 @@ namespace DavidUtils.Geometry.Generators
 		}
 
 		public bool SeedsAreGenerated => seeds?.Count == numSeeds;
-		
+
 		#region BOUNDS
 
 		[Space] protected BoundsComponent boundsComp;
 		public Bounds2D Bounds => boundsComp?.bounds2D ?? (boundsComp = GetComponent<BoundsComponent>()).bounds2D;
-		
-		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * boundsComp.LocalToBoundsMatrix;
+
+		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * Bounds.LocalToBoundsMatrix();
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix.MultiplyPoint3x4(pos.ToV3xz());
 
 		#endregion
 
-		
+
 		#region UNITY
 
 		protected virtual void Awake()
@@ -66,6 +65,8 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual void Reset()
 		{
+			seeds = new List<Vector2>();
+			Renderer.Clear();
 		}
 
 		public virtual void OnSeedsUpdated() => UpdateRenderer();
@@ -80,8 +81,8 @@ namespace DavidUtils.Geometry.Generators
 		public void GenerateSeeds() => seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
 
 		#endregion
-		
-		
+
+
 		#region SEEDS MODIFICATION
 
 		/// <summary>
@@ -105,7 +106,7 @@ namespace DavidUtils.Geometry.Generators
 
 			seeds[index] = newPos;
 
-			seedsRenderer.MovePoint(index, newPos);
+			Renderer.MovePoint(index, newPos);
 
 			return true;
 		}
@@ -116,38 +117,39 @@ namespace DavidUtils.Geometry.Generators
 		#region RENDERER
 
 		[Space]
-		[SerializeField] private Points2DRenderer seedsRenderer = new();
+		private Points2DRenderer _seedsRenderer;
+		private Points2DRenderer Renderer => _seedsRenderer ??= GetComponentInChildren<Points2DRenderer>(true);
 
-		private bool projectOnTerrain = true;
+		private readonly bool projectOnTerrain = true;
 		protected static Terrain Terrain => Terrain.activeTerrain;
 		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
 
 		public bool DrawSeeds
 		{
-			get => seedsRenderer.active;
-			set
-			{
-				seedsRenderer.active = value;
-				seedsRenderer.UpdateVisibility();
-			}
+			get => Renderer.Active;
+			set => Renderer.Active = value;
 		}
 
 		protected virtual void InitializeRenderer()
 		{
-			seedsRenderer.Initialize(transform, "Seeds Renderer");
-			
-			seedsRenderer.RenderParent.transform.localPosition = Bounds.min.ToV3xz();
-			seedsRenderer.RenderParent.transform.localScale = Bounds.Size.ToV3xz().WithY(1);
+			_seedsRenderer ??= Renderer
+			                   ?? UnityUtils.InstantiateEmptyObject(transform, "Seeds Renderer")
+				                   .AddComponent<Points2DRenderer>();
+
+			Renderer.transform.ApplyMatrix(Bounds.LocalToBoundsMatrix());
+			Renderer.transform.Translate(Vector3.up * .5f);
 		}
 
 		protected virtual void InstantiateRenderer()
 		{
-			seedsRenderer.Instantiate(seeds.ToArray(), "Seed");
+			Renderer.Instantiate(seeds.ToArray(), "Seed");
 			if (CanProjectOnTerrain && Terrain != null)
-				seedsRenderer.ProjectOnTerrain(Terrain);
+				Renderer.ProjectOnTerrain(Terrain);
+
+			Renderer.ToggleShadows(false);
 		}
 
-		protected virtual void UpdateRenderer() => seedsRenderer.Update(seeds.ToArray());
+		protected virtual void UpdateRenderer() => Renderer.UpdateGeometry(seeds.ToArray());
 
 		#endregion
 
@@ -244,7 +246,7 @@ namespace DavidUtils.Geometry.Generators
 
 		#endregion
 
-		
+
 		#region DEBUG
 
 		protected bool drawGizmos = false;
@@ -290,11 +292,11 @@ namespace DavidUtils.Geometry.Generators
 
 		protected void GizmosSeeds()
 		{
-			Gizmos.color = seedsRenderer.colors?.Length > 0 ? seedsRenderer.colors[0] : Color.grey;
+			Gizmos.color = Renderer.colors?.Length > 0 ? Renderer.colors[0] : Color.grey;
 			for (var i = 0; i < seeds.Count; i++)
 			{
-				if (seedsRenderer.colors?.Length > 0)
-					Gizmos.color = seedsRenderer.colors[i];
+				if (Renderer.colors?.Length > 0)
+					Gizmos.color = Renderer.colors[i];
 				Gizmos.DrawSphere(CanProjectOnTerrain ? Terrain.Project(ToWorld(seeds[i])) : ToWorld(seeds[i]), 0.1f);
 			}
 		}

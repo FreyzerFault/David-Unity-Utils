@@ -18,7 +18,7 @@ namespace Geometry.Algorithms
 
 		[HideInInspector] public List<Polygon> regions;
 
-		private List<Vector2> seeds;
+		public List<Vector2> seeds;
 		public List<Vector2> Seeds
 		{
 			get => seeds;
@@ -62,16 +62,15 @@ namespace Geometry.Algorithms
 		private int _iteration;
 
 		// Habra terminado cuando para todas las semillas haya una region
-		public bool Ended => regions.Count == seeds.Count;
+		public bool Ended => regions != null && regions.Count == seeds.Count;
 
 		public void Run_OneIteration()
 		{
 			if (Ended) return;
 
-			if (!delaunay.ended)
-				delaunay.Run_OnePoint();
-			else
-				regions.Add(GenerateRegionPolygon(seeds[_iteration]));
+			if (!delaunay.ended) Debug.LogError("Delaunay no ha terminado antes de generar Voronoi");
+
+			regions.Add(GenerateRegionPolygon(seeds[_iteration]));
 
 			_iteration++;
 		}
@@ -273,7 +272,8 @@ namespace Geometry.Algorithms
 
 					// Interseccion con la Bounding Box hacia fuera del triangulo
 					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
-					Vector2 intersections = bounds.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRight).First();
+					Vector2 intersections =
+						bounds.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRight).First();
 
 					Vector3 a = matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz());
 					Vector3 b = matrix.MultiplyPoint3x4(intersections.ToV3xz());

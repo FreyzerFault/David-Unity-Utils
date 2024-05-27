@@ -118,14 +118,26 @@ namespace DavidUtils.ExtensionMethods
 		#endregion
 
 
+		#region MATRIX
+
+		public static void ApplyMatrix(this Transform transform, Matrix4x4 matrix)
+		{
+			transform.localPosition = matrix.GetPosition() + transform.localPosition;
+			transform.localRotation = matrix.rotation * transform.localRotation;
+			transform.localScale = transform.localScale.ScaleBy(matrix.lossyScale);
+		}
+
+		#endregion
+
+
 		#region SCALE
 
 		/// <summary>
 		///     Sets the Global Scale of the source Transform.
 		/// </summary>
-		public static Transform SetGlobalScale(this Transform source, Vector3 targetLossyScale)
+		public static Transform SetGlobalScale(this Transform source, Vector3 targetGlobalScale)
 		{
-			source.localScale = source.lossyScale.Pow(-1).ScaleBy(targetLossyScale).ScaleBy(source.localScale);
+			source.localScale = targetGlobalScale.ScaleBy(source.lossyScale.Inverse()).ScaleBy(source.localScale);
 			return source;
 		}
 
@@ -140,6 +152,21 @@ namespace DavidUtils.ExtensionMethods
 		///     another vector component-wise.
 		/// </summary>
 		public static Vector3 ScaleBy(this Vector3 pos, Vector3 scaleFactor) => Vector3.Scale(pos, scaleFactor);
+
+		/// <summary>
+		///     Safe Inversion (1 / vector)
+		///     Si un componente es 0 lo mantiene a 0
+		/// </summary>
+		public static Vector2 Inverse(this Vector2 v) => new(
+			v.x == 0 ? 0 : 1 / v.x,
+			v.y == 0 ? 0 : 1 / v.y
+		);
+
+		public static Vector3 Inverse(this Vector3 v) => new(
+			v.x == 0 ? 0 : 1 / v.x,
+			v.y == 0 ? 0 : 1 / v.y,
+			v.z == 0 ? 0 : 1 / v.z
+		);
 
 		#endregion
 

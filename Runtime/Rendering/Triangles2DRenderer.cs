@@ -7,13 +7,15 @@ using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using DavidUtils.TerrainExtensions;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace DavidUtils.Rendering
 {
 	[Serializable]
 	public class Triangles2DRenderer : DynamicRenderer<Triangle[]>
 	{
+		protected override string DefaultChildName => "Triangle 2D";
+		protected override Material Material => Resources.Load<Material>("Materials/Geometry Lit");
+
 		// MESH
 		protected MeshRenderer meshRenderer;
 		protected MeshFilter meshFilter;
@@ -24,42 +26,55 @@ namespace DavidUtils.Rendering
 
 		protected LineRenderer borderLine;
 
-		public bool wire;
-
-		protected override Material Material => Resources.Load<Material>("Materials/Geometry Lit");
-		protected override string DefaultName => "Triangles 2D Renderer";
-		protected override string DefaultChildName => "Triangle 2D";
-
-		public override void Initialize(Transform parent, string name = null)
+		[SerializeField] private bool wire;
+		public bool Wire
 		{
-			base.Initialize(parent, name);
+			get => wire;
+			set
+			{
+				wire = value;
+				lineParent.gameObject.SetActive(wire);
+				meshRenderer.gameObject.SetActive(!wire);
+			}
+		}
 
+		private void Awake() => Initialize();
+
+		public void Initialize()
+		{
 			// Line PARENT for Line Renderers
-			lineParent = UnityUtils.InstantiateEmptyObject(RenderParent, "Lines").transform;
+			if (lineParent == null)
+				lineParent = UnityUtils.InstantiateEmptyObject(transform, "Lines").transform;
 
 			// MESH RENDERER
-			MeshRendererExtensions.InstantiateMeshRenderer(
-				out meshRenderer,
-				out meshFilter,
-				new Mesh(),
-				RenderParent,
-				"Meshes"
-			);
+			if (meshRenderer == null)
+				MeshRendererExtensions.InstantiateMeshRenderer(
+					out meshRenderer,
+					out meshFilter,
+					new Mesh(),
+					transform,
+					"Mesh"
+				);
+
+			lineParent.gameObject.SetActive(wire);
+			meshRenderer.gameObject.SetActive(!wire);
 
 			// BORDER LINE RENDERER
-			Color borderColor = Color.red;
-			var borderThickness = .2f;
+			if (borderLine == null)
+				InitializeBorderLine();
+		}
+
+		private void InitializeBorderLine()
+		{
 			borderLine = LineRendererExtensions.ToLineRenderer(
-				RenderParent,
+				transform,
 				"Border Line",
 				null,
-				new[] { borderColor },
-				borderThickness,
+				new[] { Color.red },
+				.2f,
 				loop: true
 			);
 			borderLine.transform.Translate(Vector3.up * .1f);
-
-			UpdateVisibility();
 		}
 
 		public override void Instantiate(Triangle[] points, string childName = null)
@@ -71,9 +86,9 @@ namespace DavidUtils.Rendering
 			InstantiateMesh(points);
 		}
 
-		public override void Update(Triangle[] points)
+		public override void UpdateGeometry(Triangle[] points)
 		{
-			if (!active) return;
+			if (points.Length == 0) return;
 
 			if (points.Length != colors.Length) SetRainbowColors(points.Length);
 
@@ -88,26 +103,25 @@ namespace DavidUtils.Rendering
 			if (removeCount <= 0) return;
 
 			for (int i = points.Length; i < lineRenderers.Count; i++)
-				Object.Destroy(lineRenderers[i].gameObject);
+				Destroy(lineRenderers[i].gameObject);
 
 			lineRenderers.RemoveRange(points.Length, removeCount);
 		}
 
 		public override void Clear()
 		{
+			base.Clear();
+
+			if (lineRenderers == null) ;
+
 			foreach (LineRenderer t in lineRenderers)
 				UnityUtils.DestroySafe(t);
+
+			if (lineRenderers == null || meshFilter == null || borderLine == null) return;
 
 			lineRenderers.Clear();
 			meshFilter.sharedMesh.Clear();
 			borderLine.positionCount = 0;
-		}
-
-		public override void UpdateVisibility()
-		{
-			base.UpdateVisibility();
-			lineParent.gameObject.SetActive(wire);
-			meshRenderer.gameObject.SetActive(!wire);
 		}
 
 
@@ -125,7 +139,7 @@ namespace DavidUtils.Rendering
 		#region RENDERING 1 TRIANGLE
 
 		public void InstatiateLineRenderer(Triangle triangle, Color color, string lineName = null) =>
-			lineRenderers.Add(triangle.ToLineRenderer(lineParent, lineName ?? DefaultChildName, color: color));
+			lineRenderers.Add(triangle.ToLineRenderer(lineParent, lineName ?? DefaultChildName, color));
 
 		// Update Triangle Line Renderer (if no Renderer, instantiate it)
 		public void UpdateTri(Triangle triangle, int i)

@@ -90,12 +90,12 @@ namespace DavidUtils.Rendering.Extensions
 
 		// POLYLINE
 		public static LineRenderer ToLineRenderer(
-			this Polyline polyline, Transform parent, Color color = default,
+			this Polyline polyline, Transform parent, string name = "Triangle", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
 			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
 		) => ToLineRenderer(
 			parent,
-			"Line",
+			$"{name} [Line]",
 			polyline.points,
 			new[] { color },
 			thickness,
@@ -105,12 +105,12 @@ namespace DavidUtils.Rendering.Extensions
 
 		// TRIANGLE
 		public static LineRenderer ToLineRenderer(
-			this Triangle triangle, Transform parent, string name = "Triangle Line", Color color = default,
+			this Triangle triangle, Transform parent, string name = "Triangle", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
 			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
 		) => ToLineRenderer(
 			parent,
-			name,
+			$"{name} [Line]",
 			XZplane ? triangle.Vertices3D_XZ : triangle.Vertices3D_XY,
 			new[] { color },
 			thickness,
@@ -120,12 +120,12 @@ namespace DavidUtils.Rendering.Extensions
 
 		// POLYGON
 		public static LineRenderer ToLineRenderer(
-			this Polygon polygon, Transform parent, Color color = default,
+			this Polygon polygon, Transform parent, string name = "Polygon", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
 			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
 		) => ToLineRenderer(
 			parent,
-			"Polygon Line",
+			$"{name} [Line]",
 			XZplane ? polygon.Vertices3D_XZ : polygon.Vertices3D_XY,
 			new[] { color },
 			thickness,

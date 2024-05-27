@@ -2,7 +2,6 @@
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace DavidUtils.Rendering
 {
@@ -11,13 +10,10 @@ namespace DavidUtils.Rendering
 	{
 		protected MeshRenderer[] spheresMr = Array.Empty<MeshRenderer>();
 
-		protected override string DefaultName => "Points 2D Renderer";
 		protected override string DefaultChildName => "Point";
-		
+
 		[Range(0.1f, 1)]
-		public float sphereScale = .3f;
-		
-		// protected override Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
+		public float sphereScale = .5f;
 
 		public override void Instantiate(Vector2[] points, string childName = null)
 		{
@@ -37,7 +33,7 @@ namespace DavidUtils.Rendering
 				MeshRendererExtensions.InstantiateSphere(
 					out MeshRenderer mr,
 					out MeshFilter mf,
-					renderObj.transform,
+					transform,
 					$"{childName ?? DefaultChildName} {i}",
 					colors[i],
 					Material
@@ -51,22 +47,17 @@ namespace DavidUtils.Rendering
 					point.ToV3xz(),
 					Quaternion.identity
 				);
+
 				// Compensa el Scale Global para verse siempre del mismo tamaño
-				sphereTransform.SetGlobalScale(Vector3.one * sphereScale / sphereTransform.lossyScale.x);
+				sphereTransform.SetGlobalScale(Vector3.one * sphereScale);
 
 				// MATERIAL
 				mr.sharedMaterial = Material;
 			}
-
-			UpdateVisibility();
 		}
 
-		public override void Update(Vector2[] points)
+		public override void UpdateGeometry(Vector2[] points)
 		{
-			UpdateVisibility();
-			
-			if (!active) return;
-
 			// Faltan o sobran MeshRenderers para los puntos dados
 			if (spheresMr.Length != points.Length)
 			{
@@ -82,9 +73,11 @@ namespace DavidUtils.Rendering
 
 		public override void Clear()
 		{
+			base.Clear();
+
 			if (spheresMr == null) return;
 			foreach (MeshRenderer meshRenderer in spheresMr)
-				Object.Destroy(meshRenderer);
+				UnityUtils.DestroySafe(meshRenderer);
 
 			spheresMr = Array.Empty<MeshRenderer>();
 		}

@@ -32,6 +32,8 @@ namespace DavidUtils.Geometry.Bounding_Box
 			}
 		}
 
+		public Matrix4x4 LocalToBoundsMatrix(bool XZplane = true) =>
+			Matrix4x4.TRS(min.ToV3(XZplane), Quaternion.identity, Size.ToV3(XZplane).WithY(1));
 
 		public Vector2 BL => min;
 		public Vector2 BR => new(max.x, min.y);
@@ -65,10 +67,13 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#region To 3D
 
-		public Bounds To3D(bool XZplane = true, float missingCoord = 1f) => new(Center.ToV3(XZplane), Size.ToV3(XZplane) + (XZplane ? Vector3.up  : Vector3.forward) * missingCoord);
+		public Bounds To3D(bool XZplane = true, float missingCoord = 1f) => new(
+			Center.ToV3(XZplane),
+			Size.ToV3(XZplane) + (XZplane ? Vector3.up : Vector3.forward) * missingCoord
+		);
 
 		#endregion
-		
+
 
 		public Vector2 TransformNormalized(Vector2 normalized) => min + normalized * Size;
 
@@ -253,7 +258,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#region GIZMOS
 
-		public void DrawGizmos(Matrix4x4 matrix, bool XZplane = true, float thickness = 1, Color color = default) => 
+		public void DrawGizmos(Matrix4x4 matrix, bool XZplane = true, float thickness = 1, Color color = default) =>
 			GizmosExtensions.DrawQuadWire(matrix * Matrix4x4.Scale(Size.ToV3(XZplane)), thickness, color, true);
 
 		#endregion

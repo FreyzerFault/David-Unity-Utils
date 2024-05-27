@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
 namespace DavidUtils
@@ -9,15 +10,16 @@ namespace DavidUtils
 		#region OBJECT METHODS
 
 		/// <summary>
-		/// Destroy para Player y Editor
+		///     Destroy para Player y Editor
 		/// </summary>
 		public static void DestroySafe(MonoBehaviour mb) => DestroySafe(mb.gameObject);
+
 		public static void DestroySafe(Component comp) => DestroySafe(comp.gameObject);
 		public static void DestroySafe(GameObject obj) => Destroy(obj);
 		private static Action<GameObject> Destroy => Application.isPlaying ? Object.Destroy : Object.DestroyImmediate;
 
 		/// <summary>
-		/// Crea un EMPTY OBJECT normal y corriente
+		///     Crea un EMPTY OBJECT normal y corriente
 		/// </summary>
 		public static GameObject InstantiateEmptyObject(
 			Transform parent,
@@ -39,7 +41,18 @@ namespace DavidUtils
 			};
 			return obj;
 		}
-		
+
+		#endregion
+
+
+		#region LIGHTING
+
+		public static void ToggleShadows(this GameObject go, bool castShadows = true)
+		{
+			foreach (MeshRenderer mr in go.GetComponentsInChildren<MeshRenderer>())
+				mr.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
+		}
+
 		#endregion
 	}
 }

@@ -14,21 +14,19 @@ namespace DavidUtils.Geometry.Generators
 		[Space]
 		[Header("DELAUNAY TRIANGULATION")]
 		public Delaunay delaunay = new();
-		
+
 		protected List<Triangle> Triangles
 		{
 			get => delaunay.triangles;
 			set => delaunay.triangles = value;
 		}
 		protected int TrianglesCount => delaunay.triangles.Count;
-		
+
 		#endregion
 
 
-
-		
 		#region UNITY
-		
+
 		protected override void Start()
 		{
 			base.Start();
@@ -44,7 +42,7 @@ namespace DavidUtils.Geometry.Generators
 			// STOP ANIMATION
 			if (Input.GetKeyDown(KeyCode.Escape)) StopCoroutine(animationCoroutine);
 		}
-		
+
 		#endregion
 
 
@@ -54,19 +52,24 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.Reset();
 
+			ResetDelaunay();
+		}
+
+		public void ResetDelaunay()
+		{
 			if (animationCoroutine != null)
 				StopCoroutine(animationCoroutine);
 
 			delaunay ??= new Delaunay(seeds);
 			delaunay.Seeds = seeds;
 
-			delaunayRenderer.Clear();
+			Renderer.Clear();
 		}
 
 
 		public virtual void Run()
 		{
-			Reset();
+			ResetDelaunay();
 			if (animatedDelaunay)
 			{
 				animationCoroutine = StartCoroutine(RunCoroutine());
@@ -77,14 +80,14 @@ namespace DavidUtils.Geometry.Generators
 				OnTrianglesUpdated();
 			}
 		}
-		
+
 		protected virtual void Run_OneIteration() => delaunay.Run_OnePoint();
-		
+
 		protected void OnTrianglesUpdated() => UpdateRenderer();
 
 		#endregion
-		
-		
+
+
 		#region ANIMATION
 
 		public bool runOnStart = true;
@@ -95,20 +98,33 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual bool Animated
 		{
-			get => animatedDelaunay;
-			set => animatedDelaunay = value;
-		}
-		
-		protected virtual IEnumerator RunCoroutine()
-		{
-			while (!delaunay.ended)
+			get => animatedDelaunay && Renderer.Active;
+			set
 			{
-				delaunay.Run_OnePoint();
-				OnTrianglesUpdated();
-				yield return new WaitForSecondsRealtime(delayMilliseconds);
+				animatedDelaunay = value;
+				Renderer.Active = value;
 			}
 		}
-		
+
+		protected virtual IEnumerator RunCoroutine()
+		{
+			ResetDelaunay();
+			if (animatedDelaunay)
+			{
+				while (!delaunay.ended)
+				{
+					delaunay.Run_OnePoint();
+					OnTrianglesUpdated();
+					yield return new WaitForSecondsRealtime(delayMilliseconds);
+				}
+			}
+			else
+			{
+				delaunay.RunTriangulation();
+				OnTrianglesUpdated();
+			}
+		}
+
 		#endregion
 
 
@@ -118,7 +134,6 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.OnSeedsUpdated();
 
-			Reset();
 			Run();
 		}
 
@@ -131,7 +146,7 @@ namespace DavidUtils.Geometry.Generators
 			delaunay.Seeds = seeds;
 			List<Triangle> tris = delaunay.RunTriangulation();
 
-			delaunayRenderer.Update(tris.ToArray());
+			Renderer.UpdateGeometry(tris.ToArray());
 
 			return true;
 		}
@@ -142,31 +157,37 @@ namespace DavidUtils.Geometry.Generators
 		#region RENDERING
 
 		[Space]
-		[SerializeField] private Triangles2DRenderer delaunayRenderer = new();
+		private Triangles2DRenderer _delaunayRenderer;
+		private Triangles2DRenderer Renderer => _delaunayRenderer ??= GetComponentInChildren<Triangles2DRenderer>(true);
 
 		protected override void InitializeRenderer()
 		{
 			base.InitializeRenderer();
-			delaunayRenderer.Initialize(transform, "DELAUNAY Renderer");
 
-			delaunayRenderer.RenderParent.transform.localPosition = Bounds.min.ToV3xz();
-			delaunayRenderer.RenderParent.transform.localScale = Bounds.Size.ToV3xz().WithY(1);
-			delaunayRenderer.RenderParent.Translate(Vector3.up * .5f);
+			_delaunayRenderer ??= Renderer ?? UnityUtils.InstantiateEmptyObject(transform, "DELAUNAY Renderer")
+				.AddComponent<Triangles2DRenderer>();
+
+			Renderer.Initialize();
+
+			Renderer.transform.ApplyMatrix(Bounds.LocalToBoundsMatrix());
+			Renderer.transform.Translate(Vector3.up * .5f);
 		}
 
 		protected override void InstantiateRenderer()
 		{
 			base.InstantiateRenderer();
 
-			delaunayRenderer.Update(Triangles.ToArray());
+			Renderer.UpdateGeometry(Triangles.ToArray());
 			if (CanProjectOnTerrain && Terrain.activeTerrain != null)
-				delaunayRenderer.ProjectOnTerrain(Terrain.activeTerrain);
+				Renderer.ProjectOnTerrain(Terrain.activeTerrain);
+
+			Renderer.ToggleShadows(false);
 		}
 
 		protected override void UpdateRenderer()
 		{
 			base.UpdateRenderer();
-			delaunayRenderer.Update(Triangles.ToArray());
+			Renderer.UpdateGeometry(Triangles.ToArray());
 		}
 
 		#endregion
@@ -175,21 +196,13 @@ namespace DavidUtils.Geometry.Generators
 
 		public bool DrawDelaunay
 		{
-			get => delaunayRenderer.active;
-			set
-			{
-				delaunayRenderer.active = value;
-				delaunayRenderer.UpdateVisibility();
-			}
+			get => Renderer.Active;
+			set => Renderer.Active = value;
 		}
 		public bool DelaunayWire
 		{
-			get => delaunayRenderer.active && delaunayRenderer.wire;
-			set
-			{
-				delaunayRenderer.wire = value;
-				delaunayRenderer.UpdateVisibility();
-			}
+			get => Renderer.Active && Renderer.Wire;
+			set => Renderer.Wire = value;
 		}
 
 		#endregion
@@ -202,7 +215,7 @@ namespace DavidUtils.Geometry.Generators
 		protected override void OnDrawGizmos()
 		{
 			base.OnDrawGizmos();
-			
+
 			if (!drawGizmos) return;
 
 			if (DrawDelaunay)
