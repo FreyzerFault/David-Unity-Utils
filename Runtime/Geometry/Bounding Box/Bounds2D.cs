@@ -32,9 +32,6 @@ namespace DavidUtils.Geometry.Bounding_Box
 			}
 		}
 
-		public Matrix4x4 LocalToBoundsMatrix(bool XZplane = true) =>
-			Matrix4x4.TRS(min.ToV3(XZplane), Quaternion.identity, Size.ToV3(XZplane).WithY(1));
-
 		public Vector2 BL => min;
 		public Vector2 BR => new(max.x, min.y);
 		public Vector2 TL => new(min.x, max.y);
@@ -57,6 +54,10 @@ namespace DavidUtils.Geometry.Bounding_Box
 			max = pointsInsideBound.MaxPosition();
 		}
 
+		public Bounds2D(Polygon polygon) : this(polygon.vertices)
+		{
+		}
+
 		public Bounds2D(Bounds bounds3D, bool XZplane = true)
 			: this(
 				XZplane ? bounds3D.min.ToV2xz() : bounds3D.min.ToV2xy(),
@@ -74,8 +75,26 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#endregion
 
+		#region SPACE CONVERSIONS
 
-		public Vector2 TransformNormalized(Vector2 normalized) => min + normalized * Size;
+		public Vector2 NormalizedToBoundsSpace(Vector2 point) => min + point * Size;
+
+		public Vector2 BoundsToNormalizedSpace(Vector2 point) =>
+			(point - min) * Vector2.Max(Vector2.one * 0.01f, Size).Inverse();
+
+		/// <summary>
+		///     Convierte un punto local [0,1] a un punto en el espacio de la Bounding Box
+		///     Traslada el punto al Min. Y escala al tamaño de la Bounding Box
+		/// </summary>
+		public Matrix4x4 LocalToBoundsMatrix(bool XZplane = true) =>
+			Matrix4x4.TRS(min.ToV3(XZplane), Quaternion.identity, Size.ToV3(XZplane).WithY(1));
+
+		public Matrix4x4 BoundsToLocalMatrix(bool XZplane = true) =>
+			Matrix4x4.Scale(Vector2.Max(Vector2.one * 0.1f, Size).Inverse().ToV3(XZplane).WithY(1))
+			* Matrix4x4.Translate(-min.ToV3(XZplane));
+
+		#endregion
+
 
 		#region TEST INSIDE
 

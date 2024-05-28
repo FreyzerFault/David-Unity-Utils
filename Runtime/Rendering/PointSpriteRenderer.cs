@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Sprites;
 using UnityEngine;
@@ -13,36 +14,31 @@ namespace DavidUtils.Rendering
 		public Texture2D spriteTexture;
 		public SpriteRenderer[] spriteRenderers = Array.Empty<SpriteRenderer>();
 
-		public float spriteScale = .3f;
+		public float spriteScale = 1;
 		private float heightOffset = .2f;
 
-
+		/// <summary>
+		///     Instancia SpriteRenderers en los puntos dados
+		/// </summary>
 		public override void Instantiate(Vector2[] points, string childName = null)
 		{
 			if (points.Length == 0) return;
 
-			if (spriteRenderers.Length != 0) Clear();
-
-			spriteRenderers = new SpriteRenderer[points.Length];
-			for (var i = 0; i < points.Length; i++)
-			{
-				Vector2 point = points[i];
-
-				spriteRenderers[i] =
-					SpriteGenerator.InstantiateSpriteRenderer(spriteTexture, transform, $"{childName} {i}");
-
-				// Actualiza posicion y escala
-				Transform spriteTransform = spriteRenderers[i].transform;
-				spriteTransform.SetLocalPositionAndRotation(
-					point.ToV3xz().WithY(heightOffset),
-					Quaternion.identity
-				);
-
-				// Compensa el Scale Global para verse siempre del mismo tamaño
-				spriteTransform.SetGlobalScale(Vector3.one * spriteScale);
-			}
+			spriteRenderers ??= Array.Empty<SpriteRenderer>();
+			// Concat to SpriteRenderers
+			spriteRenderers = spriteRenderers
+				.Concat(
+					new SpriteRenderer[points.Length]
+						.FillBy(
+							i => InstantiateSprite(points[i], $"{childName ?? DefaultChildName} {i}")
+						)
+				)
+				.ToArray();
 		}
 
+		/// <summary>
+		///     Update All SpriteRenderers' positions
+		/// </summary>
 		public override void UpdateGeometry(Vector2[] points)
 		{
 			// Faltan o sobran MeshRenderers para las seeds dadas
@@ -58,6 +54,13 @@ namespace DavidUtils.Rendering
 				spriteRenderers[i].transform.localPosition = points[i].ToV3xz().WithY(heightOffset);
 		}
 
+		/// <summary>
+		///     Actualiza la posicion de un Sprite Renderer
+		/// </summary>
+		public void UpdateSpriteRenderer(int i, Vector2 point) =>
+			spriteRenderers[i].transform.localPosition = point.ToV3xz().WithY(heightOffset);
+
+
 		public override void Clear()
 		{
 			base.Clear();
@@ -69,8 +72,26 @@ namespace DavidUtils.Rendering
 			spriteRenderers = Array.Empty<SpriteRenderer>();
 		}
 
-		public void MovePoint(int index, Vector2 newPos) =>
-			spriteRenderers[index].transform.localPosition = newPos.ToV3xz().WithY(heightOffset);
+		private SpriteRenderer InstantiateSprite(Vector2 point, string spriteName = null, bool XZplane = true)
+		{
+			SpriteRenderer sr = SpriteGenerator.InstantiateSpriteRenderer(
+				spriteTexture,
+				transform,
+				$"{spriteName}"
+			);
+
+			// Actualiza posicion y escala
+			Transform spriteTransform = sr.transform;
+			spriteTransform.SetLocalPositionAndRotation(
+				point.ToV3xz().WithY(heightOffset),
+				XZplane ? Quaternion.Euler(90, 0, 0) : Quaternion.identity
+			);
+
+			// Compensa el Scale Global para verse siempre del mismo tamaño
+			spriteTransform.SetGlobalScale(Vector3.one * spriteScale);
+
+			return sr;
+		}
 
 		public void ProjectOnTerrain(Terrain terrain)
 		{

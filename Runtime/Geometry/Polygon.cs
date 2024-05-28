@@ -23,10 +23,10 @@ namespace DavidUtils.Geometry
 			this.centroid = centroid;
 		}
 
-		private Vector3 ToWorldSpace(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToV3xz());
+		public Vector2 TransformCentroid(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToV3xz()).ToV2xz();
 
-		private Vector3[] VerticesToWorldSpace(Matrix4x4 matrixTRS) =>
-			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToV3xz())).ToArray();
+		public Vector2[] TransformVertices(Matrix4x4 matrixTRS) =>
+			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToV3xz()).ToV2xz()).ToArray();
 
 
 		public Vector2[] VerticesScaledByCenter(float centeredScale)
@@ -116,7 +116,7 @@ namespace DavidUtils.Geometry
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS).ToArray();
+			Vector3[] verticesInWorld = TransformVertices(mTRS).ToV3xz().ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygonWire_OnTerrain(verticesInWorld, thickness, color);
@@ -128,8 +128,8 @@ namespace DavidUtils.Geometry
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector3 centroidInWorld = ToWorldSpace(mTRS);
-			Vector3[] verticesInWorld = VerticesToWorldSpace(mTRS).ToArray();
+			Vector3 centroidInWorld = TransformCentroid(mTRS);
+			Vector3[] verticesInWorld = TransformVertices(mTRS).ToV3xz().ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color);

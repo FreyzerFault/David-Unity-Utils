@@ -53,7 +53,6 @@ namespace DavidUtils.Geometry.Generators
 			InitializeRenderer();
 			Reset();
 			GenerateSeeds();
-			OnSeedsUpdated();
 		}
 
 		protected virtual void Start() => InstantiateRenderer();
@@ -78,7 +77,18 @@ namespace DavidUtils.Geometry.Generators
 			OnSeedsUpdated();
 		}
 
-		public void GenerateSeeds() => seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
+		public void GenerateSeeds()
+		{
+			seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
+			DeleteRedundant();
+		}
+
+		private void DeleteRedundant() => seeds = seeds.Where(
+				(s1, i) => seeds
+					.Where((_, j) => j != i) // Exclude itself
+					.All(s2 => Vector2.Distance(s1, s2) > 0.01f) // Todos superan el minimo de distancia
+			)
+			.ToList();
 
 		#endregion
 

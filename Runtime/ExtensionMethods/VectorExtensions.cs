@@ -158,8 +158,8 @@ namespace DavidUtils.ExtensionMethods
 		///     Si un componente es 0 lo mantiene a 0
 		/// </summary>
 		public static Vector2 Inverse(this Vector2 v) => new(
-			v.x == 0 ? 0 : 1 / v.x,
-			v.y == 0 ? 0 : 1 / v.y
+			Mathf.Abs(v.x) < Mathf.Epsilon ? 0 : 1 / v.x,
+			Mathf.Abs(v.y) < Mathf.Epsilon ? 0 : 1 / v.y
 		);
 
 		public static Vector3 Inverse(this Vector3 v) => new(
