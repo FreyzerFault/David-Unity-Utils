@@ -93,7 +93,8 @@ namespace DavidUtils.Geometry.Generators
 		public bool runOnStart = true;
 
 		public bool animatedDelaunay = true;
-		public float delayMilliseconds = 0.1f;
+		public float delayMilliseconds = 10;
+		public float DelaySeconds => delayMilliseconds / 1000;
 		protected Coroutine animationCoroutine;
 
 		public virtual bool Animated
@@ -115,7 +116,7 @@ namespace DavidUtils.Geometry.Generators
 				{
 					delaunay.Run_OnePoint();
 					OnTrianglesUpdated();
-					yield return new WaitForSecondsRealtime(delayMilliseconds);
+					yield return new WaitForSecondsRealtime(DelaySeconds);
 				}
 			}
 			else

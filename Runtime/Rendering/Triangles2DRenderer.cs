@@ -26,6 +26,8 @@ namespace DavidUtils.Rendering
 
 		protected LineRenderer borderLine;
 
+		public float thickness = .1f;
+
 		[SerializeField] private bool wire;
 		public bool Wire
 		{
@@ -71,7 +73,7 @@ namespace DavidUtils.Rendering
 				"Border Line",
 				null,
 				new[] { Color.red },
-				.2f,
+				thickness * 2,
 				loop: true
 			);
 			borderLine.transform.Translate(Vector3.up * .1f);
@@ -139,7 +141,7 @@ namespace DavidUtils.Rendering
 		#region RENDERING 1 TRIANGLE
 
 		public void InstatiateLineRenderer(Triangle triangle, Color color, string lineName = null) =>
-			lineRenderers.Add(triangle.ToLineRenderer(lineParent, lineName ?? DefaultChildName, color));
+			lineRenderers.Add(triangle.ToLineRenderer(lineParent, lineName ?? DefaultChildName, color, thickness));
 
 		// Update Triangle Line Renderer (if no Renderer, instantiate it)
 		public void UpdateTri(Triangle triangle, int i)

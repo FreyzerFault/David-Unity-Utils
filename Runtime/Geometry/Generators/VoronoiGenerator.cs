@@ -99,7 +99,7 @@ namespace DavidUtils.Geometry.Generators
 				{
 					voronoi.Run_OneIteration();
 					OnRegionCreated(voronoi.regions[^1], RegionsCount - 1);
-					yield return new WaitForSecondsRealtime(delayMilliseconds);
+					yield return new WaitForSecondsRealtime(DelaySeconds);
 				}
 
 				DelaunayWire = delaunayWire;

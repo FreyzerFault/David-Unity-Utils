@@ -121,7 +121,7 @@ namespace DavidUtils.Rendering.Extensions
 			// COLOR
 			var colors = new Color[mf.sharedMesh.vertexCount];
 			Array.Fill(colors, color);
-			mf.sharedMesh.SetColors(colors);
+			mf.mesh.SetColors(colors);
 
 			// MATERIAL
 			mr.sharedMaterial = material ?? DefaultMaterial;
