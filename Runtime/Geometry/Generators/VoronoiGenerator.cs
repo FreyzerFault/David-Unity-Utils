@@ -153,7 +153,7 @@ namespace DavidUtils.Geometry.Generators
 
 			Renderer.Initialize();
 
-			Renderer.transform.ApplyMatrix(Bounds.LocalToBoundsMatrix());
+			Renderer.transform.ApplyMatrix(AABB.LocalToBoundsMatrix());
 		}
 
 		protected override void InstantiateRenderer()
@@ -191,7 +191,7 @@ namespace DavidUtils.Geometry.Generators
 
 		// MOUSE to COORDS in VORONOI Bounding Box
 		private Vector2 MousePosNorm =>
-			Bounds.ApplyTransform_XZ(transform.localToWorldMatrix).NormalizeMousePosition_XZ();
+			AABB.ApplyTransform_XZ(transform.localToWorldMatrix).NormalizeMousePosition_XZ();
 		private bool MouseInBounds => MousePosNorm.IsIn01();
 
 		// Region under Mouse
@@ -359,12 +359,11 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.OnDrawGizmos();
 
+			return;
+
 			if (!drawGizmos) return;
 
-			if (DrawSeeds) GizmosSeeds();
-			if (drawGrid) GizmosBoundingBox();
-
-			DrawVoronoiGizmos();
+			// DrawVoronoiGizmos();
 
 			// Mientras se Genera, dibujamos detallada la ultima region generada
 			if (voronoi.regions != null && voronoi.regions.Count != 0 && !voronoi.Ended)

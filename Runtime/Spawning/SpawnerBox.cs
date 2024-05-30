@@ -1,6 +1,5 @@
 using System.Collections;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
 using UnityEngine;
 
@@ -10,7 +9,7 @@ namespace DavidUtils.Spawning
 	{
 		[Space]
 		public Bounds bounds = new(Vector3.zero, Vector3.one);
-		protected Bounds2D Bounds2D => new(bounds);
+		protected AABB_2D AABB2D => new(bounds);
 
 		public Vector3 offset = new(0, 0, 0);
 		public Vector2 offset2D => offset.ToV2(XZplane);
@@ -55,7 +54,7 @@ namespace DavidUtils.Spawning
 			Spawn(GetRandomPointInBounds(), setRandomRotation ? RandomRotation : default);
 
 		protected Vector3 GetRandomPointInBounds() => is2D
-			? Bounds2D.GetRandomPointInBounds(offset2D).ToV3(XZplane)
+			? AABB2D.GetRandomPointInBounds(offset2D).ToV3(XZplane)
 			: bounds.GetRandomPointInBounds(offset);
 
 

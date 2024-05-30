@@ -9,7 +9,7 @@ using UnityEngine;
 namespace DavidUtils.Geometry.Bounding_Box
 {
 	[Serializable]
-	public struct Bounds2D
+	public struct AABB_2D
 	{
 		public enum Side { Left, Right, Top, Bottom }
 
@@ -40,25 +40,25 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		public bool IsNormalized => min == Vector2.zero && max == Vector2.one;
 
-		public static Bounds2D NormalizedBounds => new(Vector2.zero, Vector2.one);
+		public static AABB_2D NormalizedAABB => new(Vector2.zero, Vector2.one);
 
-		public Bounds2D(Vector2 min, Vector2 max)
+		public AABB_2D(Vector2 min, Vector2 max)
 		{
 			this.min = min;
 			this.max = max;
 		}
 
-		public Bounds2D(Vector2[] pointsInsideBound)
+		public AABB_2D(Vector2[] pointsInsideBound)
 		{
 			min = pointsInsideBound.MinPosition();
 			max = pointsInsideBound.MaxPosition();
 		}
 
-		public Bounds2D(Polygon polygon) : this(polygon.vertices)
+		public AABB_2D(Polygon polygon) : this(polygon.vertices)
 		{
 		}
 
-		public Bounds2D(Bounds bounds3D, bool XZplane = true)
+		public AABB_2D(Bounds bounds3D, bool XZplane = true)
 			: this(
 				XZplane ? bounds3D.min.ToV2xz() : bounds3D.min.ToV2xy(),
 				XZplane ? bounds3D.max.ToV2xz() : bounds3D.max.ToV2xy()
@@ -90,7 +90,9 @@ namespace DavidUtils.Geometry.Bounding_Box
 			Matrix4x4.TRS(min.ToV3(XZplane), Quaternion.identity, Size.ToV3(XZplane).WithY(1));
 
 		public Matrix4x4 BoundsToLocalMatrix(bool XZplane = true) =>
-			Matrix4x4.Scale(Vector2.Max(Vector2.one * 0.1f, Size).Inverse().ToV3(XZplane).WithY(1))
+			Matrix4x4.Scale(
+				Vector2.Max(Vector2.one * 0.1f, Size).Inverse().ToV3(XZplane) + (XZplane ? Vector3.up : Vector3.forward)
+			)
 			* Matrix4x4.Translate(-min.ToV3(XZplane));
 
 		#endregion
@@ -254,19 +256,19 @@ namespace DavidUtils.Geometry.Bounding_Box
 		#region OPERATORS
 
 		// CONVERSION OPERATOR Bounds <--> Bounds2D
-		public static implicit operator Bounds2D(Bounds bounds) =>
+		public static implicit operator AABB_2D(Bounds bounds) =>
 			new(bounds.min.ToV2xz(), bounds.max.ToV2xz());
 
-		public static implicit operator Bounds(Bounds2D bounds) =>
-			new(bounds.Center.ToV3xz(), bounds.Extent.ToV3xz());
+		public static implicit operator Bounds(AABB_2D aabb) =>
+			new(aabb.Center.ToV3xz(), aabb.Extent.ToV3xz());
 
-		public Bounds2D ApplyTransform_XY(Matrix4x4 matrix) =>
+		public AABB_2D ApplyTransform_XY(Matrix4x4 matrix) =>
 			new(
 				matrix.MultiplyPoint3x4(min.ToV3xy()).ToV2xy(),
 				matrix.MultiplyPoint3x4(max.ToV3xy()).ToV2xy()
 			);
 
-		public Bounds2D ApplyTransform_XZ(Matrix4x4 matrix) =>
+		public AABB_2D ApplyTransform_XZ(Matrix4x4 matrix) =>
 			new(
 				matrix.MultiplyPoint3x4(min.ToV3xz()).ToV2xz(),
 				matrix.MultiplyPoint3x4(max.ToV3xz()).ToV2xz()
@@ -277,8 +279,13 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#region GIZMOS
 
-		public void DrawGizmos(Matrix4x4 matrix, bool XZplane = true, float thickness = 1, Color color = default) =>
-			GizmosExtensions.DrawQuadWire(matrix * Matrix4x4.Scale(Size.ToV3(XZplane)), thickness, color, true);
+		public void DrawGizmos(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
+			GizmosExtensions.DrawQuadWire(
+				matrix * Matrix4x4.TRS(min, Quaternion.identity, Size),
+				thickness,
+				color,
+				true
+			);
 
 		#endregion
 	}
@@ -287,14 +294,14 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 	public static class Bounds2DExtensions
 	{
-		public static Bounds2D GetBoundingBox(this Vector2[] points) => new(points);
+		public static AABB_2D GetBoundingBox(this Vector2[] points) => new(points);
 
 		/// <summary>
 		///     Devuelve un punto aleatorio dentro de los limites de la Bounding Box.
 		///     Respetando un offset para que objetos extensos no sobresalgan.
 		/// </summary>
-		public static Vector2 GetRandomPointInBounds(this Bounds2D bounds, Vector2 offsetPadding) =>
-			VectorExtensions.GetRandomPos(bounds.min + offsetPadding, bounds.max - offsetPadding);
+		public static Vector2 GetRandomPointInBounds(this AABB_2D aabb, Vector2 offsetPadding) =>
+			VectorExtensions.GetRandomPos(aabb.min + offsetPadding, aabb.max - offsetPadding);
 	}
 
 	#endregion

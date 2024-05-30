@@ -80,7 +80,7 @@ namespace Geometry.Algorithms
 		{
 			var vertices = new List<Vector2>();
 			Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
-			Bounds2D bounds = Bounds2D.NormalizedBounds;
+			AABB_2D aabb = AABB_2D.NormalizedAABB;
 
 			// Obtenemos cada circuncentro CCW
 			vertices.AddRange(regionTris.Select(t => t.GetCircumcenter()));
@@ -97,7 +97,7 @@ namespace Geometry.Algorithms
 				{
 					// Para cada triangulo del borde, si el circuncentro no esta fuera de la Bounding Box
 					// Extendemos la mediatriz de la arista del borde hasta la Bounding Box hasta que intersecte
-					if (bounds.OutOfBounds(t.GetCircumcenter())) continue;
+					if (aabb.OutOfBounds(t.GetCircumcenter())) continue;
 
 					for (var i = 0; i < 3; i++)
 					{
@@ -110,7 +110,7 @@ namespace Geometry.Algorithms
 						// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
 						// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
 						// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
-						Vector2[] intersections = bounds.Intersections_Ray(edge.Median, edge.MediatrizRight).ToArray();
+						Vector2[] intersections = aabb.Intersections_Ray(edge.Median, edge.MediatrizRight).ToArray();
 
 						vertices.AddRange(intersections);
 					}
@@ -124,18 +124,18 @@ namespace Geometry.Algorithms
 
 			// RECORTE
 			// Clampeamos cada Region a la Bounding Box
-			vertices = bounds.CropPolygon(vertices.ToArray()).ToList();
+			vertices = aabb.CropPolygon(vertices.ToArray()).ToList();
 
 			if (vertices.Count <= 2) return new Polygon(vertices.ToArray(), seed);
 
 			// ESQUINAS
 			// Añadimos las esquinas de la Bounding Box, buscando las regiones que tengan vertices pertenecientes a dos bordes distintos
-			Bounds2D.Side? lastBorderSide;
-			bool lastIsOnBorder = bounds.PointOnBorder(vertices[^1], out lastBorderSide);
+			AABB_2D.Side? lastBorderSide;
+			bool lastIsOnBorder = aabb.PointOnBorder(vertices[^1], out lastBorderSide);
 			for (var i = 0; i < vertices.Count; i++)
 			{
 				Vector2 vertex = vertices[i];
-				bool isOnBorder = bounds.PointOnBorder(vertex, out Bounds2D.Side? borderSide);
+				bool isOnBorder = aabb.PointOnBorder(vertex, out AABB_2D.Side? borderSide);
 				if (!isOnBorder || !lastIsOnBorder || lastBorderSide.Value == borderSide.Value)
 				{
 					lastIsOnBorder = isOnBorder;
@@ -144,7 +144,7 @@ namespace Geometry.Algorithms
 				}
 
 				// Solo añadimos la esquina si el vertice y su predecesor pertenecen a dos bordes distintos
-				Vector2 corner = bounds.GetCorner(lastBorderSide.Value, borderSide.Value);
+				Vector2 corner = aabb.GetCorner(lastBorderSide.Value, borderSide.Value);
 				vertices.Insert(i, corner);
 				break;
 			}
@@ -243,12 +243,12 @@ namespace Geometry.Algorithms
 
 		public void DrawRegionGizmos_Detailed(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false)
 		{
-			Bounds2D bounds = Bounds2D.NormalizedBounds;
+			AABB_2D aabb = AABB_2D.NormalizedAABB;
 
 			// VERTEX in Bounding Box Edges
 			foreach (Vector2 vertex in region.vertices)
 			{
-				Gizmos.color = bounds.PointOnBorder(vertex, out Bounds2D.Side? _) ? Color.red : Color.green;
+				Gizmos.color = aabb.PointOnBorder(vertex, out AABB_2D.Side? _) ? Color.red : Color.green;
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToV3xz()), .1f);
 			}
 
@@ -260,10 +260,10 @@ namespace Geometry.Algorithms
 				// CIRCUNCENTROS
 				Vector2 c = t.GetCircumcenter();
 
-				Gizmos.color = bounds.OutOfBounds(c) ? Color.red : Color.green;
+				Gizmos.color = aabb.OutOfBounds(c) ? Color.red : Color.green;
 				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(c.ToV3xz()), .05f);
 
-				if (!t.IsBorder || bounds.OutOfBounds(c)) continue;
+				if (!t.IsBorder || aabb.OutOfBounds(c)) continue;
 
 				// BORDER EDGE
 				foreach (Edge borderEdge in t.BorderEdges)
@@ -273,7 +273,7 @@ namespace Geometry.Algorithms
 					// Interseccion con la Bounding Box hacia fuera del triangulo
 					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
 					Vector2 intersections =
-						bounds.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRight).First();
+						aabb.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRight).First();
 
 					Vector3 a = matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz());
 					Vector3 b = matrix.MultiplyPoint3x4(intersections.ToV3xz());

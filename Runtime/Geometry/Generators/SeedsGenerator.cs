@@ -4,7 +4,6 @@ using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
-using DavidUtils.TerrainExtensions;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -38,9 +37,9 @@ namespace DavidUtils.Geometry.Generators
 		#region BOUNDS
 
 		[Space] protected BoundsComponent boundsComp;
-		public Bounds2D Bounds => boundsComp?.bounds2D ?? (boundsComp = GetComponent<BoundsComponent>()).bounds2D;
+		public AABB_2D AABB => boundsComp?.aabb2D ?? (boundsComp = GetComponent<BoundsComponent>()).aabb2D;
 
-		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * Bounds.LocalToBoundsMatrix();
+		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * AABB.LocalToBoundsMatrix();
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix.MultiplyPoint3x4(pos.ToV3xz());
 
 		#endregion
@@ -146,7 +145,7 @@ namespace DavidUtils.Geometry.Generators
 			                   ?? UnityUtils.InstantiateEmptyObject(transform, "Seeds Renderer")
 				                   .AddComponent<Points2DRenderer>();
 
-			Renderer.transform.ApplyMatrix(Bounds.LocalToBoundsMatrix());
+			Renderer.transform.ApplyMatrix(AABB.LocalToBoundsMatrix());
 			Renderer.transform.Translate(Vector3.up * .5f);
 		}
 
@@ -259,17 +258,13 @@ namespace DavidUtils.Geometry.Generators
 
 		#region DEBUG
 
-		protected bool drawGizmos = false;
+		public bool drawGizmos;
 		public bool drawGrid = true;
-
-		private static readonly int BaseColorId = Shader.PropertyToID("_Base_Color");
 
 		// Draw Quad Bounds and Grid if Seed Distribution is Regular along a Grid
 		protected virtual void OnDrawGizmos()
 		{
 			if (!drawGizmos) return;
-
-			if (DrawSeeds) GizmosSeeds();
 			if (drawGrid) GizmosBoundingBox();
 		}
 
@@ -298,17 +293,6 @@ namespace DavidUtils.Geometry.Generators
 				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, matrix, 5, color);
 			else
 				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
-		}
-
-		protected void GizmosSeeds()
-		{
-			Gizmos.color = Renderer.colors?.Length > 0 ? Renderer.colors[0] : Color.grey;
-			for (var i = 0; i < seeds.Count; i++)
-			{
-				if (Renderer.colors?.Length > 0)
-					Gizmos.color = Renderer.colors[i];
-				Gizmos.DrawSphere(CanProjectOnTerrain ? Terrain.Project(ToWorld(seeds[i])) : ToWorld(seeds[i]), 0.1f);
-			}
 		}
 
 		#endregion

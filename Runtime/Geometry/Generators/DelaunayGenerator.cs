@@ -170,7 +170,7 @@ namespace DavidUtils.Geometry.Generators
 
 			Renderer.Initialize();
 
-			Renderer.transform.ApplyMatrix(Bounds.LocalToBoundsMatrix());
+			Renderer.transform.ApplyMatrix(AABB.LocalToBoundsMatrix());
 			Renderer.transform.Translate(Vector3.up * .5f);
 		}
 
@@ -216,6 +216,8 @@ namespace DavidUtils.Geometry.Generators
 		protected override void OnDrawGizmos()
 		{
 			base.OnDrawGizmos();
+
+			return;
 
 			if (!drawGizmos) return;
 

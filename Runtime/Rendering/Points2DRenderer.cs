@@ -94,5 +94,31 @@ namespace DavidUtils.Rendering
 				sphere.transform.position = pos;
 			}
 		}
+
+		#region DEBUG
+
+#if UNITY_EDITOR
+
+		public bool drawGizmos;
+
+		private void OnDrawGizmos()
+		{
+			if (!drawGizmos) return;
+
+			Gizmos.color = colors?.Length > 0 ? colors[0] : Color.grey;
+			for (var i = 0; i < spheresMr.Length; i++)
+			{
+				if (colors?.Length > 0)
+					Gizmos.color = colors[i];
+				Gizmos.DrawSphere(
+					transform.localToWorldMatrix.MultiplyPoint3x4(spheresMr[i].transform.position),
+					sphereScale
+				);
+			}
+		}
+
+#endif
+
+		#endregion
 	}
 }

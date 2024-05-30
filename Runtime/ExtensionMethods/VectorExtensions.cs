@@ -130,6 +130,39 @@ namespace DavidUtils.ExtensionMethods
 		#endregion
 
 
+		#region ROTATION
+
+		public static Vector3 Rotate(this Vector3 v, Quaternion q) => q * v;
+		public static Vector2 Rotate(this Vector2 v, Quaternion q) => q * v;
+
+		public static Vector3 Rotate(this Vector3 v, float angle, Vector3 axis) =>
+			Quaternion.AngleAxis(angle, axis) * v;
+
+		public static Vector2 Rotate(this Vector2 v, float angle) =>
+			Quaternion.AngleAxis(angle, Vector3.forward) * v;
+
+		public static Vector2 Rotate(this Vector2 v, float angle, Vector2 center) =>
+			Quaternion.AngleAxis(angle, Vector3.forward) * (v - center) + center.ToV3xy();
+
+		// ARRAY
+		public static IEnumerable<Vector3> Rotate(this IEnumerable<Vector3> points, Quaternion q) =>
+			points.Select(p => p.Rotate(q));
+
+		public static IEnumerable<Vector2> Rotate(this IEnumerable<Vector2> points, Quaternion q) =>
+			points.Select(p => p.Rotate(q));
+
+		public static IEnumerable<Vector3> Rotate(this IEnumerable<Vector3> points, float angle, Vector3 axis) =>
+			points.Select(p => p.Rotate(angle, axis));
+
+		public static IEnumerable<Vector2> Rotate(this IEnumerable<Vector2> points, float angle) =>
+			points.Select(p => p.Rotate(angle));
+
+		public static IEnumerable<Vector2> Rotate(this IEnumerable<Vector2> points, float angle, Vector2 center) =>
+			points.Select(p => p.Rotate(angle, center));
+
+		#endregion
+
+
 		#region SCALE
 
 		/// <summary>

@@ -335,7 +335,7 @@ namespace Geometry.Algorithms
 
 		public Triangle[] GetBoundingBoxTriangles()
 		{
-			var bounds = new Bounds2D(Vector2.one * -.1f, Vector2.one * 1.1f);
+			var bounds = new AABB_2D(Vector2.one * -.1f, Vector2.one * 1.1f);
 			var t1 = new Triangle(bounds.BR, bounds.TL, bounds.BL);
 			var t2 = new Triangle(bounds.TL, bounds.BR, bounds.TR);
 
@@ -463,6 +463,7 @@ namespace Geometry.Algorithms
 
 
 		#region DEBUG
+
 #if UNITY_EDITOR
 
 
@@ -505,6 +506,7 @@ namespace Geometry.Algorithms
 
 
 #endif
+
 		#endregion
 	}
 }
