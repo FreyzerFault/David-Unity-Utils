@@ -66,55 +66,40 @@ namespace DavidUtils.Rendering
 				InitializeBorderLine();
 		}
 
-		private void InitializeBorderLine()
-		{
-			borderLine = LineRendererExtensions.ToLineRenderer(
-				transform,
-				"Border Line",
-				null,
-				new[] { Color.red },
-				thickness * 2,
-				loop: true
-			);
-			borderLine.transform.Translate(Vector3.up * .1f);
-		}
-
-		public override void Instantiate(Triangle[] points, string childName = null)
+		public override void Instantiate(Triangle[] polygons, string childName = null)
 		{
 			if (lineRenderers.Count != 0) Clear();
 
-			if (points.Length != colors.Length) SetRainbowColors(points.Length);
+			if (polygons.Length != colors.Length) SetRainbowColors(polygons.Length);
 
-			InstantiateMesh(points);
+			InstantiateMesh(polygons);
 		}
 
-		public override void UpdateGeometry(Triangle[] points)
+		public override void UpdateGeometry(Triangle[] regions)
 		{
-			if (points.Length == 0) return;
+			if (regions.Length == 0) return;
 
-			if (points.Length != colors.Length) SetRainbowColors(points.Length);
+			if (regions.Length != colors.Length) SetRainbowColors(regions.Length);
 
-			InstantiateMesh(points);
-			UpdateBorderLine(points);
+			InstantiateMesh(regions);
+			UpdateBorderLine(regions);
 
 			// LINE
-			for (var i = 0; i < points.Length; i++) UpdateTri(points[i], i);
+			for (var i = 0; i < regions.Length; i++) UpdateTri(regions[i], i);
 
 			// Elimina los Renderers sobrantes
-			int removeCount = lineRenderers.Count - points.Length;
+			int removeCount = lineRenderers.Count - regions.Length;
 			if (removeCount <= 0) return;
 
-			for (int i = points.Length; i < lineRenderers.Count; i++)
+			for (int i = regions.Length; i < lineRenderers.Count; i++)
 				Destroy(lineRenderers[i].gameObject);
 
-			lineRenderers.RemoveRange(points.Length, removeCount);
+			lineRenderers.RemoveRange(regions.Length, removeCount);
 		}
 
 		public override void Clear()
 		{
 			base.Clear();
-
-			if (lineRenderers == null) ;
 
 			foreach (LineRenderer t in lineRenderers)
 				UnityUtils.DestroySafe(t);
@@ -153,7 +138,7 @@ namespace DavidUtils.Rendering
 			}
 			else
 			{
-				lineRenderers[i].SetPoints(triangle.Vertices3D_XZ.ToArray());
+				lineRenderers[i].SetPoints(triangle.Vertices);
 			}
 		}
 
@@ -162,11 +147,20 @@ namespace DavidUtils.Rendering
 
 		#region BORDER
 
+		private void InitializeBorderLine() => borderLine = LineRendererExtensions.ToLineRenderer(
+			transform,
+			"Border Line",
+			null,
+			new[] { Color.red },
+			thickness * 2,
+			loop: true
+		);
+
 		public void UpdateBorderLine(Triangle[] tris)
 		{
 			Vector2[] points = tris.SelectMany(t => t.BorderEdges.Select(e => e.begin)).ToArray();
 			points = points.SortByAngle(points.Center());
-			borderLine.SetPoints(points.ToV3xz().ToArray());
+			borderLine.SetPoints(points);
 		}
 
 		#endregion

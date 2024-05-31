@@ -77,6 +77,8 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#region SPACE CONVERSIONS
 
+		public static Quaternion RotationToXZplane => Quaternion.AngleAxis(90, Vector3.right);
+
 		public Vector2 NormalizedToBoundsSpace(Vector2 point) => min + point * Size;
 
 		public Vector2 BoundsToNormalizedSpace(Vector2 point) =>
@@ -87,7 +89,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		///     Traslada el punto al Min. Y escala al tamaño de la Bounding Box
 		/// </summary>
 		public Matrix4x4 LocalToBoundsMatrix(bool XZplane = true) =>
-			Matrix4x4.TRS(min.ToV3(XZplane), Quaternion.identity, Size.ToV3(XZplane).WithY(1));
+			Matrix4x4.TRS(min, XZplane ? RotationToXZplane : Quaternion.identity, Size.ToV3xy().WithZ(1));
 
 		public Matrix4x4 BoundsToLocalMatrix(bool XZplane = true) =>
 			Matrix4x4.Scale(
@@ -283,8 +285,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			GizmosExtensions.DrawQuadWire(
 				matrix * Matrix4x4.TRS(min, Quaternion.identity, Size),
 				thickness,
-				color,
-				true
+				color
 			);
 
 		#endregion

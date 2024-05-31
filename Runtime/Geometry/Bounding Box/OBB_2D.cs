@@ -38,10 +38,11 @@ namespace DavidUtils.Geometry.Bounding_Box
 			// Rotamos los puntos para que el up sea Vector2.up
 			// Calculamos el AABB y lo rotamos de vuelta a su up original
 			this.up = up;
-			points.Rotate(-Angle);
+			Vector2 centroid = points.Center();
+			points.Rotate(-Angle, centroid);
 			var aabb = new AABB_2D(points);
-			min = aabb.min.Rotate(Angle);
-			max = aabb.max.Rotate(Angle);
+			min = aabb.min.Rotate(Angle, centroid);
+			max = aabb.max.Rotate(Angle, centroid);
 		}
 
 		public OBB_2D(Polygon polygon, Vector2 up) : this(polygon.vertices, up)
@@ -54,13 +55,9 @@ namespace DavidUtils.Geometry.Bounding_Box
 		/// </summary>
 		public bool Contains(Vector2 point) => AABB_Rotated.Contains(point.Rotate(-Angle, min));
 
-		public void DrawGizmos(Matrix4x4 matrix, Color color, float thickness = 1f, bool XZplane = true) =>
+		public void DrawGizmos(Matrix4x4 matrix, Color color, float thickness = 1f) =>
 			GizmosExtensions.DrawQuadWire(
-				matrix * Matrix4x4.TRS(
-					min.ToV3(XZplane),
-					Quaternion.AngleAxis(-90, Vector3.right) * Rotation,
-					Diagonal
-				),
+				matrix * Matrix4x4.TRS(min, Rotation, AABB_Rotated.Size),
 				color: color,
 				thickness: thickness
 			);

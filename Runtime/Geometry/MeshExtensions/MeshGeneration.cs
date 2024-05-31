@@ -10,16 +10,16 @@ namespace DavidUtils.Geometry.MeshExtensions
 		#region TRIANGLE MESH
 
 		// TRIANGLEs => MESH (1 Color / Triangle)
-		public static Mesh CreateMesh(this Triangle[] tris, Color[] colors = null, bool XZplane = true)
+		public static Mesh CreateMesh(this Triangle[] tris, Color[] colors = null)
 		{
 			int[] indices = new int[tris.Length * 3].Select((_, index) => index).ToArray();
 			var vertices = new Vector3[tris.Length * 3];
 			for (var i = 0; i < tris.Length; i++)
 			{
 				Triangle t = tris[i];
-				vertices[i * 3 + 0] = t.v3.ToV3xz();
-				vertices[i * 3 + 1] = t.v2.ToV3xz();
-				vertices[i * 3 + 2] = t.v1.ToV3xz();
+				vertices[i * 3 + 0] = t.v3;
+				vertices[i * 3 + 1] = t.v2;
+				vertices[i * 3 + 2] = t.v1;
 			}
 
 			var mesh = new Mesh
@@ -31,27 +31,24 @@ namespace DavidUtils.Geometry.MeshExtensions
 			if (colors != null)
 				mesh.SetColors(colors.SelectMany(c => new[] { c, c, c }).ToArray());
 
-			mesh.normals = mesh.vertices.Select(v => XZplane ? Vector3.up : Vector3.back).ToArray();
-			mesh.bounds = tris
-				.SelectMany(t => t.Vertices)
-				.Select(p => XZplane ? p.ToV3xz() : p.ToV3xy())
-				.ToArray()
-				.GetBoundingBox();
+			mesh.normals = mesh.vertices.Select(v => Vector3.back).ToArray();
+
+			mesh.bounds = tris.SelectMany(t => t.Vertices).GetBoundingBox();
 
 			return mesh;
 		}
 
 		// TRIANGLEs => MESH (single COLOR)
-		public static Mesh CreateMesh(this Triangle[] tris, Color color = default, bool XZplane = true) =>
-			tris.CreateMesh(tris.Select(_ => color).ToArray(), XZplane);
+		public static Mesh CreateMesh(this Triangle[] tris, Color color = default) =>
+			tris.CreateMesh(tris.Select(_ => color).ToArray());
 
 		// SINGLE TRIANGLE
-		public static Mesh CreateMesh(this Triangle triangle, Color color = default, bool XZplane = true) =>
-			CreateMesh(new[] { triangle }, new[] { color }, XZplane);
+		public static Mesh CreateMesh(this Triangle triangle, Color color = default) =>
+			CreateMesh(new[] { triangle }, new[] { color });
 
 		// POLYGON => TRIANGLEs => MESH
-		public static Mesh CreateMesh(this Polygon polygon, Color color = default, bool XZplane = true) =>
-			CreateMesh(polygon.Triangulate(), color, XZplane);
+		public static Mesh CreateMesh(this Polygon polygon, Color color = default) =>
+			CreateMesh(polygon.Triangulate(), color);
 
 		#endregion
 

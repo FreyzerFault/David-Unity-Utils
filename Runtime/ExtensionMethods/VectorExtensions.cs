@@ -78,11 +78,11 @@ namespace DavidUtils.ExtensionMethods
 
 		#region 3D to 2D
 
-		public static Vector2 ToV2(this Vector3 v, bool XZplane = true) => XZplane ? v.ToV2xz() : v.ToV2xy();
+		public static Vector2 ToV2(this Vector3 v, bool XZplane = false) => XZplane ? v.ToV2xz() : v.ToV2xy();
 		public static Vector2 ToV2xz(this Vector3 v) => new(v.x, v.z);
 		public static Vector2 ToV2xy(this Vector3 v) => new(v.x, v.y);
 
-		public static IEnumerable<Vector2> ToV2(this IEnumerable<Vector3> v, bool XZplane = true) =>
+		public static IEnumerable<Vector2> ToV2(this IEnumerable<Vector3> v, bool XZplane = false) =>
 			XZplane ? v.ToV2xz() : v.ToV2xy();
 
 		public static IEnumerable<Vector2> ToV2xz(this IEnumerable<Vector3> v) => v.Select(ToV2xz);
@@ -93,11 +93,11 @@ namespace DavidUtils.ExtensionMethods
 
 		#region 2D to 3D
 
-		public static Vector3 ToV3(this Vector2 v, bool XZplane = true) => XZplane ? v.ToV3xz() : v.ToV3xy();
+		public static Vector3 ToV3(this Vector2 v, bool XZplane = false) => XZplane ? v.ToV3xz() : v.ToV3xy();
 		public static Vector3 ToV3xz(this Vector2 v) => new(v.x, 0, v.y);
 		public static Vector3 ToV3xy(this Vector2 v) => new(v.x, v.y, 0);
 
-		public static IEnumerable<Vector3> ToV3(this IEnumerable<Vector2> v, bool XZplane = true) =>
+		public static IEnumerable<Vector3> ToV3(this IEnumerable<Vector2> v, bool XZplane = false) =>
 			XZplane ? v.ToV3xz() : v.ToV3xy();
 
 		public static IEnumerable<Vector3> ToV3xz(this IEnumerable<Vector2> v) => v.Select(ToV3xz);
@@ -168,10 +168,11 @@ namespace DavidUtils.ExtensionMethods
 		/// <summary>
 		///     Sets the Global Scale of the source Transform.
 		/// </summary>
-		public static Transform SetGlobalScale(this Transform source, Vector3 targetGlobalScale)
+		public static Transform SetGlobalScale(this Transform transform, Vector3 targetGlobalScale)
 		{
-			source.localScale = targetGlobalScale.ScaleBy(source.lossyScale.Inverse()).ScaleBy(source.localScale);
-			return source;
+			transform.localScale =
+				targetGlobalScale.ScaleBy(transform.lossyScale.Inverse()).ScaleBy(transform.localScale);
+			return transform;
 		}
 
 		/// <summary>
@@ -240,12 +241,16 @@ namespace DavidUtils.ExtensionMethods
 
 		#region BOUNDING BOX
 
-		public static Bounds GetBoundingBox(this Vector3[] points)
+		public static Bounds GetBoundingBox(this IEnumerable<Vector3> points)
 		{
+			points = points as Vector3[] ?? points.ToArray();
 			Vector3 min = points.MinPosition(), max = points.MaxPosition();
 			Vector3 size = max - min;
 			return new Bounds(min + size / 2, size);
 		}
+
+		public static Bounds GetBoundingBox(this IEnumerable<Vector2> points) =>
+			points.ToV3().ToArray().GetBoundingBox();
 
 		public static Vector2 MinPosition(this IEnumerable<Vector2> points) =>
 			points.Aggregate(

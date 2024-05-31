@@ -14,7 +14,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 		{
 			int oldVertexCount = mesh.vertexCount;
 			mesh.SetVertices(
-				newTriangles.SelectMany(t => new[] { t.v3.ToV3xz(), t.v2.ToV3xz(), t.v1.ToV3xz() }).ToArray()
+				newTriangles.SelectMany(t => new[] { t.v3, t.v2, t.v1 }).ToV3().ToArray()
 			);
 
 			mesh.RecalculateBounds();
@@ -36,8 +36,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 			int oldVertexCount = mesh.vertexCount;
 			Triangle[] tris = polygon.Triangulate();
 
-			Vector3[] newVertices =
-				tris.SelectMany(t => new[] { t.v3.ToV3xz(), t.v2.ToV3xz(), t.v1.ToV3xz() }).ToArray();
+			Vector3[] newVertices = tris.SelectMany(t => new[] { t.v3, t.v2, t.v1 }).ToV3().ToArray();
 
 			// Indices, Normales y Colores no deberian cambiar si el numero de vertices no cambia
 			if (oldVertexCount == tris.Length * 3)
@@ -65,7 +64,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 			mesh.SetColors(colors);
 		}
 
-		public static void SetNormal(this Mesh mesh, Vector3 normal, bool XZplane = true)
+		public static void SetNormal(this Mesh mesh, Vector3 normal)
 		{
 			var normals = new Vector3[mesh.vertexCount];
 			Array.Fill(normals, normal);

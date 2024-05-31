@@ -56,9 +56,8 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshFilter mf,
 			Transform parent = null,
 			string name = "Triangle",
-			Color color = default,
-			bool XZplane = true
-		) => InstantiateMeshRenderer(out mr, out mf, triangle.CreateMesh(color, XZplane), parent, name);
+			Color color = default
+		) => InstantiateMeshRenderer(out mr, out mf, triangle.CreateMesh(color), parent, name);
 
 		// TRIANGLES
 		public static void InstantiateMesh(
@@ -67,9 +66,8 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshFilter mf,
 			Transform parent = null,
 			string name = "Triangle Mesh",
-			Color[] colors = default,
-			bool XZplane = true
-		) => InstantiateMeshRenderer(out mr, out mf, triangles.CreateMesh(colors, XZplane), parent, name);
+			Color[] colors = default
+		) => InstantiateMeshRenderer(out mr, out mf, triangles.CreateMesh(colors), parent, name);
 
 		// POLYGON
 		public static void InstantiateMesh(
@@ -78,9 +76,8 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshFilter mf,
 			Transform parent = null,
 			string name = "Polygon",
-			Color color = default,
-			bool XZplane = true
-		) => InstantiateMeshRenderer(out mr, out mf, polygon.CreateMesh(color, XZplane), parent, name);
+			Color color = default
+		) => InstantiateMeshRenderer(out mr, out mf, polygon.CreateMesh(color), parent, name);
 
 		#endregion
 

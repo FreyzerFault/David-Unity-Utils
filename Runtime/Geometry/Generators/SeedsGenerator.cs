@@ -36,10 +36,11 @@ namespace DavidUtils.Geometry.Generators
 
 		#region BOUNDS
 
-		[Space] protected BoundsComponent boundsComp;
-		public AABB_2D AABB => boundsComp?.aabb2D ?? (boundsComp = GetComponent<BoundsComponent>()).aabb2D;
+		[Space] private BoundsComponent boundsComp;
+		public BoundsComponent BoundsComp => boundsComp ??= GetComponent<BoundsComponent>();
+		public AABB_2D AABB => BoundsComp.aabb2D;
 
-		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * AABB.LocalToBoundsMatrix();
+		public Matrix4x4 LocalToWorldMatrix => BoundsComp.LocalToWorldMatrix;
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix.MultiplyPoint3x4(pos.ToV3xz());
 
 		#endregion
@@ -145,7 +146,9 @@ namespace DavidUtils.Geometry.Generators
 			                   ?? UnityUtils.InstantiateEmptyObject(transform, "Seeds Renderer")
 				                   .AddComponent<Points2DRenderer>();
 
-			Renderer.transform.ApplyMatrix(AABB.LocalToBoundsMatrix());
+
+			BoundsComp.AdjustTransformToBounds(Renderer);
+
 			Renderer.transform.Translate(Vector3.up * .5f);
 		}
 
@@ -265,34 +268,18 @@ namespace DavidUtils.Geometry.Generators
 		protected virtual void OnDrawGizmos()
 		{
 			if (!drawGizmos) return;
-			if (drawGrid) GizmosBoundingBox();
+			if (drawGrid) GizmosGrid(Color.blue);
 		}
 
-		protected void GizmosBoundingBox()
+		private void GizmosGrid(Color color = default, float thickness = 2)
 		{
-			Matrix4x4 matrix = transform.localToWorldMatrix;
-			Color gridColor = Color.blue;
-			if (seedsDistribution == SeedsDistribution.Random)
-				GizmosBoundingBox(matrix, gridColor);
-			else
-				GizmosGrid(matrix, gridColor);
-		}
+			if (seeds.IsNullOrEmpty()) return;
 
-		private void GizmosBoundingBox(Matrix4x4 matrix, Color color = default)
-		{
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
 			if (CanProjectOnTerrain)
-				GizmosExtensions.DrawQuadWire_OnTerrain(matrix, 5, color);
+				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, LocalToWorldMatrix, thickness, color);
 			else
-				GizmosExtensions.DrawQuadWire(matrix, 5, color);
-		}
-
-		private void GizmosGrid(Matrix4x4 matrix, Color color = default)
-		{
-			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(seeds.Count));
-			if (CanProjectOnTerrain)
-				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, matrix, 5, color);
-			else
-				GizmosExtensions.DrawGrid(cellRows, cellRows, matrix, 5, color);
+				GizmosExtensions.DrawGrid(cellRows, cellRows, LocalToWorldMatrix, thickness, color);
 		}
 
 		#endregion

@@ -17,7 +17,7 @@ namespace DavidUtils.Geometry.Generators
 		[Header("VORONOI")]
 		public Voronoi voronoi;
 
-		public Polygon[] Regions => voronoi.regions.ToArray();
+		public Polygon[] Regions => voronoi?.regions?.ToArray();
 		public int RegionsCount => voronoi.regions.Count;
 
 		#endregion
@@ -153,7 +153,7 @@ namespace DavidUtils.Geometry.Generators
 
 			Renderer.Initialize();
 
-			Renderer.transform.ApplyMatrix(AABB.LocalToBoundsMatrix());
+			BoundsComp.AdjustTransformToBounds(Renderer);
 		}
 
 		protected override void InstantiateRenderer()

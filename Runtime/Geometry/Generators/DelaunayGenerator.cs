@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using Geometry.Algorithms;
 using UnityEngine;
@@ -170,8 +169,9 @@ namespace DavidUtils.Geometry.Generators
 
 			Renderer.Initialize();
 
-			Renderer.transform.ApplyMatrix(AABB.LocalToBoundsMatrix());
-			Renderer.transform.Translate(Vector3.up * .5f);
+			BoundsComp.AdjustTransformToBounds(Renderer);
+
+			Renderer.transform.localPosition += Vector3.up * .5f;
 		}
 
 		protected override void InstantiateRenderer()

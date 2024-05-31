@@ -91,19 +91,19 @@ namespace DavidUtils.DebugUtils
 			float cellRows, float cellCols, Matrix4x4 matrix, float thickness = 1, Color color = default
 		)
 		{
+			// rowSize = 1 / rows; colSize = 1 / cols
 			Vector2 cellSize = Vector2.one / new Vector2(cellRows, cellCols);
 
 			for (var y = 0; y < cellRows; y++)
 			for (var x = 0; x < cellRows; x++)
-				DrawQuadWire(
-					matrix * Matrix4x4.TRS(
-						new Vector3(x * cellSize.x, 0, y * cellSize.y),
-						Quaternion.identity,
-						cellSize.ToV3xz()
-					),
-					thickness,
-					color
+			{
+				Matrix4x4 cellMatrix = matrix * Matrix4x4.TRS(
+					new Vector2(x, y) * cellSize,
+					Quaternion.identity,
+					cellSize
 				);
+				DrawQuadWire(cellMatrix, thickness, color);
+			}
 		}
 
 		#endregion
@@ -204,6 +204,29 @@ namespace DavidUtils.DebugUtils
 			{
 				Handles.DrawSolidDisc(pos, normal, radius);
 			}
+		}
+
+		#endregion
+
+		#region CUBE
+
+		public static void DrawCube(Matrix4x4 matrix, Color color = default, bool centered = true)
+		{
+			Gizmos.color = color;
+			Gizmos.DrawCube(
+				matrix.MultiplyPoint3x4(centered ? Vector3.zero : Vector3.one / 2),
+				matrix.MultiplyPoint3x4(Vector3.one / 2)
+			);
+		}
+
+		public static void DrawCubeWire(
+			Matrix4x4 matrix, float thickness = DEFAULT_THICKNESS, Color color = default, bool centered = true
+		)
+		{
+			Gizmos.color = color;
+			Vector3 pos = matrix.MultiplyPoint3x4(centered ? Vector3.zero : Vector3.one / 2),
+				extent = matrix.MultiplyPoint3x4(Vector3.one) * 2;
+			Gizmos.DrawWireCube(pos, extent);
 		}
 
 		#endregion

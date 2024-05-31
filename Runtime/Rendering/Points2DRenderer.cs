@@ -15,20 +15,20 @@ namespace DavidUtils.Rendering
 		[Range(0.1f, 1)]
 		public float sphereScale = .5f;
 
-		public override void Instantiate(Vector2[] points, string childName = null)
+		public override void Instantiate(Vector2[] polygons, string childName = null)
 		{
-			if (points.Length == 0) return;
+			if (polygons.Length == 0) return;
 
 			if (spheresMr.Length != 0) Clear();
 
-			if (colors.Length != points.Length)
-				SetRainbowColors(points.Length);
+			if (colors.Length != polygons.Length)
+				SetRainbowColors(polygons.Length);
 
 
-			spheresMr = new MeshRenderer[points.Length];
-			for (var i = 0; i < points.Length; i++)
+			spheresMr = new MeshRenderer[polygons.Length];
+			for (var i = 0; i < polygons.Length; i++)
 			{
-				Vector2 point = points[i];
+				Vector2 point = polygons[i];
 
 				MeshRendererExtensions.InstantiateSphere(
 					out MeshRenderer mr,
@@ -43,10 +43,7 @@ namespace DavidUtils.Rendering
 
 				// Actualiza posicion y escala
 				Transform sphereTransform = mr.transform;
-				sphereTransform.SetLocalPositionAndRotation(
-					point.ToV3xz(),
-					Quaternion.identity
-				);
+				sphereTransform.SetLocalPositionAndRotation(point, Quaternion.identity);
 
 				// Compensa el Scale Global para verse siempre del mismo tamaño
 				sphereTransform.SetGlobalScale(Vector3.one * sphereScale);
@@ -56,19 +53,19 @@ namespace DavidUtils.Rendering
 			}
 		}
 
-		public override void UpdateGeometry(Vector2[] points)
+		public override void UpdateGeometry(Vector2[] regions)
 		{
 			// Faltan o sobran MeshRenderers para los puntos dados
-			if (spheresMr.Length != points.Length)
+			if (spheresMr.Length != regions.Length)
 			{
 				Clear();
-				Instantiate(points);
+				Instantiate(regions);
 				return;
 			}
 
 			// Actualiza la posición de las semillas
 			for (var i = 0; i < spheresMr.Length; i++)
-				spheresMr[i].transform.localPosition = points[i].ToV3xz();
+				spheresMr[i].transform.localPosition = regions[i];
 		}
 
 		public override void Clear()
@@ -83,7 +80,7 @@ namespace DavidUtils.Rendering
 		}
 
 		public void MovePoint(int index, Vector2 newPos) =>
-			spheresMr[index].transform.localPosition = newPos.ToV3xz();
+			spheresMr[index].transform.localPosition = newPos;
 
 		public void ProjectOnTerrain(Terrain terrain)
 		{

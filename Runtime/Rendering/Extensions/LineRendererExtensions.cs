@@ -1,4 +1,5 @@
-﻿using DavidUtils.ExtensionMethods;
+﻿using System.Linq;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using UnityEngine;
 
@@ -36,8 +37,12 @@ namespace DavidUtils.Rendering.Extensions
 			lr.SetPositions(points);
 		}
 
-		public static void SetPolygon(this LineRenderer lr, Polygon polygon, bool XZplane = true) =>
-			lr.SetPoints(XZplane ? polygon.Vertices3D_XZ : polygon.Vertices3D_XY);
+
+		public static void SetPoints(this LineRenderer lr, Vector2[] points) =>
+			lr.SetPoints(points.ToV3().ToArray());
+
+		public static void SetPolygon(this LineRenderer lr, Polygon polygon) =>
+			lr.SetPoints(polygon.vertices);
 
 		#endregion
 
@@ -122,11 +127,11 @@ namespace DavidUtils.Rendering.Extensions
 		public static LineRenderer ToLineRenderer(
 			this Polygon polygon, Transform parent, string name = "Polygon", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
-			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
+			int smoothness = DEFAULT_SMOOTHNESS
 		) => ToLineRenderer(
 			parent,
 			$"{name} [Line]",
-			XZplane ? polygon.Vertices3D_XZ : polygon.Vertices3D_XY,
+			polygon.vertices.ToV3().ToArray(),
 			new[] { color },
 			thickness,
 			smoothness,

@@ -1,5 +1,4 @@
-﻿using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry.Bounding_Box;
+﻿using DavidUtils.Geometry.Bounding_Box;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,15 +13,6 @@ namespace DavidUtils.Editor.Geometry.Bounding_Box
 		protected virtual void OnSceneGUI()
 		{
 			var boundsComp = (BoundsComponent)target;
-
-			Handles.color = Color.green;
-			if (boundsComp.is2D)
-				Handles.DrawWireCube(
-					boundsComp.transform.position + boundsComp.Center,
-					boundsComp.Size2D.ToV3(boundsComp.XZplane)
-				);
-			else
-				Handles.DrawWireCube(boundsComp.transform.position + boundsComp.Center, boundsComp.Size);
 
 			Tools.hidden = Tools.current == Tool.Scale;
 
