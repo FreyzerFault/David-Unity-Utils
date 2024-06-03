@@ -276,11 +276,17 @@ namespace DavidUtils.ExtensionMethods
 				(max, p) => new Vector3(Mathf.Max(max.x, p.x), Mathf.Max(max.y, p.y), Mathf.Max(max.z, p.z))
 			);
 
-		public static Vector2 Center(this Vector2[] points) =>
-			points.Aggregate(Vector2.zero, (sum, p) => sum + p) / points.Count();
+		public static Vector2 Center(this IEnumerable<Vector2> points)
+		{
+			IEnumerable<Vector2> pointsEnumerable = points as Vector2[] ?? points.ToArray();
+			return pointsEnumerable.Aggregate(Vector2.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
+		}
 
-		public static Vector3 Center(this Vector3[] points) =>
-			points.Aggregate(Vector3.zero, (sum, p) => sum + p) / points.Length;
+		public static Vector3 Center(this IEnumerable<Vector3> points)
+		{
+			IEnumerable<Vector3> pointsEnumerable = points as Vector3[] ?? points.ToArray();
+			return pointsEnumerable.Aggregate(Vector3.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
+		}
 
 		#endregion
 	}

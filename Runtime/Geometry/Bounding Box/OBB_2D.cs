@@ -18,7 +18,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Quaternion Rotation => Quaternion.AngleAxis(Angle, Vector3.forward);
 
 		// AABB resultado de un giro
-		public AABB_2D AABB_Rotated => new(min, max.Rotate(Angle, min));
+		public AABB_2D AABB_Rotated => new(min, max.Rotate(-Angle, min));
 
 		// CCW =>  [BL, BR, TR, TL]
 		public Vector2[] Corners => AABB_Rotated.Corners.Rotate(Angle).ToArray();
@@ -39,8 +39,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			// Calculamos el AABB y lo rotamos de vuelta a su up original
 			this.up = up;
 			Vector2 centroid = points.Center();
-			points.Rotate(-Angle, centroid);
-			var aabb = new AABB_2D(points);
+			var aabb = new AABB_2D(points.Rotate(-Angle, centroid));
 			min = aabb.min.Rotate(Angle, centroid);
 			max = aabb.max.Rotate(Angle, centroid);
 		}

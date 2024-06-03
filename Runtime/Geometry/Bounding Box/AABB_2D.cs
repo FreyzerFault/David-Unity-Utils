@@ -48,10 +48,11 @@ namespace DavidUtils.Geometry.Bounding_Box
 			this.max = max;
 		}
 
-		public AABB_2D(Vector2[] pointsInsideBound)
+		public AABB_2D(IEnumerable<Vector2> pointsInsideBound)
 		{
-			min = pointsInsideBound.MinPosition();
-			max = pointsInsideBound.MaxPosition();
+			IEnumerable<Vector2> pointsEnumerable = pointsInsideBound as Vector2[] ?? pointsInsideBound.ToArray();
+			min = pointsEnumerable.MinPosition();
+			max = pointsEnumerable.MaxPosition();
 		}
 
 		public AABB_2D(Polygon polygon) : this(polygon.vertices)
@@ -210,33 +211,37 @@ namespace DavidUtils.Geometry.Bounding_Box
 		///     Add the intersections of the polygon edges with the BB
 		///     Remove outer vertices
 		/// </summary>
-		public Vector2[] CropPolygon(Vector2[] polygonVertices)
+		public Polygon CropPolygon(Polygon polygon)
 		{
-			List<Vector2> croppedPolygon = new();
-			for (var i = 0; i < polygonVertices.Length; i++)
+			List<Vector2> croppedVertices = new();
+
+			// Añadimos las esquinas que esten dentro del poligono
+			Vector2[] cornersInside = Corners.Where(c => polygon.Contains_RayCast(c)).ToArray();
+			croppedVertices.AddRange(cornersInside);
+
+			// Cortamos las aristas del poligono con la Bounding Box
+			for (var i = 0; i < polygon.VextexCount; i++)
 			{
-				Vector2 vertex = polygonVertices[i];
+				Vector2 vertex = polygon.vertices[i];
 
 				// Si está dentro, conservamos el vertice
-				if (Contains(vertex))
-				{
-					croppedPolygon.Add(vertex);
-					continue;
-				}
+				if (Contains(vertex)) croppedVertices.Add(vertex);
 
 				// Si esta fuera de la Bounding Box, buscamos la interseccion de sus aristas con la BB
-				Vector2 prev = polygonVertices[(i - 1 + polygonVertices.Length) % polygonVertices.Length];
-				Vector2 next = polygonVertices[(i + 1) % polygonVertices.Length];
-				Vector2[] i1 = Intersections_Segment(prev, vertex).ToArray();
+				Vector2 next = polygon.vertices[(i + 1) % polygon.VextexCount];
 				Vector2[] i2 = Intersections_Segment(vertex, next).ToArray();
 
 				// Añadimos las intersecciones en vez del vertice si las hay
-				croppedPolygon.AddRange(i1);
-				croppedPolygon.AddRange(i2);
+				croppedVertices.AddRange(i2);
 			}
 
-			return croppedPolygon.ToArray();
+			polygon = new Polygon(croppedVertices);
+			polygon.vertices = polygon.vertices.SortByAngle(polygon.centroid);
+
+			return polygon;
 		}
+
+		public Vector2[] CropPolygon(Vector2[] polygonVertices) => CropPolygon(new Polygon(polygonVertices)).vertices;
 
 		#endregion
 

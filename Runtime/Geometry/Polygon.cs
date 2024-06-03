@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DebugUtils;
 using DavidUtils.ExtensionMethods;
@@ -17,17 +18,20 @@ namespace DavidUtils.Geometry
 		public Vector3[] Vertices3D_XZ => vertices.Select(v => v.ToV3xz()).ToArray();
 		public Vector3[] Vertices3D_XY => vertices.Select(v => v.ToV3xy()).ToArray();
 
-		public Polygon(Vector2[] vertices, Vector2 centroid = default)
+		public Polygon(IEnumerable<Vector2> vertices, Vector2 centroid)
 		{
-			this.vertices = vertices ?? Array.Empty<Vector2>();
+			this.vertices = vertices?.ToArray() ?? Array.Empty<Vector2>();
 			this.centroid = centroid;
 		}
 
-		public Vector2 TransformCentroid(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToV3()).ToV2();
+		public Polygon(IEnumerable<Vector2> vertices) : this(vertices, default) => UpdateCentroid();
 
-		public Vector2[] TransformVertices(Matrix4x4 matrixTRS) =>
-			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToV3()).ToV2()).ToArray();
+		public void UpdateCentroid() => centroid = vertices.Center();
 
+		public Vector3 GetCentroidInWorld(Matrix4x4 matrixTRS) => matrixTRS.MultiplyPoint3x4(centroid.ToV3());
+
+		public Vector3[] GetVerticesInWorld(Matrix4x4 matrixTRS) =>
+			vertices.Select(v => matrixTRS.MultiplyPoint3x4(v.ToV3())).ToArray();
 
 		public Vector2[] VerticesScaledByCenter(float centeredScale)
 		{
@@ -116,7 +120,7 @@ namespace DavidUtils.Geometry
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector3[] verticesInWorld = TransformVertices(mTRS).ToV3().ToArray();
+			Vector3[] verticesInWorld = GetVerticesInWorld(mTRS);
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygonWire_OnTerrain(verticesInWorld, thickness, color);
@@ -128,8 +132,8 @@ namespace DavidUtils.Geometry
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
-			Vector3 centroidInWorld = TransformCentroid(mTRS);
-			Vector3[] verticesInWorld = TransformVertices(mTRS).ToV3xz().ToArray();
+			// Vector3 centroidInWorld = GetCentroidInWorld(mTRS);
+			Vector3[] verticesInWorld = GetVerticesInWorld(mTRS);
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color);

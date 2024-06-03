@@ -80,6 +80,7 @@ namespace Geometry.Algorithms
 		{
 			var vertices = new List<Vector2>();
 			Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
+			bool isBorder = regionTris.Any(t => t.IsBorder);
 			AABB_2D aabb = AABB_2D.NormalizedAABB;
 
 			// Obtenemos cada circuncentro CCW
@@ -92,7 +93,7 @@ namespace Geometry.Algorithms
 
 			// EXTENDER MEDIATRIZ
 			// Si la semilla forma parte del borde
-			if (regionTris.Any(t => t.IsBorder))
+			if (isBorder)
 				foreach (Triangle t in regionTris)
 				{
 					// Para cada triangulo del borde, si el circuncentro no esta fuera de la Bounding Box
@@ -126,31 +127,66 @@ namespace Geometry.Algorithms
 			// Clampeamos cada Region a la Bounding Box
 			vertices = aabb.CropPolygon(vertices.ToArray()).ToList();
 
+			// Eliminamos los vertices repetidos
+			vertices = vertices.ToHashSet().ToList();
+
 			if (vertices.Count <= 2) return new Polygon(vertices.ToArray(), seed);
 
 			// ESQUINAS
-			// Añadimos las esquinas de la Bounding Box, buscando las regiones que tengan vertices pertenecientes a dos bordes distintos
-			AABB_2D.Side? lastBorderSide;
-			bool lastIsOnBorder = aabb.PointOnBorder(vertices[^1], out lastBorderSide);
-			for (var i = 0; i < vertices.Count; i++)
+			// Añadimos las esquinas de la Bounding Box
+			// buscando las regiones que tengan vertices adyacentes pertenecientes a dos bordes distintos
+			if (isBorder)
 			{
-				Vector2 vertex = vertices[i];
-				bool isOnBorder = aabb.PointOnBorder(vertex, out AABB_2D.Side? borderSide);
-				if (!isOnBorder || !lastIsOnBorder || lastBorderSide.Value == borderSide.Value)
+				List<Vector2> newVertices = new();
+				for (var i = 0; i < vertices.Count; i++)
 				{
-					lastIsOnBorder = isOnBorder;
-					lastBorderSide = borderSide;
-					continue;
+					Vector2 vertex = vertices[i];
+					Vector2 prev = vertices[(i - 1 + vertices.Count) % vertices.Count];
+
+					// NOT CORNERS
+					bool theyAreNotCorners = !aabb.Corners.Contains(vertex) && !aabb.Corners.Contains(prev);
+
+					// BOTH on Borders
+					bool vertexIsOnBorder = aabb.PointOnBorder(vertex, out AABB_2D.Side? borderSide);
+					bool prevIsOnBorder = aabb.PointOnBorder(prev, out AABB_2D.Side? lastBorderSide);
+					bool bothOnBorder = vertexIsOnBorder && prevIsOnBorder;
+
+					// Borders of each vertex are DIFFEREMT
+					bool bordersAreDifferent =
+						lastBorderSide.HasValue
+						&& borderSide.HasValue
+						&& lastBorderSide.Value != borderSide.Value;
+
+					// Añadimos la esquina si
+					if (theyAreNotCorners && bothOnBorder && bordersAreDifferent)
+						newVertices.Add(aabb.GetCorner(lastBorderSide.Value, borderSide.Value));
+
+					newVertices.Add(vertex);
 				}
 
-				// Solo añadimos la esquina si el vertice y su predecesor pertenecen a dos bordes distintos
-				Vector2 corner = aabb.GetCorner(lastBorderSide.Value, borderSide.Value);
-				vertices.Insert(i, corner);
-				break;
+
+				// Hay una o mas esquinas añadidas
+				// Problema: Puede que haya vertices colineares que sobran
+				// Asignamos como vertices SOLO si no son colineares con sus vecinos
+				if (newVertices.Count > vertices.Count)
+				{
+					vertices = new List<Vector2>();
+					for (var i = 0; i < newVertices.Count; i++)
+					{
+						Vector2 prev = newVertices[(i - 1 + newVertices.Count) % newVertices.Count];
+						Vector2 vertex = newVertices[i];
+						Vector2 next = newVertices[(i + 1) % newVertices.Count];
+
+						// Vertex es COLINEAR con sus vecinos, no lo añadimos
+						if (GeometryUtils.PointOnLine(prev, next, vertex)) continue;
+
+						vertices.Add(vertex);
+					}
+				}
 			}
 
 			// Ordenamos los vertices CCW
-			return new Polygon(vertices.SortByAngle(seed), seed);
+			return new Polygon(vertices);
 		}
 
 		#endregion
