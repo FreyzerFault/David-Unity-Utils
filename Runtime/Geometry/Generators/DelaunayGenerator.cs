@@ -96,7 +96,7 @@ namespace DavidUtils.Geometry.Generators
 		public float DelaySeconds => delayMilliseconds / 1000;
 		protected Coroutine animationCoroutine;
 
-		public virtual bool Animated
+		public virtual bool AnimatedDelaunay
 		{
 			get => animatedDelaunay && Renderer.Active;
 			set

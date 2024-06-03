@@ -21,7 +21,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 		protected override void Awake()
 		{
-			Animated = false;
+			AnimatedDelaunay = false;
 
 			base.Awake();
 		}

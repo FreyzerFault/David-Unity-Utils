@@ -58,7 +58,7 @@ namespace DavidUtils.Geometry.Generators
 		{
 			ResetDelaunay();
 			ResetVoronoi();
-			if (Animated)
+			if (AnimatedDelaunay)
 			{
 				animationCoroutine = StartCoroutine(RunCoroutine());
 			}
@@ -337,7 +337,7 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
-		public override bool Animated
+		public override bool AnimatedDelaunay
 		{
 			get => animatedVoronoi || animatedDelaunay;
 			set => animatedVoronoi = animatedDelaunay = value;
@@ -345,7 +345,7 @@ namespace DavidUtils.Geometry.Generators
 		public string DelayMillisecondsStr
 		{
 			get => (delayMilliseconds * 1000).ToString("N0");
-			set => delayMilliseconds = int.Parse(value, NumberStyles.Integer) / 1000f;
+			set => delayMilliseconds = int.Parse(value, NumberStyles.Integer);
 		}
 
 		#endregion
