@@ -79,6 +79,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		#region SPACE CONVERSIONS
 
 		public static Quaternion RotationToXZplane => Quaternion.AngleAxis(90, Vector3.right);
+		public static Quaternion RotationToXYplane => Quaternion.AngleAxis(-90, Vector3.right);
 
 		public Vector2 NormalizedToBoundsSpace(Vector2 point) => min + point * Size;
 

@@ -72,29 +72,29 @@ namespace DavidUtils.Rendering
 		///     Si hay mas Regions que Renderers, instancia nuevos
 		///     Elimina los Renderers sobrantes
 		/// </summary>
-		public override void UpdateGeometry(Polygon[] regions)
+		public override void UpdateGeometry(Polygon[] triangles)
 		{
-			if (regions.Length != colors.Length) SetRainbowColors(regions.Length);
+			if (triangles.Length != colors.Length) SetRainbowColors(triangles.Length);
 
-			for (var i = 0; i < regions.Length; i++)
+			for (var i = 0; i < triangles.Length; i++)
 			{
-				Polygon region = regions[i];
+				Polygon region = triangles[i];
 				UpdatePolygon(region, i);
 			}
 
-			int removeCount = meshFilters.Count - regions.Length;
+			int removeCount = meshFilters.Count - triangles.Length;
 			if (removeCount <= 0) return;
 
 			// Elimina los Renderers sobrantes
-			for (int i = regions.Length; i < meshFilters.Count; i++)
+			for (int i = triangles.Length; i < meshFilters.Count; i++)
 			{
 				Destroy(meshFilters[i].gameObject);
 				Destroy(lineRenderers[i].gameObject);
 			}
 
-			meshFilters.RemoveRange(regions.Length, removeCount);
-			meshRenderers.RemoveRange(regions.Length, removeCount);
-			lineRenderers.RemoveRange(regions.Length, removeCount);
+			meshFilters.RemoveRange(triangles.Length, removeCount);
+			meshRenderers.RemoveRange(triangles.Length, removeCount);
+			lineRenderers.RemoveRange(triangles.Length, removeCount);
 		}
 
 		public override void Clear()

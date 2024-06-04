@@ -40,6 +40,7 @@ namespace DavidUtils.Geometry.Generators
 		public BoundsComponent BoundsComp => boundsComp ??= GetComponent<BoundsComponent>();
 		public AABB_2D AABB => BoundsComp.aabb2D;
 
+		public Matrix4x4 WorldToLocalMatrix => BoundsComp.WorldToLocalMatrix;
 		public Matrix4x4 LocalToWorldMatrix => BoundsComp.LocalToWorldMatrix;
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix.MultiplyPoint3x4(pos.ToV3xz());
 

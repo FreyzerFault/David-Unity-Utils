@@ -18,7 +18,7 @@ namespace DavidUtils.Rendering
 		}
 
 		public abstract void Instantiate(T polygons, string childName = null);
-		public abstract void UpdateGeometry(T regions);
+		public abstract void UpdateGeometry(T triangles);
 
 		public virtual void Clear()
 		{
@@ -31,7 +31,7 @@ namespace DavidUtils.Rendering
 		[HideInInspector] public Color[] colors = Array.Empty<Color>();
 
 		public Color initColorPalette = Color.cyan;
-		[Min(-1)] public float colorPaletteStep = .1f;
+		[Min(-1)] public float colorPaletteStep = .05f;
 		[Min(0)] public int colorPaletteRange = 20;
 
 		public Color[] SetRainbowColors(int numColors, Color? initColor = null) =>

@@ -53,11 +53,17 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Vector3 Min => is2D ? aabb2D.min.ToV3(XZplane) : bounds3D.min;
 		public Vector3 Max => is2D ? aabb2D.max.ToV3(XZplane) : bounds3D.max;
 
+		public Matrix4x4 BoundsToLocalMatrix =>
+			Matrix4x4.Scale(is2D ? aabb2D.Size.Inverse() : bounds3D.size.Inverse()) *
+			Matrix4x4.Rotate(is2D && XZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) *
+			Matrix4x4.Translate(-Min);
+
 		public Matrix4x4 LocalToBoundsMatrix => Matrix4x4.TRS(
 			Min,
 			is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity,
-			is2D ? aabb2D.Size.ToV3xy() : bounds3D.size
+			is2D ? aabb2D.Size : bounds3D.size
 		);
+		public Matrix4x4 WorldToLocalMatrix => BoundsToLocalMatrix * transform.worldToLocalMatrix;
 		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * LocalToBoundsMatrix;
 
 		private void Awake() => SincronizeBounds();

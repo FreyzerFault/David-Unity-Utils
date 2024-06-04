@@ -38,19 +38,19 @@ namespace DavidUtils.Rendering
 		/// <summary>
 		///     Update All SpriteRenderers' positions
 		/// </summary>
-		public override void UpdateGeometry(Vector2[] regions)
+		public override void UpdateGeometry(Vector2[] triangles)
 		{
 			// Faltan o sobran MeshRenderers para las seeds dadas
-			if (spriteRenderers.Length != regions.Length)
+			if (spriteRenderers.Length != triangles.Length)
 			{
 				Clear();
-				Instantiate(regions);
+				Instantiate(triangles);
 				return;
 			}
 
 			// Actualiza la posición de las semillas
 			for (var i = 0; i < spriteRenderers.Length; i++)
-				spriteRenderers[i].transform.localPosition = regions[i];
+				spriteRenderers[i].transform.localPosition = triangles[i];
 		}
 
 		/// <summary>

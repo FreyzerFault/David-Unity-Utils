@@ -197,9 +197,9 @@ namespace DavidUtils.ExtensionMethods
 		);
 
 		public static Vector3 Inverse(this Vector3 v) => new(
-			v.x == 0 ? 0 : 1 / v.x,
-			v.y == 0 ? 0 : 1 / v.y,
-			v.z == 0 ? 0 : 1 / v.z
+			Mathf.Abs(v.x) < Mathf.Epsilon ? 0 : 1 / v.x,
+			Mathf.Abs(v.y) < Mathf.Epsilon ? 0 : 1 / v.y,
+			Mathf.Abs(v.z) < Mathf.Epsilon ? 0 : 1 / v.z
 		);
 
 		#endregion

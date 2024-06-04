@@ -53,19 +53,19 @@ namespace DavidUtils.Rendering
 			}
 		}
 
-		public override void UpdateGeometry(Vector2[] regions)
+		public override void UpdateGeometry(Vector2[] triangles)
 		{
 			// Faltan o sobran MeshRenderers para los puntos dados
-			if (spheresMr.Length != regions.Length)
+			if (spheresMr.Length != triangles.Length)
 			{
 				Clear();
-				Instantiate(regions);
+				Instantiate(triangles);
 				return;
 			}
 
 			// Actualiza la posición de las semillas
 			for (var i = 0; i < spheresMr.Length; i++)
-				spheresMr[i].transform.localPosition = regions[i];
+				spheresMr[i].transform.localPosition = triangles[i];
 		}
 
 		public override void Clear()

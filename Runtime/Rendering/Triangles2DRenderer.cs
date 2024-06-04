@@ -75,26 +75,26 @@ namespace DavidUtils.Rendering
 			InstantiateMesh(polygons);
 		}
 
-		public override void UpdateGeometry(Triangle[] regions)
+		public override void UpdateGeometry(Triangle[] triangles)
 		{
-			if (regions.Length == 0) return;
+			if (triangles.Length == 0) return;
 
-			if (regions.Length != colors.Length) SetRainbowColors(regions.Length);
+			if (triangles.Length != colors.Length) SetRainbowColors(triangles.Length);
 
-			InstantiateMesh(regions);
-			UpdateBorderLine(regions);
+			InstantiateMesh(triangles);
+			UpdateBorderLine(triangles);
 
 			// LINE
-			for (var i = 0; i < regions.Length; i++) UpdateTri(regions[i], i);
+			for (var i = 0; i < triangles.Length; i++) UpdateTri(triangles[i], i);
 
 			// Elimina los Renderers sobrantes
-			int removeCount = lineRenderers.Count - regions.Length;
+			int removeCount = lineRenderers.Count - triangles.Length;
 			if (removeCount <= 0) return;
 
-			for (int i = regions.Length; i < lineRenderers.Count; i++)
+			for (int i = triangles.Length; i < lineRenderers.Count; i++)
 				Destroy(lineRenderers[i].gameObject);
 
-			lineRenderers.RemoveRange(regions.Length, removeCount);
+			lineRenderers.RemoveRange(triangles.Length, removeCount);
 		}
 
 		public override void Clear()
