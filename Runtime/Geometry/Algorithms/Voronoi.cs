@@ -14,6 +14,10 @@ namespace Geometry.Algorithms
 	[Serializable]
 	public class Voronoi
 	{
+		// Distancia mínima a la que pueden estar los vértices.
+		// Una vez se genera el Voronoi, se simplifican los polígonos para evitar colisiones
+		private const float VERTEX_COLLISION_RADIUS = 0.01f;
+
 		[HideInInspector] public Delaunay delaunay;
 
 		[HideInInspector] public List<Polygon> regions;
@@ -29,7 +33,9 @@ namespace Geometry.Algorithms
 			}
 		}
 
-		private Triangle[] Triangles => delaunay.triangles.ToArray();
+		// Vertices sin repetir de todas las regiones
+		public Vector2[] AllRegionVertices =>
+			regions.SelectMany(r => r.vertices).Distinct().ToArray();
 
 		public Voronoi(IEnumerable<Vector2> seeds, Delaunay delaunay = null)
 		{
@@ -45,7 +51,18 @@ namespace Geometry.Algorithms
 			delaunay.Reset();
 		}
 
+
+		#region DELAUNAY
+
+		// Triangulos de Delaunay
+		private Triangle[] Triangles => delaunay.triangles.ToArray();
+
 		public void GenerateDelaunay() => delaunay.Triangulate(seeds);
+
+		#endregion
+
+
+		#region GENERATION
 
 		public IEnumerable<Polygon> GenerateVoronoi()
 		{
@@ -55,24 +72,6 @@ namespace Geometry.Algorithms
 			foreach (Vector2 regionSeed in seeds) regions.Add(GenerateRegionPolygon(regionSeed));
 
 			return regions;
-		}
-
-		#region PROGRESSIVE RUN
-
-		private int _iteration;
-
-		// Habra terminado cuando para todas las semillas haya una region
-		public bool Ended => regions != null && regions.Count == seeds.Count;
-
-		public void Run_OneIteration()
-		{
-			if (Ended) return;
-
-			if (!delaunay.ended) Debug.LogError("Delaunay no ha terminado antes de generar Voronoi");
-
-			regions.Add(GenerateRegionPolygon(seeds[_iteration]));
-
-			_iteration++;
 		}
 
 		// Genera los vertices de una region a partir de la semilla y los triangulos generados con Delaunay
@@ -111,7 +110,7 @@ namespace Geometry.Algorithms
 						// Buscamos la Arista de la Bounding Box que intersecta la Mediatriz
 						// Usamos un Rayo que salga del Triangulo para encontrar la interseccion
 						// La direccion del rayo debe ser PERPENDICULAR a la arista hacia la derecha (90º CCW) => [-y,x]
-						Vector2[] intersections = aabb.Intersections_Ray(edge.Median, edge.MediatrizRight).ToArray();
+						Vector2[] intersections = aabb.Intersections_Ray(edge.Median, edge.MediatrizRightDir).ToArray();
 
 						vertices.AddRange(intersections);
 					}
@@ -127,7 +126,7 @@ namespace Geometry.Algorithms
 			// Clampeamos cada Region a la Bounding Box
 			vertices = aabb.CropPolygon(vertices.ToArray()).ToList();
 
-			// Eliminamos los vertices repetidos
+			// Eliminamos repetidos
 			vertices = vertices.ToHashSet().ToList();
 
 			if (vertices.Count <= 2) return new Polygon(vertices.ToArray(), seed);
@@ -191,6 +190,92 @@ namespace Geometry.Algorithms
 
 		#endregion
 
+
+		#region POSTPROCESADO
+
+		/// <summary>
+		///     SIMPLIFICACION de los POLÍGONOS
+		///     Convertimos los vertices demasiado cerca (a una distancia mínima de colisión) en su centroide
+		/// </summary>
+		public void SimplifyPolygons()
+		{
+			// Se guardan en este mapa [Vértice => Centroide de las colisiones]
+			Dictionary<Vector2, Vector2> simplifications = new();
+
+			List<Vector2> allVertices = AllRegionVertices.ToList();
+			for (var i = 0; i < allVertices.Count; i++)
+			{
+				Vector2 vertex = allVertices[i];
+				Vector2[] collisions = allVertices
+					.Except(new[] { vertex })
+					.Where(v => Vector2.Distance(v, vertex) < VERTEX_COLLISION_RADIUS)
+					.ToArray();
+
+				if (collisions.Length == 0) continue;
+
+				Vector2 centroid = collisions.Append(vertex).Center();
+
+				// Guardamos el centroide de los vertices que hemos simplificado para luego sustituirlos en cada polígono
+				simplifications.Add(vertex, centroid);
+				collisions.ForEach(
+					c =>
+					{
+						// Si la colision fue un centroide, al que apunta otro vértice
+						// actualizamos su centroide por este
+						if (simplifications.ContainsValue(c))
+							simplifications.Keys.Where(k => simplifications[k] == c)
+								.ForEach(k => simplifications[k] = centroid);
+						else
+							simplifications.Add(c, centroid);
+					}
+				);
+
+				// Los sustituimos por el centroide para comparar los siguientes con este
+				allVertices[i] = centroid;
+				collisions.ForEach(c => allVertices.Remove(c));
+			}
+
+			// Para cada polígono aplicamos las simplificaciones a sus vértices
+			regions = regions
+				.Select(
+					r =>
+						new Polygon(
+							r.vertices
+								// Si se simplificó, lo sustituimos
+								.Select(v => simplifications.GetValueOrDefault(v, v))
+								// Como varios vértices se sustituirán por el mismo, eliminamos los vertices repetidos
+								.Distinct()
+						)
+				)
+				.ToList();
+		}
+
+		#endregion
+
+
+		#region PROGRESSIVE RUN
+
+		private int _iteration;
+
+		// Habra terminado cuando para todas las semillas haya una region
+		public bool Ended => regions != null && regions.Count == seeds.Count;
+
+		public void Run_OneIteration()
+		{
+			if (Ended) return;
+
+			if (!delaunay.ended) Debug.LogError("Delaunay no ha terminado antes de generar Voronoi");
+
+			regions.Add(GenerateRegionPolygon(seeds[_iteration]));
+
+			_iteration++;
+		}
+
+		#endregion
+
+
+		#region BORDES
+
 		/// <summary>
 		///     Comprueba, a partir de sus triangulos que la rodean, si esta semilla forma parte del borde del Voronoi
 		///     (No de la Bounding Box)
@@ -231,23 +316,34 @@ namespace Geometry.Algorithms
 			);
 		}
 
+		#endregion
+
+
+		#region TEST INSIDE REGION
+
 		public Polygon? GetRegion(Vector2 point) =>
-			regions?.Count > 0
-				? regions[GetRegionIndex(point)]
-				: null;
+			regions?.Count > 0 ? regions[GetRegionIndex(point)] : null;
 
 		public int GetRegionIndex(Vector2 point)
 		{
 			if (regions.Count == 0 || !point.IsIn01()) return -1;
 
-			Tuple<int, float>[] distances = regions
-				.Select((r, i) => new Tuple<int, float>(i, Vector2.Distance(r.centroid, point)))
+			// Distancias con cada centroide
+			Tuple<int, float>[] distances = seeds
+				.Select((s, i) => new Tuple<int, float>(i, Vector2.Distance(s, point)))
+				// Ordenamos por distancia -> La 1º será la más cercana
 				.OrderBy(t => t.Item2)
 				.ToArray();
 
 			if (distances.Length == 0) return -1;
 			return distances[0].Item1;
 		}
+
+		public bool IsInsideRegion(Vector2 point, int regionIndex) =>
+			GetRegionIndex(point) == regionIndex;
+
+		#endregion
+
 
 		#region DEBUG
 
@@ -268,7 +364,7 @@ namespace Geometry.Algorithms
 			{
 				Polygon scaledRegion = regions[i].ScaleByCenter(centeredScale);
 				if (wire) scaledRegion.OnDrawGizmosWire(matrix, 5, colors[i], projectOnTerrain);
-				else scaledRegion.OnDrawGizmos(matrix, colors[i], projectOnTerrain);
+				else scaledRegion.OnDrawGizmos(matrix, colors[i], projectOnTerrain: projectOnTerrain);
 			}
 		}
 
@@ -309,7 +405,7 @@ namespace Geometry.Algorithms
 					// Interseccion con la Bounding Box hacia fuera del triangulo
 					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
 					Vector2 intersections =
-						aabb.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRight).First();
+						aabb.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRightDir).First();
 
 					Vector3 a = matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz());
 					Vector3 b = matrix.MultiplyPoint3x4(intersections.ToV3xz());

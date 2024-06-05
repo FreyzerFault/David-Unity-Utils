@@ -67,8 +67,7 @@ namespace DavidUtils.Geometry.Generators
 				delaunay.RunTriangulation();
 				OnTrianglesUpdated();
 				voronoi.GenerateVoronoi();
-				for (var i = 0; i < RegionsCount; i++)
-					OnRegionCreated(voronoi.regions[i], i);
+				OnAllRegionsCreated();
 			}
 		}
 
@@ -102,6 +101,7 @@ namespace DavidUtils.Geometry.Generators
 					yield return new WaitForSecondsRealtime(DelaySeconds);
 				}
 
+				OnAllRegionsCreated();
 				DelaunayWire = delaunayWire;
 			}
 			else
@@ -132,7 +132,11 @@ namespace DavidUtils.Geometry.Generators
 		protected void OnRegionCreated(Polygon region, int i) =>
 			UpdateRenderer(region, i);
 
-		protected void OnAllRegionsCreated() => UpdateRenderer();
+		protected void OnAllRegionsCreated()
+		{
+			voronoi.SimplifyPolygons();
+			UpdateRenderer();
+		}
 
 		#endregion
 

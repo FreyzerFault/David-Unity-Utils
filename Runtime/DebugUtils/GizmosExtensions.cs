@@ -76,12 +76,12 @@ namespace DavidUtils.DebugUtils
 			DrawLineThick(QuadVertices(matrix, centered), thickness, color, true);
 
 		public static void DrawQuad(
-			Matrix4x4 matrix, Color color = default, Color outlineColor = default, bool centered = false
+			Matrix4x4 matrix, Color color = default, Color? outlineColor = null, bool centered = false
 		) =>
-			Handles.DrawSolidRectangleWithOutline(QuadVertices(matrix, centered), color, outlineColor);
+			Handles.DrawSolidRectangleWithOutline(QuadVertices(matrix, centered), color, outlineColor ?? color);
 
-		public static void DrawQuad(Vector3[] vertices, Color color = default, Color outlineColor = default) =>
-			Handles.DrawSolidRectangleWithOutline(vertices, color, outlineColor);
+		public static void DrawQuad(Vector3[] vertices, Color color = default, Color? outlineColor = null) =>
+			Handles.DrawSolidRectangleWithOutline(vertices, color, outlineColor ?? color);
 
 		#endregion
 
@@ -164,14 +164,16 @@ namespace DavidUtils.DebugUtils
 			DrawLineThick(vertices.Length == 0 ? vertices : vertices.Append(vertices[0]).ToArray(), thickness, color);
 
 
-		public static void DrawPolygon(Vector3[] vertices, Color color = default)
+		public static void DrawPolygon(
+			Vector3[] vertices, Color color = default, Color? outlineColor = default,
+			float outlineThickness = DEFAULT_THICKNESS
+		)
 		{
-			Vector3 mainVertex = vertices[0];
-			for (int i = 1, j = vertices.Length - 1; i < vertices.Length; j = i++)
-			{
-				Vector3 a = vertices[j], b = vertices[i];
-				DrawTri(new[] { mainVertex, a, b }, color);
-			}
+			if (outlineColor.HasValue)
+				DrawPolygonWire(vertices, outlineThickness, outlineColor.Value);
+
+			Handles.color = color;
+			Handles.DrawAAConvexPolygon(vertices);
 		}
 
 		#endregion
@@ -181,8 +183,8 @@ namespace DavidUtils.DebugUtils
 		public static void DrawTriWire(Vector3[] vertices, float thickness = 1, Color color = default) =>
 			DrawLineThick(vertices, thickness, color, true);
 
-		public static void DrawTri(Vector3[] vertices, Color color = default) =>
-			Handles.DrawSolidRectangleWithOutline(vertices.Append(vertices[2]).ToArray(), color, color);
+		public static void DrawTri(Vector3[] vertices, Color color = default, Color? outlineColor = default) =>
+			Handles.DrawSolidRectangleWithOutline(vertices.Append(vertices[2]).ToArray(), color, outlineColor ?? color);
 
 		#endregion
 
@@ -431,10 +433,12 @@ namespace DavidUtils.DebugUtils
 			DrawLineThick(terrain.ProjectPathToTerrain(vertices), thickness, color);
 		}
 
-		public static void DrawPolygon_OnTerrain(Vector3[] vertices, Color color = default, Terrain terrain = null)
+		public static void DrawPolygon_OnTerrain(
+			Vector3[] vertices, Color color = default, Color? outlineColor = null, Terrain terrain = null
+		)
 		{
 			terrain ??= Terrain.activeTerrain;
-			DrawPolygon(terrain.ProjectPathToTerrain(vertices), color);
+			DrawPolygon(terrain.ProjectPathToTerrain(vertices), color, outlineColor);
 		}
 
 		public static void DrawPolygonWire_OnTerrain(
@@ -450,8 +454,8 @@ namespace DavidUtils.DebugUtils
 		) => DrawPolygonWire_OnTerrain(QuadVertices(matrix), thickness, color, terrain);
 
 		public static void DrawQuad_OnTerrain(
-			Matrix4x4 matrix, Color color = default, Terrain terrain = null
-		) => DrawPolygon_OnTerrain(QuadVertices(matrix), color, terrain);
+			Matrix4x4 matrix, Color color = default, Color? outlineColor = null, Terrain terrain = null
+		) => DrawPolygon_OnTerrain(QuadVertices(matrix), color, outlineColor, terrain);
 
 
 		public static void DrawGrid_OnTerrain(

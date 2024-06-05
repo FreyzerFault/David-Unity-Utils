@@ -18,6 +18,11 @@ namespace DavidUtils.Geometry
 		public Vector3[] Vertices3D_XZ => vertices.Select(v => v.ToV3xz()).ToArray();
 		public Vector3[] Vertices3D_XY => vertices.Select(v => v.ToV3xy()).ToArray();
 
+
+		// EDGES
+		public IEnumerable<Edge> Edges => vertices.IterateByPairs_InLoop((a, b) => new Edge(a, b), false);
+
+
 		public Polygon(IEnumerable<Vector2> vertices, Vector2 centroid)
 		{
 			this.vertices = vertices?.ToArray() ?? Array.Empty<Vector2>();
@@ -41,6 +46,52 @@ namespace DavidUtils.Geometry
 
 		public Polygon ScaleByCenter(float centeredScale) =>
 			Mathf.Approximately(centeredScale, 1) ? this : new Polygon(VerticesScaledByCenter(centeredScale), centroid);
+
+
+		#region POLYGON CONVERSIONS
+
+		/// <summary>
+		///     Reduce el poligono a uno con aristas paralelas, a una distancia dada
+		///     Movemos cada arista hacia dentro (vector perpendicular) la distancia del margen (magnitud)
+		///     y creamos un nuevo poligono con las intersecciones de las aristas creadas adyacentes
+		///     Puede usarse un margen distinto para cada eje
+		/// </summary>
+		public Polygon InteriorPolygon(Vector2 margin2D)
+		{
+			Edge[] edges = Edges.ToArray();
+			return new Polygon(
+				// Aristas paralelas
+				edges.Select(
+						e =>
+						{
+							Edge edge = e.ParallelLeft(new Vector2(margin2D.x, margin2D.y));
+							if (edge.begin == edge.end)
+								Debug.Log("Edge with 0 length");
+							return edge;
+						}
+					)
+					// INTERSECCIONES
+					.IterateByPairs_InLoop(
+						(e1, e2) =>
+						{
+							Vector2? intersection = e1.Intersection_LineLine(e2);
+							if (!intersection.HasValue)
+								Debug.Log("No intersection");
+							return intersection;
+						}
+					)
+					// Check si hay intersecciones, filtrar solo vertices validos
+					.Select((v, i) => v ?? edges[i].begin)
+				// .Where(v => v.HasValue)
+				// .Select(v => v)
+			);
+		}
+
+		// Overload para usar el mismo margen en ambos ejes
+		public Polygon InteriorPolygon(float margin) => InteriorPolygon(new Vector2(margin, margin));
+
+		#endregion
+
 
 		#region TESTS
 
@@ -128,7 +179,9 @@ namespace DavidUtils.Geometry
 				GizmosExtensions.DrawPolygonWire(verticesInWorld, thickness, color);
 		}
 
-		public void OnDrawGizmos(Matrix4x4 mTRS, Color color = default, bool projectOnTerrain = false)
+		public void OnDrawGizmos(
+			Matrix4x4 mTRS, Color color = default, Color? outlineColor = null, bool projectOnTerrain = false
+		)
 		{
 			if (vertices == null || vertices.Length == 0) return;
 
@@ -136,9 +189,9 @@ namespace DavidUtils.Geometry
 			Vector3[] verticesInWorld = GetVerticesInWorld(mTRS);
 
 			if (projectOnTerrain)
-				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color);
+				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color, outlineColor ?? color);
 			else
-				GizmosExtensions.DrawPolygon(verticesInWorld, color);
+				GizmosExtensions.DrawPolygon(verticesInWorld, color, outlineColor ?? color);
 		}
 
 #endif

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace DavidUtils.ExtensionMethods
@@ -351,6 +350,59 @@ namespace DavidUtils.ExtensionMethods
 
 			return source;
 		}
+
+		#endregion
+
+
+		#region ITERATIONS
+
+		// ================ ITERACION POR PARES - [i,j] => [0,1], [1,2], [2,3], ... ================
+
+		/// <summary>
+		///     Itera la colección por pares [i,j] => [0,1], [1,2], [2,3], ...
+		///     Es un ciclo, el ultimo par sera [^1, 0]
+		/// </summary>
+		private static IEnumerable<R> IterateByPairs<T, R>(
+			this IEnumerable<T> source, Func<T, T, R> action, bool loop = true, bool loopAtStart = true
+		)
+		{
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			List<R> results = new();
+			int n = enumerable.Count();
+
+			// Start at end-first pair - [^1, 0]
+			if (loop && loopAtStart)
+				results.Add(action(enumerable.Last(), enumerable.First()));
+
+			// ITERATE
+			for (var i = 0; i < n - 1; i++)
+				results.Add(action(enumerable.ElementAt(i), enumerable.ElementAt(i + 1)));
+
+			// Cycle through - [^1, 0]
+			if (loop && !loopAtStart)
+				results.Add(action(enumerable.Last(), enumerable.First()));
+
+			return results;
+		}
+
+		/// <summary>
+		///     Itera la colección como un ciclo, por pares [i,j] => [0,1], [1,2], [2,3], ...
+		/// </summary>
+		/// <param name="source">Colleción</param>
+		/// <param name="action">Acción por cada par [i,j]</param>
+		/// <param name="loopAtStart">Procesa el Par [End,Start] 1º</param>
+		public static IEnumerable<R> IterateByPairs_InLoop<T, R>(
+			this IEnumerable<T> source, Func<T, T, R> action, bool loopAtStart = true
+		) =>
+			source.IterateByPairs(action, true, loopAtStart);
+
+		/// <summary>
+		///     Itera la colección por pares [i,j] => [0,1], [1,2], [2,3], ...
+		/// </summary>
+		/// <param name="source">Colección</param>
+		/// <param name="action">Acción por cada par [i,j]</param>
+		public static IEnumerable<R> IterateByPairs_NoLoop<T, R>(this IEnumerable<T> source, Func<T, T, R> action) =>
+			source.IterateByPairs(action, false, false);
 
 		#endregion
 	}
