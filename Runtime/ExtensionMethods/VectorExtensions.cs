@@ -69,11 +69,11 @@ namespace DavidUtils.ExtensionMethods
 			Mathf.Clamp(p.z, min.z, max.z)
 		);
 
-		#endregion
 
-		public static Vector3 WithX(this Vector3 v, float x) => v = new Vector3(x, v.y, v.z);
-		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
-		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
+		public static Vector2 Abs(this Vector2 v) => new(Mathf.Abs(v.x), Mathf.Abs(v.y));
+		public static Vector3 Abs(this Vector3 v) => new(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
+
+		#endregion
 
 
 		#region 3D to 2D
@@ -102,6 +102,11 @@ namespace DavidUtils.ExtensionMethods
 
 		public static IEnumerable<Vector3> ToV3xz(this IEnumerable<Vector2> v) => v.Select(ToV3xz);
 		public static IEnumerable<Vector3> ToV3xy(this IEnumerable<Vector2> v) => v.Select(ToV3xy);
+
+
+		public static Vector3 WithX(this Vector3 v, float x) => v = new Vector3(x, v.y, v.z);
+		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
+		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
 
 		#endregion
 
@@ -252,30 +257,22 @@ namespace DavidUtils.ExtensionMethods
 		public static Bounds GetBoundingBox(this IEnumerable<Vector2> points) =>
 			points.ToV3().ToArray().GetBoundingBox();
 
+
+		// MAX / MIN from a collection of points => Can build AABB
 		public static Vector2 MinPosition(this IEnumerable<Vector2> points) =>
-			points.Aggregate(
-				Vector2.positiveInfinity,
-				(min, p) => new Vector2(Mathf.Min(min.x, p.x), Mathf.Min(min.y, p.y))
-			);
+			points.Aggregate(Vector2.positiveInfinity, Vector2.Min);
 
 		public static Vector2 MaxPosition(this IEnumerable<Vector2> points) =>
-			points.Aggregate(
-				Vector2.negativeInfinity,
-				(max, p) => new Vector2(Mathf.Max(max.x, p.x), Mathf.Max(max.y, p.y))
-			);
+			points.Aggregate(Vector2.negativeInfinity, Vector2.Max);
 
 		public static Vector3 MinPosition(this IEnumerable<Vector3> points) =>
-			points.Aggregate(
-				Vector3.positiveInfinity,
-				(min, p) => new Vector3(Mathf.Min(min.x, p.x), Mathf.Min(min.y, p.y), Mathf.Min(min.z, p.z))
-			);
+			points.Aggregate(Vector3.positiveInfinity, Vector3.Min);
 
 		public static Vector3 MaxPosition(this IEnumerable<Vector3> points) =>
-			points.Aggregate(
-				Vector3.negativeInfinity,
-				(max, p) => new Vector3(Mathf.Max(max.x, p.x), Mathf.Max(max.y, p.y), Mathf.Max(max.z, p.z))
-			);
+			points.Aggregate(Vector3.negativeInfinity, Vector3.Max);
 
+
+		// CENTROIDE (Punto Medio)
 		public static Vector2 Center(this IEnumerable<Vector2> points)
 		{
 			IEnumerable<Vector2> pointsEnumerable = points as Vector2[] ?? points.ToArray();

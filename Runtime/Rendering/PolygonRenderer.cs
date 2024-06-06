@@ -54,15 +54,15 @@ namespace DavidUtils.Rendering
 			InitializeSpetialRenderers();
 		}
 
-		public override void Instantiate(Polygon[] polygons, string childName = null)
+		public override void Instantiate(Polygon[] points, string childName = null)
 		{
 			if (lineRenderers.Count != 0 || meshRenderers.Count != 0) Clear();
 
-			if (colors.Length != polygons.Length) SetRainbowColors(polygons.Length);
+			if (colors.Length != points.Length) SetRainbowColors(points.Length);
 
-			for (var i = 0; i < polygons.Length; i++)
+			for (var i = 0; i < points.Length; i++)
 			{
-				Polygon polygon = polygons[i];
+				Polygon polygon = points[i];
 				InstatiatePolygon(polygon, colors[i], childName);
 			}
 		}
@@ -72,29 +72,29 @@ namespace DavidUtils.Rendering
 		///     Si hay mas Regions que Renderers, instancia nuevos
 		///     Elimina los Renderers sobrantes
 		/// </summary>
-		public override void UpdateGeometry(Polygon[] triangles)
+		public override void UpdateGeometry(Polygon[] points)
 		{
-			if (triangles.Length != colors.Length) SetRainbowColors(triangles.Length);
+			if (points.Length != colors.Length) SetRainbowColors(points.Length);
 
-			for (var i = 0; i < triangles.Length; i++)
+			for (var i = 0; i < points.Length; i++)
 			{
-				Polygon region = triangles[i];
+				Polygon region = points[i];
 				UpdatePolygon(region, i);
 			}
 
-			int removeCount = meshFilters.Count - triangles.Length;
+			int removeCount = meshFilters.Count - points.Length;
 			if (removeCount <= 0) return;
 
 			// Elimina los Renderers sobrantes
-			for (int i = triangles.Length; i < meshFilters.Count; i++)
+			for (int i = points.Length; i < meshFilters.Count; i++)
 			{
 				Destroy(meshFilters[i].gameObject);
 				Destroy(lineRenderers[i].gameObject);
 			}
 
-			meshFilters.RemoveRange(triangles.Length, removeCount);
-			meshRenderers.RemoveRange(triangles.Length, removeCount);
-			lineRenderers.RemoveRange(triangles.Length, removeCount);
+			meshFilters.RemoveRange(points.Length, removeCount);
+			meshRenderers.RemoveRange(points.Length, removeCount);
+			lineRenderers.RemoveRange(points.Length, removeCount);
 		}
 
 		public override void Clear()

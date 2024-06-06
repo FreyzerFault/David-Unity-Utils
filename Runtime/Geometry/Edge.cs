@@ -31,11 +31,8 @@ namespace DavidUtils.Geometry
 
 		#region MEDIATRIZ
 
-		// Derecha => (90º CCW) => [y,-x]
-		public Vector2 MediatrizRightDir => new(Dir.y, -Dir.x);
-
-		// IZQUIERDA => (90º CW) => [-y,x]
-		public Vector2 MediatrizLeftDir => new(-Dir.y, Dir.x);
+		public Vector2 MediatrizLeftDir => Vector2.Perpendicular(Dir); // (90º CCW) => [-y,x]
+		public Vector2 MediatrizRightDir => -MediatrizLeftDir; // (90º CW) => [y,-x]
 
 		#endregion
 

@@ -70,7 +70,7 @@ namespace DavidUtils.Spawning
 		protected virtual Spawneable[] Spawn(Vector3[] positions, Quaternion[] rotations = null) =>
 			positions.Select((p, i) => Spawn(p, rotations?.ElementAtOrDefault(i) ?? default)).ToArray();
 
-		protected virtual Spawneable[] Spawn2D(Vector2[] positions, Quaternion[] rotations = null) =>
+		protected virtual Spawneable[] Spawn2D(IEnumerable<Vector2> positions, Quaternion[] rotations = null) =>
 			positions.Select((p, i) => Spawn2D(p, rotations?.ElementAtOrDefault(i) ?? default)).ToArray();
 
 		public void Despawn(Spawneable item) => DespawnToPool(item);

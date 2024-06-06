@@ -222,21 +222,20 @@ namespace DavidUtils.ExtensionMethods
 		/// <summary>
 		///     Performs an action on each element of a collection.
 		/// </summary>
-		public static IEnumerable<T> ForEach<T>(this IEnumerable<T> source, Action<T> action)
+		public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
 		{
-			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
-			foreach (T element in enumerable) action(element);
-			return enumerable;
+			if (source == null) return;
+			foreach (T element in source) action(element);
 		}
 
 		/// <summary>
 		///     Performs an action on each element of a collection using the index.
 		/// </summary>
-		public static IEnumerable<T> ForEach<T>(this IEnumerable<T> source, Action<T, int> action)
+		public static void ForEach<T>(this IEnumerable<T> source, Action<T, int> action)
 		{
-			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
-			for (var i = 0; i < enumerable.Count(); i++) action(enumerable.ElementAt(i), i);
-			return enumerable;
+			if (source == null) return;
+			var i = 0;
+			source.ForEach(element => action(element, i++));
 		}
 
 		/// <summary>
@@ -357,7 +356,6 @@ namespace DavidUtils.ExtensionMethods
 		#region ITERATIONS
 
 		// ================ ITERACION POR PARES - [i,j] => [0,1], [1,2], [2,3], ... ================
-
 		/// <summary>
 		///     Itera la colección por pares [i,j] => [0,1], [1,2], [2,3], ...
 		///     Es un ciclo, el ultimo par sera [^1, 0]
@@ -403,6 +401,53 @@ namespace DavidUtils.ExtensionMethods
 		/// <param name="action">Acción por cada par [i,j]</param>
 		public static IEnumerable<R> IterateByPairs_NoLoop<T, R>(this IEnumerable<T> source, Func<T, T, R> action) =>
 			source.IterateByPairs(action, false, false);
+
+		#endregion
+
+
+		#region RANDOMIZATION
+
+		public static T PickRandom<T>(this IEnumerable<T> source)
+		{
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+
+			if (enumerable.IsNullOrEmpty())
+				throw new Exception("PickRandom Caused: source collection is null or empty");
+
+			return enumerable.ElementAt(Random.Range(0, enumerable.Count()));
+		}
+
+		public static T PickByProbability<T>(this IEnumerable<T> source, float[] probabilities)
+		{
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			if (enumerable.IsNullOrEmpty())
+				throw new Exception("PickRandom Caused: source collection is null or empty");
+
+			// Si las probabilidades no coinciden con la cantidad de elementos
+			// se ajusta el tamaño de las probabilidades
+			// Si faltan probabilidades, se rellenan con un 0 %
+			if (enumerable.Count() > probabilities.Length)
+				probabilities = probabilities.Concat(0f.ToFilledArray(enumerable.Count() - probabilities.Length))
+					.ToArray();
+			else if (enumerable.Count() < probabilities.Length)
+				probabilities = probabilities.Take(enumerable.Count()).ToArray();
+
+			// Si la SUMA de Probabilidades es > 1
+			// se normaliza restando el exceso a cada probabilidad
+			float suma = probabilities.Sum();
+			if (suma > 1)
+				probabilities = probabilities.Select(p => p - (suma - 1) / probabilities.Length).ToArray();
+
+			float random = Random.value;
+			float probAdded = 0;
+			for (var i = 0; i < probabilities.Length; i++)
+			{
+				probAdded += probabilities[i];
+				if (random < probAdded) return enumerable.ElementAt(i);
+			}
+
+			return enumerable.Last();
+		}
 
 		#endregion
 	}

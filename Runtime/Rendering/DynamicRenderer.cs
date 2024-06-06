@@ -17,8 +17,8 @@ namespace DavidUtils.Rendering
 			set => gameObject.SetActive(value);
 		}
 
-		public abstract void Instantiate(T polygons, string childName = null);
-		public abstract void UpdateGeometry(T triangles);
+		public abstract void Instantiate(T points, string childName = null);
+		public abstract void UpdateGeometry(T points);
 
 		public virtual void Clear()
 		{

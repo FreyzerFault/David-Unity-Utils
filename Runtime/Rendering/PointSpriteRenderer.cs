@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Sprites;
@@ -7,7 +8,7 @@ using UnityEngine;
 namespace DavidUtils.Rendering
 {
 	[Serializable]
-	public class PointSpriteRenderer : DynamicRenderer<Vector2[]>
+	public class PointSpriteRenderer : Points2DRenderer
 	{
 		protected override string DefaultChildName => "Sprite";
 
@@ -19,38 +20,27 @@ namespace DavidUtils.Rendering
 		/// <summary>
 		///     Instancia SpriteRenderers en los puntos dados
 		/// </summary>
-		public override void Instantiate(Vector2[] polygons, string childName = null)
-		{
-			if (polygons.Length == 0) return;
-
-			spriteRenderers ??= Array.Empty<SpriteRenderer>();
-			// Concat to SpriteRenderers
-			spriteRenderers = spriteRenderers
-				.Concat(
-					new SpriteRenderer[polygons.Length]
-						.FillBy(
-							i => InstantiateSprite(polygons[i], $"{childName ?? DefaultChildName} {i}")
-						)
+		public override void Instantiate(IEnumerable<Vector2> points, string childName = null) => spriteRenderers =
+			points.Select(
+					(p, i) => InstantiateSprite(p, $"{childName ?? DefaultChildName} {i}")
 				)
 				.ToArray();
-		}
 
 		/// <summary>
 		///     Update All SpriteRenderers' positions
 		/// </summary>
-		public override void UpdateGeometry(Vector2[] triangles)
+		public override void UpdateGeometry(IEnumerable<Vector2> points)
 		{
 			// Faltan o sobran MeshRenderers para las seeds dadas
-			if (spriteRenderers.Length != triangles.Length)
+			if (points.Count() != spriteRenderers.Length)
 			{
 				Clear();
-				Instantiate(triangles);
+				Instantiate(points);
 				return;
 			}
 
-			// Actualiza la posición de las semillas
-			for (var i = 0; i < spriteRenderers.Length; i++)
-				spriteRenderers[i].transform.localPosition = triangles[i];
+			// Actualiza las posiciones
+			points.ForEach((t, i) => spriteRenderers[i].transform.localPosition = t);
 		}
 
 		/// <summary>

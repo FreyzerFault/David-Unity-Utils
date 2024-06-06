@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
@@ -6,67 +8,71 @@ using UnityEngine;
 namespace DavidUtils.Rendering
 {
 	[Serializable]
-	public class Points2DRenderer : DynamicRenderer<Vector2[]>
+	public class Points2DRenderer : DynamicRenderer<IEnumerable<Vector2>>
 	{
-		protected MeshRenderer[] spheresMr = Array.Empty<MeshRenderer>();
+		protected List<MeshRenderer> spheresMr = new();
 
 		protected override string DefaultChildName => "Point";
 
 		[Range(0.1f, 1)]
 		public float sphereScale = .5f;
+		private Vector3 SphereScale => Vector3.one * sphereScale;
 
-		public override void Instantiate(Vector2[] polygons, string childName = null)
+		public override void Instantiate(IEnumerable<Vector2> points, string childName = null)
 		{
-			if (polygons.Length == 0) return;
+			if (points.IsNullOrEmpty()) return;
 
-			if (spheresMr.Length != 0) Clear();
+			if (spheresMr.Count != 0) Clear();
 
-			if (colors.Length != polygons.Length)
-				SetRainbowColors(polygons.Length);
+			int numPoints = points.Count();
+			if (colors.Length != numPoints)
+				SetRainbowColors(numPoints);
 
-
-			spheresMr = new MeshRenderer[polygons.Length];
-			for (var i = 0; i < polygons.Length; i++)
-			{
-				Vector2 point = polygons[i];
-
-				MeshRendererExtensions.InstantiateSphere(
-					out MeshRenderer mr,
-					out MeshFilter mf,
-					transform,
-					$"{childName ?? DefaultChildName} {i}",
-					colors[i],
-					Material
-				);
-
-				spheresMr[i] = mr;
-
-				// Actualiza posicion y escala
-				Transform sphereTransform = mr.transform;
-				sphereTransform.SetLocalPositionAndRotation(point, Quaternion.identity);
-
-				// Compensa el Scale Global para verse siempre del mismo tamaño
-				sphereTransform.SetGlobalScale(Vector3.one * sphereScale);
-
-				// MATERIAL
-				mr.sharedMaterial = Material;
-			}
+			spheresMr = points.Select((p, i) => InstantiateSphere(i, p, childName)).ToList();
 		}
 
-		public override void UpdateGeometry(Vector2[] triangles)
+		public override void UpdateGeometry(IEnumerable<Vector2> points)
 		{
 			// Faltan o sobran MeshRenderers para los puntos dados
-			if (spheresMr.Length != triangles.Length)
-			{
-				Clear();
-				Instantiate(triangles);
-				return;
-			}
+			if (points.Count() != colors.Length)
+				SetRainbowColors(points.Count());
 
-			// Actualiza la posición de las semillas
-			for (var i = 0; i < spheresMr.Length; i++)
-				spheresMr[i].transform.localPosition = triangles[i];
+			// Actualiza las posiciones
+			points.ForEach(
+				(p, i) =>
+				{
+					if (i >= spheresMr.Count)
+						spheresMr.Add(InstantiateSphere(i, p));
+					else
+						spheresMr[i].transform.localPosition = p;
+				}
+			);
 		}
+
+		private MeshRenderer InstantiateSphere(int i, Vector2 p, string childName = null)
+		{
+			MeshRendererExtensions.InstantiateSphere(
+				out MeshRenderer mr,
+				out MeshFilter mf,
+				transform,
+				$"{childName ?? DefaultChildName} {i}",
+				colors[i],
+				Material
+			);
+
+			// Actualiza posicion y escala
+			Transform sphereTransform = mr.transform;
+			sphereTransform.localPosition = p;
+
+			// Compensa el Scale Global para verse siempre del mismo tamaño
+			sphereTransform.SetGlobalScale(SphereScale);
+
+			// MATERIAL
+			mr.sharedMaterial = Material;
+
+			return mr;
+		}
+
 
 		public override void Clear()
 		{
@@ -76,7 +82,7 @@ namespace DavidUtils.Rendering
 			foreach (MeshRenderer meshRenderer in spheresMr)
 				UnityUtils.DestroySafe(meshRenderer);
 
-			spheresMr = Array.Empty<MeshRenderer>();
+			spheresMr.Clear();
 		}
 
 		public void MovePoint(int index, Vector2 newPos) =>
@@ -103,7 +109,7 @@ namespace DavidUtils.Rendering
 			if (!drawGizmos) return;
 
 			Gizmos.color = colors?.Length > 0 ? colors[0] : Color.grey;
-			for (var i = 0; i < spheresMr.Length; i++)
+			for (var i = 0; i < spheresMr.Count; i++)
 			{
 				if (colors?.Length > 0)
 					Gizmos.color = colors[i];
