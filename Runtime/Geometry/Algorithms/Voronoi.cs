@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.DebugUtils;
+using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.MouseInput;
-using DavidUtils.TerrainExtensions;
 using UnityEngine;
 
 namespace Geometry.Algorithms
@@ -222,11 +221,14 @@ namespace Geometry.Algorithms
 					{
 						// Si la colision fue un centroide, al que apunta otro vértice
 						// actualizamos su centroide por este
-						if (simplifications.ContainsValue(c))
-							simplifications.Keys.Where(k => simplifications[k] == c)
-								.ForEach(k => simplifications[k] = centroid);
-						else
+						KeyValuePair<Vector2, Vector2>[] lastCollisionsToMerge =
+							simplifications.Where(pair => pair.Value == c).ToArray();
+
+						if (lastCollisionsToMerge.IsNullOrEmpty())
 							simplifications.Add(c, centroid);
+						else
+							foreach (Vector2 originalPoint in lastCollisionsToMerge.Select(pair => pair.Key))
+								simplifications[originalPoint] = centroid;
 					}
 				);
 

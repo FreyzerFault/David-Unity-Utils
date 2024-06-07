@@ -1,0 +1,18 @@
+{
+    "name": "DavidUtils.Editor.DevTools",
+    "rootNamespace": "DavidUtils",
+    "references": [
+        "GUID:19e954fc4bd167841829ed4a1c787597"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

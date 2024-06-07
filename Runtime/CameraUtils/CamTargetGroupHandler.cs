@@ -2,10 +2,10 @@
 using Cinemachine;
 using UnityEngine;
 
-namespace Markers.Rendering
+namespace DavidUtils.CameraUtils
 {
 	[RequireComponent(typeof(CinemachineTargetGroup))]
-	public class CamTargetGroupHandler: MonoBehaviour
+	public class CamTargetGroupHandler : MonoBehaviour
 	{
 		[SerializeField] private float firstMarkerWeight = 2;
 		[SerializeField] private float defaultmarkerWeight = 1;

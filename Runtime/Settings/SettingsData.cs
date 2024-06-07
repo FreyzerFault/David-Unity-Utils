@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using DavidUtils.CustomAttributes;
+using DavidUtils.DevTools.CustomAttributes;
 using UnityEngine;
 
 namespace DavidUtils.Settings

@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using DavidUtils.CustomAttributes;
+using DavidUtils.DevTools.CustomAttributes;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

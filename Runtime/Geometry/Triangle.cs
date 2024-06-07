@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Linq;
-using DavidUtils.DebugUtils;
+using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.TerrainExtensions;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
@@ -79,21 +78,21 @@ namespace DavidUtils.Geometry
 			}
 		}
 
-        /// <summary>
-        ///     Asigna vecinos de forma recíproca (Al vecino se le asigna este Triangulo como vecino también)
-        /// </summary>
-        public void SetAllNeightbours(Triangle[] newNeighbours)
+		/// <summary>
+		///     Asigna vecinos de forma recíproca (Al vecino se le asigna este Triangulo como vecino también)
+		/// </summary>
+		public void SetAllNeightbours(Triangle[] newNeighbours)
 		{
 			neighbours = newNeighbours;
 			for (var i = 0; i < newNeighbours.Length; i++)
 				SetNeighbour(newNeighbours[i], i);
 		}
 
-        /// <summary>
-        ///     Asigna un vecino de forma recíproca cuya arista que los une es Edges[index]
-        ///     (Al vecino se le asigna este Triangulo como vecino también)
-        /// </summary>
-        public void SetNeighbour(Triangle t, int index)
+		/// <summary>
+		///     Asigna un vecino de forma recíproca cuya arista que los une es Edges[index]
+		///     (Al vecino se le asigna este Triangulo como vecino también)
+		/// </summary>
+		public void SetNeighbour(Triangle t, int index)
 		{
 			neighbours[index] = t;
 			if (t == null) return;
@@ -110,10 +109,10 @@ namespace DavidUtils.Geometry
 
 		public Triangle GetNeighbour(Edge edge) => neighbours[Array.IndexOf(Edges, edge)];
 
-        /// <summary>
-        ///     Interseccion de MEDIATRIZES para encontrar el circuncentro, vértice buscado en Voronoi
-        /// </summary>
-        public Vector2 GetCircumcenter()
+		/// <summary>
+		///     Interseccion de MEDIATRIZES para encontrar el circuncentro, vértice buscado en Voronoi
+		/// </summary>
+		public Vector2 GetCircumcenter()
 		{
 			Vector2? c = GeometryUtils.CircleCenter(v1, v2, v3);
 			if (c.HasValue) return c.Value;
@@ -122,12 +121,12 @@ namespace DavidUtils.Geometry
 			return (v1 + v2 + v3) / 3;
 		}
 
-        /// <summary>
-        ///     Busca el vertice opuesto al eje dado
-        /// </summary>
-        /// <param name="edge"></param>
-        /// <param name="side">Índice del vértice opuesto</param>
-        public Vector2 GetOppositeVertex(Edge edge, out int side)
+		/// <summary>
+		///     Busca el vertice opuesto al eje dado
+		/// </summary>
+		/// <param name="edge"></param>
+		/// <param name="side">Índice del vértice opuesto</param>
+		public Vector2 GetOppositeVertex(Edge edge, out int side)
 		{
 			for (var i = 0; i < 3; i++)
 			{

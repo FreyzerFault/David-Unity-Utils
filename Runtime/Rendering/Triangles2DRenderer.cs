@@ -5,7 +5,6 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
-using DavidUtils.TerrainExtensions;
 using UnityEngine;
 
 namespace DavidUtils.Rendering

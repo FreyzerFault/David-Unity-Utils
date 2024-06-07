@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Linq;
-using DavidUtils.DebugUtils;
+using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.TerrainExtensions;
 using UnityEngine;
 
 namespace DavidUtils.Geometry

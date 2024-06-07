@@ -24,9 +24,7 @@ namespace DavidUtils.Rendering
 
 			if (spheresMr.Count != 0) Clear();
 
-			int numPoints = points.Count();
-			if (colors.Length != numPoints)
-				SetRainbowColors(numPoints);
+			SetRainbowColors(points.Count());
 
 			spheresMr = points.Select((p, i) => InstantiateSphere(i, p, childName)).ToList();
 		}

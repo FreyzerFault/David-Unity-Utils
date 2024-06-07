@@ -1,5 +1,5 @@
-using DavidUtils.CustomAttributes;
-using DavidUtils.DebugUtils;
+using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 using UnityEngine.Serialization;

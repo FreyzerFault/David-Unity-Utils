@@ -106,7 +106,7 @@ namespace DavidUtils.Geometry.Generators
 			}
 		}
 
-		protected virtual IEnumerator RunCoroutine()
+		public virtual IEnumerator RunCoroutine()
 		{
 			ResetDelaunay();
 			if (animatedDelaunay)

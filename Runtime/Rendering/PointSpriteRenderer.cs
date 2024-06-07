@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Sprites;
 using UnityEngine;
@@ -13,35 +12,28 @@ namespace DavidUtils.Rendering
 		protected override string DefaultChildName => "Sprite";
 
 		public Texture2D spriteTexture;
-		public SpriteRenderer[] spriteRenderers = Array.Empty<SpriteRenderer>();
+		public List<SpriteRenderer> spriteRenderers = new();
 
 		public float spriteScale = 1;
 
 		/// <summary>
 		///     Instancia SpriteRenderers en los puntos dados
 		/// </summary>
-		public override void Instantiate(IEnumerable<Vector2> points, string childName = null) => spriteRenderers =
-			points.Select(
-					(p, i) => InstantiateSprite(p, $"{childName ?? DefaultChildName} {i}")
-				)
-				.ToArray();
+		public override void Instantiate(IEnumerable<Vector2> points, string childName = null) =>
+			points.ForEach((p, i) => InstantiateSprite(p, $"{childName ?? DefaultChildName} {i}"));
 
 		/// <summary>
 		///     Update All SpriteRenderers' positions
 		/// </summary>
-		public override void UpdateGeometry(IEnumerable<Vector2> points)
-		{
-			// Faltan o sobran MeshRenderers para las seeds dadas
-			if (points.Count() != spriteRenderers.Length)
-			{
-				Clear();
-				Instantiate(points);
-				return;
-			}
-
-			// Actualiza las posiciones
-			points.ForEach((t, i) => spriteRenderers[i].transform.localPosition = t);
-		}
+		public override void UpdateGeometry(IEnumerable<Vector2> points) =>
+			// Actualiza las posiciones o añade si no existe
+			points.ForEach(
+				(p, i) =>
+				{
+					if (i >= spriteRenderers.Count) InstantiateSprite(p, $"{DefaultChildName} {i}");
+					else UpdateSpriteRenderer(i, p);
+				}
+			);
 
 		/// <summary>
 		///     Actualiza la posicion de un Sprite Renderer
@@ -58,7 +50,9 @@ namespace DavidUtils.Rendering
 			foreach (SpriteRenderer sr in spriteRenderers)
 				UnityUtils.DestroySafe(sr);
 
-			spriteRenderers = Array.Empty<SpriteRenderer>();
+			// foreach (SpriteRenderer sr in spriteRenderers) sr.gameObject.SetActive(false);
+
+			spriteRenderers = new List<SpriteRenderer>();
 		}
 
 		private SpriteRenderer InstantiateSprite(Vector2 point, string spriteName = null)
@@ -75,6 +69,8 @@ namespace DavidUtils.Rendering
 
 			// Compensa el Scale Global para verse siempre del mismo tamaño
 			spriteTransform.SetGlobalScale(Vector3.one * spriteScale);
+
+			spriteRenderers.Add(sr);
 
 			return sr;
 		}

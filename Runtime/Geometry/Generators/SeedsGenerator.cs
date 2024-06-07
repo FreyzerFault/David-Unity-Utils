@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.DebugUtils;
+using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
@@ -71,9 +71,12 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual void OnSeedsUpdated() => UpdateRenderer();
 
-		public void RandomizeSeeds()
+		/// <summary>
+		///     Randomiza la Generación de Seeds
+		/// </summary>
+		public void RandomizeSeeds(int newRandSeed = -1)
 		{
-			randSeed = Random.Range(1, int.MaxValue);
+			randSeed = newRandSeed == -1 ? Random.Range(1, int.MaxValue) : newRandSeed;
 			GenerateSeeds();
 			OnSeedsUpdated();
 		}

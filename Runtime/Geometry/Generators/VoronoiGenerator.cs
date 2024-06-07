@@ -84,7 +84,7 @@ namespace DavidUtils.Geometry.Generators
 			set => animatedVoronoi = value;
 		}
 
-		protected override IEnumerator RunCoroutine()
+		public override IEnumerator RunCoroutine()
 		{
 			yield return base.RunCoroutine();
 
