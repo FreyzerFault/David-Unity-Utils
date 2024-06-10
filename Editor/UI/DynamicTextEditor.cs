@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using DavidUtils.UI.Text;
 using UnityEditor;
 
@@ -15,10 +14,10 @@ namespace DavidUtils.Editor.UI
 
 			DrawDefaultInspector();
 
-			KeyValuePair<string, string>[] targetFields = dynamicText.targetFieldOptions;
+			DynamicText.FieldToText[] targetFields = dynamicText.targetFieldOptions;
 			if (targetFields.Length == 0) dynamicText.InitializeOptions();
 
-			string[] targetFieldOptions = targetFields.Select(pair => pair.Key).ToArray();
+			string[] targetFieldOptions = targetFields.Select(pair => pair.fieldName).ToArray();
 
 			int index = EditorGUILayout.Popup(dynamicText.fieldIndex, targetFieldOptions);
 
