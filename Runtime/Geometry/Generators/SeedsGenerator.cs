@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
+using DavidUtils.DevTools.Reflection;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
@@ -15,6 +16,7 @@ namespace DavidUtils.Geometry.Generators
 		public enum SeedsDistribution { Random, Regular, SinWave }
 
 		[Header("SEEDS")]
+		[ExposedField]
 		public int randSeed = 10;
 
 		public int numSeeds = 10;

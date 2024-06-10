@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace DavidUtils.DevTools.Reflection
 {
-	[AttributeUsage(AttributeTargets.Field)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 	public class ExposedFieldAttribute : Attribute
 	{
 	}

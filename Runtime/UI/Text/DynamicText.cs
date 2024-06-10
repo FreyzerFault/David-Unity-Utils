@@ -1,70 +1,40 @@
-using System;
-using System.Linq;
 using System.Reflection;
+using DavidUtils.DevTools.Reflection;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 
 namespace DavidUtils.UI.Text
 {
 	[ExecuteAlways]
+	[RequireComponent(typeof(TMP_Text))]
 	public class DynamicText : MonoBehaviour
 	{
-		public struct FieldToText
-		{
-			public string fieldName;
-			public string text;
-
-			public FieldToText(string name, string value) => (fieldName, text) = (name, value);
-
-			public FieldToText(FieldInfo field, object targetObj)
-				: this(field.Name, field.GetValue(targetObj).ToString())
-			{
-			}
-
-			public FieldToText(PropertyInfo prop, object targetObj)
-			{
-				fieldName = prop.Name;
-				text = prop.GetValue(targetObj).ToString();
-			}
-		}
-
-		public MonoBehaviour targetObj;
-
-		public FieldToText[] targetFieldOptions = Array.Empty<FieldToText>();
-		[HideInInspector] public int fieldIndex;
-		private FieldToText SelectedField => targetFieldOptions[fieldIndex];
+		[SerializeField] private AttributesExposer textExposer = new("Text");
 
 		private TMP_Text textLabel;
 		private TMP_Text TextLabel => textLabel ??= GetComponent<TMP_Text>();
 
-		private void Awake() => InitializeOptions();
-
-		public void InitializeOptions()
+		private void OnEnable()
 		{
-			FieldInfo[] fields = targetObj.GetType().GetFields();
-			PropertyInfo[] props = targetObj.GetType()
-				.GetProperties()
-				.Where(p => !p.GetCustomAttributes<ObsoleteAttribute>(true).Any())
-				.ToArray();
-
-			// Convierte FieldInfos y PropertyInfos en FieldToText
-			targetFieldOptions = fields.Select(f => new FieldToText(f, targetObj))
-				.Concat(props.Select(p => new FieldToText(p, targetObj)))
-				.ToArray();
+			textExposer.LoadExposedFields();
+			textExposer.OnFieldSelected += HandleValueChange;
 		}
 
-		public void UpdateText() => TextLabel.text = SelectedField.text;
+		private void OnDisable() => textExposer.OnFieldSelected += HandleValueChange;
 
-		private void OnValidate()
+		private void Update()
 		{
-			if (targetFieldOptions.Length == 0) InitializeOptions();
+			if (TextLabel == null) return;
+
+			string value = textExposer.StringValue;
+			if (TextLabel.text != value) TextLabel.SetText(value);
 		}
 
-		private PropertyInfo[] Properties => targetObj.GetType()
-			.GetProperties()
-			.Where(p => !p.GetCustomAttributes<ObsoleteAttribute>(true).Any())
-			.ToArray();
-
-		private FieldInfo[] Fields => targetObj.GetType().GetFields();
+		public void HandleValueChange(MemberInfo info)
+		{
+			TextLabel.SetText(textExposer.StringValue ?? "null");
+			SceneView.RepaintAll();
+		}
 	}
 }
