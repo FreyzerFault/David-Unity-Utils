@@ -36,7 +36,7 @@ namespace DavidUtils.DevTools.Reflection
 			LoadExposedFields(target);
 		}
 
-		public void SelectField(int i)
+		public void SelectField(int i = 0)
 		{
 			fieldIndex = i;
 			OnFieldSelected?.Invoke(SelectedField);
@@ -52,7 +52,8 @@ namespace DavidUtils.DevTools.Reflection
 			targetFieldOptions = GetFieldsAndProps().ToArray();
 			if (onlyExposed) targetFieldOptions = FilterExposed(targetFieldOptions).ToArray();
 
-			if (newTarget) SelectField(0);
+			// Autoselect first field if no field selected or target is NEW
+			if (newTarget || SelectedField == null) SelectField();
 		}
 
 		public static IEnumerable<MemberInfo> GetMembers(object target)

@@ -4,6 +4,7 @@ using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -14,9 +15,10 @@ namespace DavidUtils.Rendering
 
 		protected override string DefaultChildName => "Point";
 
+		[FormerlySerializedAs("sphereScale")]
 		[Range(0.1f, 1)]
-		public float sphereScale = .5f;
-		private Vector3 SphereScale => Vector3.one * sphereScale;
+		public float scale = .5f;
+		public Vector3 Scale => Vector3.one * scale;
 
 		public override void Instantiate(IEnumerable<Vector2> points, string childName = null)
 		{
@@ -63,7 +65,7 @@ namespace DavidUtils.Rendering
 			sphereTransform.localPosition = p;
 
 			// Compensa el Scale Global para verse siempre del mismo tamaño
-			sphereTransform.SetGlobalScale(SphereScale);
+			sphereTransform.SetGlobalScale(Scale);
 
 			// MATERIAL
 			mr.sharedMaterial = Material;
@@ -113,7 +115,7 @@ namespace DavidUtils.Rendering
 					Gizmos.color = colors[i];
 				Gizmos.DrawSphere(
 					transform.localToWorldMatrix.MultiplyPoint3x4(spheresMr[i].transform.position),
-					sphereScale
+					scale
 				);
 			}
 		}

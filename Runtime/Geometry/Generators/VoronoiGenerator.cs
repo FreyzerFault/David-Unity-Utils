@@ -226,6 +226,8 @@ namespace DavidUtils.Geometry.Generators
 
 		private void UpdateMouseRegion()
 		{
+			if (!canSelectRegion) return;
+
 			Renderer.ToggleHightlighted(MouseRegion.HasValue);
 			Renderer.ToggleSelected(SelectedRegion.HasValue);
 
@@ -236,8 +238,8 @@ namespace DavidUtils.Geometry.Generators
 			// HOVER
 			HoverRegion(mouseRegionIndex);
 
-			// Para seleccionar debe estar activa la selección y debe haber acabado la generación
-			if (!canSelectRegion || !voronoi.Ended) return;
+			// Para seleccionar debe haber acabado la generación
+			if (!voronoi.Ended) return;
 
 			// CLICK DOWN => Select, and start dragging
 			if (Input.GetMouseButtonDown(0)) SelectRegion(MouseRegionIndex);

@@ -14,8 +14,6 @@ namespace DavidUtils.Rendering
 		public Texture2D spriteTexture;
 		public List<SpriteRenderer> spriteRenderers = new();
 
-		public float spriteScale = 1;
-
 		/// <summary>
 		///     Instancia SpriteRenderers en los puntos dados
 		/// </summary>
@@ -68,7 +66,7 @@ namespace DavidUtils.Rendering
 			spriteTransform.localPosition = point;
 
 			// Compensa el Scale Global para verse siempre del mismo tamaño
-			spriteTransform.SetGlobalScale(Vector3.one * spriteScale);
+			spriteTransform.SetGlobalScale(Scale);
 
 			spriteRenderers.Add(sr);
 

@@ -449,6 +449,15 @@ namespace DavidUtils.ExtensionMethods
 			return enumerable.Last();
 		}
 
+		public static IEnumerable<float> NormalizeProbabilities(this IEnumerable<float> probs)
+		{
+			IEnumerable<float> enumerable = probs as float[] ?? probs.ToArray();
+			float suma = enumerable.Sum();
+			if (suma <= 1) return enumerable;
+			float reduction = (suma - 1) / enumerable.Count();
+			return enumerable.Select(p => p - reduction);
+		}
+
 		#endregion
 	}
 }
