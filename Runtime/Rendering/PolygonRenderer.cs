@@ -172,7 +172,7 @@ namespace DavidUtils.Rendering
 		public void SetSelectedRegion(Polygon region) =>
 			selectedRegionLineRenderer.SetPolygon(region.ScaleByCenter(centeredScale));
 
-		public void ToggleHightlighted(bool toggle) => hightlightedRegionLineRenderer.gameObject.SetActive(toggle);
+		public void ToggleHovered(bool toggle) => hightlightedRegionLineRenderer.gameObject.SetActive(toggle);
 		public void ToggleSelected(bool toggle) => selectedRegionLineRenderer.gameObject.SetActive(toggle);
 
 		private void InitializeSpetialRenderers()

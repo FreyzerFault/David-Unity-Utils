@@ -72,7 +72,10 @@ namespace DavidUtils.Sprites
 			return Sprite.Create(
 				texture,
 				centered ? CenteredRect.ScaleBy(size) : DefaultRect.ScaleBy(size),
-				centered ? new Vector2(.5f, .5f) : Vector2.zero
+				centered ? new Vector2(.5f, .5f) : Vector2.zero,
+				100f,
+				0U,
+				SpriteMeshType.FullRect
 			);
 		}
 	}

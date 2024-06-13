@@ -131,22 +131,26 @@ namespace DavidUtils.Geometry.Bounding_Box
 		#region COLLISIONS
 
 		/// <summary>
-		///     Test del Punto P dentro de un Segmento (cualquiera de los 4 lados).
+		///     Test Punto P pertenece a un borde (x o y == 0 o 1)
 		///     Side puede ser Left, Right, Top o Bottom
 		///     Ejemplo: Side = Right => Segmento br,tr
 		/// </summary>
 		public bool PointOnBorder(Vector2 p, out Side? side)
 		{
 			side = null;
-			bool inBottom = GeometryUtils.PointOnSegment(p, BL, BR);
-			bool inRight = GeometryUtils.PointOnSegment(p, BR, TR);
-			bool inTop = GeometryUtils.PointOnSegment(p, TR, TL);
-			bool inLeft = GeometryUtils.PointOnSegment(p, TL, BL);
-			if (inBottom) side = Side.Bottom;
-			if (inRight) side = Side.Right;
-			if (inTop) side = Side.Top;
-			if (inLeft) side = Side.Left;
-			return inBottom || inRight || inTop || inLeft;
+
+			// Normalizamos el punto a [0,1] si el AABB no es [0,0 - 1,1]
+			if (!IsNormalized) p = BoundsToLocalMatrix().MultiplyPoint3x4(p);
+
+			// Esta fuera del AABB
+			if (!p.IsIn01()) return false;
+
+			if (Mathf.Approximately(p.x, 0)) side = Side.Left;
+			else if (Mathf.Approximately(p.x, 1)) side = Side.Right;
+			else if (Mathf.Approximately(p.y, 0)) side = Side.Bottom;
+			else if (Mathf.Approximately(p.y, 1)) side = Side.Top;
+
+			return side != null;
 		}
 
 		#endregion

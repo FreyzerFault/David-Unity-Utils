@@ -93,6 +93,14 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region SPLIT
+
+		public Edge[] Split(float t) => Split(Vector2.Lerp(begin, end, t));
+		public Edge[] Split(Vector2 point) => new[] { new Edge(begin, point), new Edge(point, end) };
+
+		#endregion
+
+
 		#region COMPARADORES
 
 		// Ignora el la direccion
@@ -112,12 +120,11 @@ namespace DavidUtils.Geometry
 		#region DEBUG
 
 #if UNITY_EDITOR
-		public void OnGizmosDraw(
+		public void DrawGizmos(
 			Matrix4x4 matrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
 		)
 		{
-			Vector3[] verticesInWorld =
-				Vertices.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz())).ToArray();
+			Vector3[] verticesInWorld = matrix.MultiplyPoint3x4(Vertices).ToArray();
 			GizmosExtensions.DrawLineThick(
 				projectedOnTerrain ? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) : verticesInWorld,
 				thickness,

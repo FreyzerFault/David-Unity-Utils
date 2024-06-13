@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using UnityEngine;
@@ -63,14 +64,15 @@ namespace DavidUtils.Rendering.Extensions
 			GameObject obj = UnityUtils.InstantiateEmptyObject(parent, name);
 			var lr = obj.AddComponent<LineRenderer>();
 
-			if (colors is { Length: > 1 })
+			colors ??= Array.Empty<Color>();
+			if (colors.Length > 1)
 			{
 				lr.colorGradient = colors.ToGradient();
 				lr.colorGradient.mode = GradientMode.Fixed;
 			}
 			else
 			{
-				lr.startColor = lr.endColor = colors is { Length: 1 } ? colors[0] : Color.gray;
+				lr.startColor = lr.endColor = colors.Length == 1 ? colors.First() : Color.gray;
 			}
 
 			lr.startWidth = lr.endWidth = thickness;
@@ -97,7 +99,7 @@ namespace DavidUtils.Rendering.Extensions
 		public static LineRenderer ToLineRenderer(
 			this Polyline polyline, Transform parent, string name = "Triangle", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
-			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
+			int smoothness = DEFAULT_SMOOTHNESS
 		) => ToLineRenderer(
 			parent,
 			$"{name} [Line]",
@@ -112,11 +114,11 @@ namespace DavidUtils.Rendering.Extensions
 		public static LineRenderer ToLineRenderer(
 			this Triangle triangle, Transform parent, string name = "Triangle", Color color = default,
 			float thickness = DEFAULT_THICKNESS,
-			int smoothness = DEFAULT_SMOOTHNESS, bool XZplane = true
+			int smoothness = DEFAULT_SMOOTHNESS
 		) => ToLineRenderer(
 			parent,
 			$"{name} [Line]",
-			XZplane ? triangle.Vertices3D_XZ : triangle.Vertices3D_XY,
+			triangle.Vertices.ToV3().ToArray(),
 			new[] { color },
 			thickness,
 			smoothness,

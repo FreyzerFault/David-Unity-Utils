@@ -166,11 +166,18 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			float outlineThickness = DEFAULT_THICKNESS
 		)
 		{
-			if (outlineColor.HasValue)
-				DrawPolygonWire(vertices, outlineThickness, outlineColor.Value);
+			if (outlineColor.HasValue) DrawPolygonWire(vertices, outlineThickness, outlineColor.Value);
 
 			Handles.color = color;
 			Handles.DrawAAConvexPolygon(vertices);
+
+			vertices.IterateByPairs_InLoop<Vector3, Vector2>(
+				(v1, v2) =>
+				{
+					DrawArrow(v1, v2 - v1, Vector3.up, (v2 - v1).magnitude, (v2 - v1).magnitude / 2);
+					return v2 - v1;
+				}
+			);
 		}
 
 		#endregion

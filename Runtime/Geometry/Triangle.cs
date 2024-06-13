@@ -11,9 +11,6 @@ namespace DavidUtils.Geometry
 		// CCW
 		public Vector2 v1, v2, v3;
 		public Vector2[] Vertices => new[] { v1, v2, v3 };
-		public Vector3[] Vertices3D_XZ => new[] { v1.ToV3xz(), v2.ToV3xz(), v3.ToV3xz() };
-		public Vector3[] Vertices3D_XY => new[] { v1.ToV3xy(), v2.ToV3xy(), v3.ToV3xy() };
-
 
 		public Edge e1;
 		public Edge e2;
@@ -149,13 +146,11 @@ namespace DavidUtils.Geometry
 
 		#region DEBUG
 
-		public void OnGizmosDrawWire(
-			Matrix4x4 matrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
+		public void GizmosDrawWire(
+			Matrix4x4 localToWorldMatrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
 		)
 		{
-			Vector3[] verticesInWorld = Vertices
-				.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz()))
-				.ToArray();
+			Vector3[] verticesInWorld = localToWorldMatrix.MultiplyPoint3x4(Vertices).ToArray();
 
 			if (projectedOnTerrain)
 				GizmosExtensions.DrawPolygonWire(
@@ -167,16 +162,24 @@ namespace DavidUtils.Geometry
 				GizmosExtensions.DrawTriWire(verticesInWorld, thickness, color);
 		}
 
-		public void OnGizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
+		public void GizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
 		{
-			Vector3[] verticesInWorld = Vertices
-				.Select(vertex => matrix.MultiplyPoint3x4(vertex.ToV3xz()))
-				.ToArray();
+			Vector3[] verticesInWorld = matrix.MultiplyPoint3x4(Vertices).ToArray();
 
 			if (projectedOnTerrain)
-				GizmosExtensions.DrawPolygon(Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld), color);
+				GizmosExtensions.DrawPolygon(
+					Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld),
+					color
+				);
 			else
 				GizmosExtensions.DrawTri(verticesInWorld, color);
+		}
+
+		public void GizmosDrawCircumcenter(Matrix4x4 localToWorldMatrix)
+		{
+			Vector2 c = GetCircumcenter();
+			Gizmos.color = c.IsIn01() ? Color.green : Color.red;
+			Gizmos.DrawSphere(localToWorldMatrix.MultiplyPoint3x4(c), .05f);
 		}
 
 		#endregion

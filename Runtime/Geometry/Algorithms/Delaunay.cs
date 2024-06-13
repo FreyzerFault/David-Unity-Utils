@@ -48,7 +48,7 @@ namespace Geometry.Algorithms
 
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
-			polygon = new List<Edge>();
+			holePolygon = new List<Edge>();
 
 			return triangles;
 		}
@@ -194,7 +194,7 @@ namespace Geometry.Algorithms
 				triangles.Add(bb[1]);
 			}
 
-			polygon = new List<Edge>();
+			holePolygon = new List<Edge>();
 			var neighbours = new List<Triangle>();
 
 			// Triangulos que se deben eliminar
@@ -210,7 +210,7 @@ namespace Geometry.Algorithms
 					if (neighbour != null && badTris.Contains(neighbour)) continue;
 
 					neighbours.Add(neighbour);
-					polygon.Add(e);
+					holePolygon.Add(e);
 				}
 
 
@@ -220,10 +220,10 @@ namespace Geometry.Algorithms
 
 			// Rellenamos el poligono con nuevos triangulos validos por cada arista del poligono
 			// Le asignamos t0 como vecino a la arista
-			var newTris = new Triangle[polygon.Count];
-			for (var i = 0; i < polygon.Count; i++)
+			var newTris = new Triangle[holePolygon.Count];
+			for (var i = 0; i < holePolygon.Count; i++)
 			{
-				Edge e = polygon[i];
+				Edge e = holePolygon[i];
 				Triangle neighbour = neighbours[i];
 				newTris[i] = new Triangle(e.begin, e.end, point);
 				if (neighbour != null)
@@ -293,7 +293,7 @@ namespace Geometry.Algorithms
 		[HideInInspector] public bool ended;
 		private List<Triangle> removedTris = new();
 		private List<Triangle> addedTris = new();
-		private List<Edge> polygon = new();
+		private List<Edge> holePolygon = new();
 
 		public void Run_OnePoint()
 		{
@@ -302,7 +302,7 @@ namespace Geometry.Algorithms
 
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
-			polygon = new List<Edge>();
+			holePolygon = new List<Edge>();
 
 			if (iterations == _seeds.Count)
 				RemoveBoundingBox();
@@ -322,7 +322,7 @@ namespace Geometry.Algorithms
 			vertices = new List<Vector2>();
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
-			polygon = new List<Edge>();
+			holePolygon = new List<Edge>();
 		}
 
 		#endregion
@@ -467,39 +467,43 @@ namespace Geometry.Algorithms
 #if UNITY_EDITOR
 
 
-		public void OnDrawGizmos(Matrix4x4 matrix, bool wire = true, bool projectOnTerrain = false)
+		public void OnDrawGizmos(Matrix4x4 localToWorldMatrix, bool wire = true, bool projectOnTerrain = false)
 		{
 			// TRIANGULATION
 			Color[] colors = Color.cyan.GetRainBowColors(triangles.Count, 0.02f);
 
-			for (var i = 0; i < triangles.Count; i++)
-			{
-				Triangle tri = triangles[i];
-
-				if (ended && !wire)
-					tri.OnGizmosDraw(matrix, colors[i], projectOnTerrain);
-				else
-					tri.OnGizmosDrawWire(matrix, 2, Color.white, projectOnTerrain);
-			}
+			triangles.ForEach(
+				(t, i) =>
+				{
+					if (ended && !wire) t.GizmosDraw(localToWorldMatrix, colors[i], projectOnTerrain);
+					else t.GizmosDrawWire(localToWorldMatrix, 2, Color.white, projectOnTerrain);
+				}
+			);
 
 			// ADDED TRIANGLES
-			colors = Color.cyan.GetRainBowColors(addedTris.Count, 0.02f);
-			foreach (Triangle t in addedTris) t.OnGizmosDrawWire(matrix, 3, Color.white);
-			for (var i = 0; i < addedTris.Count; i++)
-				addedTris[i].OnGizmosDraw(matrix, colors[i], projectOnTerrain);
+			addedTris.ForEach(
+				(t, i) =>
+				{
+					t.GizmosDrawWire(localToWorldMatrix, 3, Color.white, projectOnTerrain);
+					t.GizmosDraw(localToWorldMatrix, colors[i], projectOnTerrain);
+				}
+			);
 
 			// DELETED TRIANGLES
-			foreach (Triangle t in removedTris) t.OnGizmosDrawWire(matrix, 3, Color.red, projectOnTerrain);
+			removedTris.ForEach(t => t.GizmosDrawWire(localToWorldMatrix, 3, Color.red, projectOnTerrain));
 
 			// Hole POLYGON
-			foreach (Edge e in polygon) e.OnGizmosDraw(matrix, 3, Color.green, projectOnTerrain);
+			holePolygon.ForEach(e => e.DrawGizmos(localToWorldMatrix, 3, Color.green, projectOnTerrain));
 
 			// Highlight Border
-			GizmosHightlightBorder(matrix);
+			GizmosBorder_Highlighted(localToWorldMatrix);
 		}
 
-		private void GizmosHightlightBorder(Matrix4x4 matrix) => GizmosExtensions.DrawPolygonWire(
-			Borders.Select(t => t.edge.begin).Select(p => matrix.MultiplyPoint3x4(p.ToV3xz())).ToArray(),
+		private void GizmosBorder_Highlighted(Matrix4x4 matrix) => GizmosExtensions.DrawPolygonWire(
+			Borders
+				.Select(t => t.edge.begin)
+				.Select(p => matrix.MultiplyPoint3x4(p))
+				.ToArray(),
 			10,
 			Color.red
 		);

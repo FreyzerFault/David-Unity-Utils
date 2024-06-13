@@ -171,7 +171,7 @@ namespace DavidUtils.Geometry.Generators
 
 			BoundsComp.AdjustTransformToBounds(Renderer);
 
-			Renderer.transform.localPosition += Vector3.up * .5f;
+			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 
 		protected override void InstantiateRenderer()
@@ -217,12 +217,9 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.OnDrawGizmos();
 
-			return;
+			if (!drawGizmos || !DrawDelaunay) return;
 
-			if (!drawGizmos) return;
-
-			if (DrawDelaunay)
-				delaunay.OnDrawGizmos(LocalToWorldMatrix, DelaunayWire);
+			delaunay.OnDrawGizmos(LocalToWorldMatrix, DelaunayWire);
 		}
 
 #endif

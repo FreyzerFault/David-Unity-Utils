@@ -365,52 +365,58 @@ namespace Geometry.Algorithms
 			for (var i = 0; i < regions.Count; i++)
 			{
 				Polygon scaledRegion = regions[i].ScaleByCenter(centeredScale);
-				if (wire) scaledRegion.OnDrawGizmosWire(matrix, 5, colors[i], projectOnTerrain);
-				else scaledRegion.OnDrawGizmos(matrix, colors[i], projectOnTerrain: projectOnTerrain);
+				if (wire) scaledRegion.DrawGizmosWire(matrix, 5, colors[i], projectOnTerrain);
+				else scaledRegion.DrawGizmos(matrix, colors[i], projectOnTerrain: projectOnTerrain);
 			}
 		}
 
 		public void DrawRegionGizmos_Highlighted(
-			Polygon region, Matrix4x4 matrix, float regionScale = .9f, bool projectOnTerrain = false
-		) =>
-			region.ScaleByCenter(regionScale + .01f).OnDrawGizmosWire(matrix, 5, Color.yellow, projectOnTerrain);
-
-		public void DrawRegionGizmos_Detailed(Polygon region, Matrix4x4 matrix, bool projectOnTerrain = false)
+			int index, Matrix4x4 matrix, float regionScale = .9f, bool projectOnTerrain = false
+		)
 		{
-			AABB_2D aabb = AABB_2D.NormalizedAABB;
+			if (index < 0 || index >= regions.Count) return;
+			regions[index]
+				.ScaleByCenter(regionScale + .01f)
+				.DrawGizmosWire(matrix, 5, Color.yellow, projectOnTerrain);
+		}
 
-			// VERTEX in Bounding Box Edges
-			foreach (Vector2 vertex in region.vertices)
-			{
-				Gizmos.color = aabb.PointOnBorder(vertex, out AABB_2D.Side? _) ? Color.red : Color.green;
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(vertex.ToV3xz()), .1f);
-			}
+		public void DrawRegionGizmos_Detailed(int index, Matrix4x4 localToWorldMatrix, bool projectOnTerrain = false)
+		{
+			if (index < 0 || index >= regions.Count) return;
+			Polygon region = regions[index];
+			Vector2 seed = seeds[index];
+
+			localToWorldMatrix *= Matrix4x4.Translate(Vector3.back * 5);
+
+
+			// VERTEX in Bounding Box Edges => Draw in red
+			region.DrawGizmosVertices(localToWorldMatrix);
 
 			// Triangulos usados para generar la region
-			foreach (Triangle t in delaunay.FindTrianglesAroundVertex(region.centroid))
+			foreach (Triangle t in delaunay.FindTrianglesAroundVertex(seed))
 			{
-				t.OnGizmosDrawWire(matrix, 5, Color.white, projectOnTerrain);
+				t.GizmosDrawWire(localToWorldMatrix, 6, Color.cyan, projectOnTerrain);
 
 				// CIRCUNCENTROS
-				Vector2 c = t.GetCircumcenter();
-
-				Gizmos.color = aabb.OutOfBounds(c) ? Color.red : Color.green;
-				Gizmos.DrawSphere(matrix.MultiplyPoint3x4(c.ToV3xz()), .05f);
-
-				if (!t.IsBorder || aabb.OutOfBounds(c)) continue;
+				t.GizmosDrawCircumcenter(localToWorldMatrix);
 
 				// BORDER EDGE
 				foreach (Edge borderEdge in t.BorderEdges)
 				{
-					if (borderEdge.begin != region.centroid && borderEdge.end != region.centroid) continue;
+					// Resalta el borde
+					borderEdge.DrawGizmos(localToWorldMatrix, 7, Color.red, projectOnTerrain);
+
+					// Extension de Mediatrices hacia el AABB
+					if (borderEdge.begin != seed && borderEdge.end != seed) continue;
 
 					// Interseccion con la Bounding Box hacia fuera del triangulo
 					// Debe tener 1, porque todas las aristas deben estar dentro de la Boundig Box
-					Vector2 intersections =
-						aabb.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRightDir).First();
+					Vector2 intersection = AABB_2D.NormalizedAABB
+						.Intersections_Ray(borderEdge.Median, borderEdge.MediatrizRightDir)
+						.First();
 
-					Vector3 a = matrix.MultiplyPoint3x4(borderEdge.Median.ToV3xz());
-					Vector3 b = matrix.MultiplyPoint3x4(intersections.ToV3xz());
+					Vector3 a = localToWorldMatrix.MultiplyPoint3x4(borderEdge.Median);
+					Vector3 b = localToWorldMatrix.MultiplyPoint3x4(intersection);
 
 					if (projectOnTerrain)
 					{
@@ -419,7 +425,14 @@ namespace Geometry.Algorithms
 						b = terrain.Project(b);
 					}
 
-					GizmosExtensions.DrawLineThick(a, b, 6, Color.red);
+					if (projectOnTerrain)
+						GizmosExtensions.DrawLineThick(
+							Terrain.activeTerrain.ProjectSegmentToTerrain(a, b),
+							6,
+							Color.red
+						);
+					else
+						GizmosExtensions.DrawLineThick(a, b, 6, Color.red);
 				}
 			}
 		}

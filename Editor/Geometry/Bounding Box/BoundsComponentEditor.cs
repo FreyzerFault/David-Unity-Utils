@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.Geometry.Bounding_Box
+namespace GENES.Editor.Geometry.Bounding_Box
 {
 	[CustomEditor(typeof(BoundsComponent))]
 	public class BoundsComponentEditor : UnityEditor.Editor

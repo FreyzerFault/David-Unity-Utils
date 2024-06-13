@@ -76,7 +76,9 @@ namespace DavidUtils.Geometry.Generators
 		/// <summary>
 		///     Randomiza la Generación de Seeds
 		/// </summary>
-		public void RandomizeSeeds(int newRandSeed = -1)
+		public void RandomizeSeeds() => RandomizeSeeds(-1);
+
+		public void RandomizeSeeds(int newRandSeed)
 		{
 			randSeed = newRandSeed == -1 ? Random.Range(1, int.MaxValue) : newRandSeed;
 			GenerateSeeds();
@@ -152,10 +154,9 @@ namespace DavidUtils.Geometry.Generators
 			                   ?? UnityUtils.InstantiateEmptyObject(transform, "Seeds Renderer")
 				                   .AddComponent<Points2DRenderer>();
 
-
 			BoundsComp.AdjustTransformToBounds(Renderer);
 
-			Renderer.transform.Translate(Vector3.up * .5f);
+			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 
 		protected virtual void InstantiateRenderer()

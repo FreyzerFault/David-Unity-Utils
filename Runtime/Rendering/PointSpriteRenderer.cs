@@ -67,6 +67,8 @@ namespace DavidUtils.Rendering
 
 			// Compensa el Scale Global para verse siempre del mismo tamaño
 			spriteTransform.SetGlobalScale(Scale);
+			sr.drawMode = SpriteDrawMode.Sliced;
+			sr.size = Vector2.one;
 
 			spriteRenderers.Add(sr);
 

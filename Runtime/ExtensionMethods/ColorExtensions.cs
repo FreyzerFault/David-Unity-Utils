@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -86,8 +87,7 @@ namespace DavidUtils.ExtensionMethods
 		{
 			// RGB -> HSV -> RGB
 			Color.RGBToHSV(color, out float h, out float s, out float v);
-			v = Mathf.Max(0, v + offset);
-			return Color.HSVToRGB(h, s, v);
+			return Color.HSVToRGB(h, s, Mathf.Clamp01(v + offset));
 		}
 
 		#endregion
@@ -117,13 +117,15 @@ namespace DavidUtils.ExtensionMethods
 
 		#region CONVERSIONS
 
-		public static Gradient ToGradient(this Color[] colors)
+		public static Gradient ToGradient(this IEnumerable<Color> colors)
 		{
 			var gradient = new Gradient();
+			IEnumerable<Color> colorsEnumerable = colors as Color[] ?? colors.ToArray();
+			int numColors = colorsEnumerable.Count();
 			GradientColorKey[] colorKeys =
-				colors.Select((c, i) => new GradientColorKey(c, (float)i / colors.Length)).ToArray();
+				colorsEnumerable.Select((c, i) => new GradientColorKey(c, (float)i / numColors)).ToArray();
 			GradientAlphaKey[] alphaKeys =
-				colors.Select((c, i) => new GradientAlphaKey(1f, (float)i / colors.Length)).ToArray();
+				colorsEnumerable.Select((c, i) => new GradientAlphaKey(1f, (float)i / numColors)).ToArray();
 			gradient.SetKeys(colorKeys, alphaKeys);
 			return gradient;
 		}

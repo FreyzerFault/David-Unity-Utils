@@ -24,6 +24,8 @@ namespace DavidUtils.Geometry.Generators.Showcase
 			AnimatedDelaunay = false;
 
 			base.Awake();
+
+			InitializeDirections();
 		}
 
 		protected override void Update()

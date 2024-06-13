@@ -31,7 +31,11 @@ namespace DavidUtils.Geometry.Generators
 			voronoi = new Voronoi(seeds, delaunay);
 		}
 
-		protected override void Update() => UpdateMouseRegion();
+		protected override void Update()
+		{
+			UpdateMouseRegion();
+			UpdateSelectedRegion();
+		}
 
 		#endregion
 
@@ -47,7 +51,6 @@ namespace DavidUtils.Geometry.Generators
 		public void ResetVoronoi()
 		{
 			selectedRegionIndex = -1;
-			hoveredRegionIndex = -1;
 
 			voronoi = new Voronoi(seeds, delaunay);
 
@@ -191,16 +194,23 @@ namespace DavidUtils.Geometry.Generators
 
 		#region MOUSE
 
-		private Vector3 MousePos => MouseInputUtils.MouseWorldPosition;
+		// Region under Mouse (guarda el index de la region)
+		protected int mouseRegionIndex = -1;
 
-		// MOUSE to COORDS in VORONOI Bounding Box
+		protected Polygon? MouseRegion =>
+			mouseRegionIndex != -1 && mouseRegionIndex < RegionsCount
+				? voronoi.regions[mouseRegionIndex]
+				: null;
+
+		// MOUSE in AABB [0,0 - 1,1]
 		private Vector2 MousePosNorm =>
 			AABB.ApplyTransform_XZ(transform.localToWorldMatrix).NormalizeMousePosition_XZ();
-		private bool MouseInBounds => MousePosNorm.IsIn01();
 
-		// Region under Mouse
-		protected int MouseRegionIndex => MouseInBounds ? voronoi.GetRegionIndex(MousePosNorm) : -1;
-		protected Polygon? MouseRegion => MouseRegionIndex == -1 ? null : voronoi.regions[MouseRegionIndex];
+		private void UpdateMouseRegion()
+		{
+			Vector2 mouseNormPos = AABB.ApplyTransform_XZ(transform.localToWorldMatrix).NormalizeMousePosition_XZ();
+			mouseRegionIndex = mouseNormPos.IsIn01() ? voronoi.GetRegionIndex(MousePosNorm) : -1;
+		}
 
 		#endregion
 
@@ -209,70 +219,76 @@ namespace DavidUtils.Geometry.Generators
 
 		[Space]
 		[Header("Region Selection")]
-		public bool canSelectRegion = true;
-		public bool drawSelectedTriangles = true;
+		[SerializeField] private bool _hoverRegion = true;
+		[SerializeField] private bool _selectRegion = true;
 
 		// Region Hovered
-		[HideInInspector] public int hoveredRegionIndex = -1;
-		public Polygon? HoveredRegion => IsRegionHovering ? voronoi.regions[hoveredRegionIndex] : null;
-		public bool IsRegionHovering => hoveredRegionIndex != -1;
+		public bool IsRegionHovering => _hoverRegion && mouseRegionIndex != -1;
 
 		// Region Selected when clicking
 		[HideInInspector] public int selectedRegionIndex = -1;
-		public Polygon? SelectedRegion => IsRegionSelected ? voronoi.regions[selectedRegionIndex] : null;
-		public bool IsRegionSelected => selectedRegionIndex != -1;
+
+		public Polygon? SelectedRegion =>
+			IsRegionSelected ? voronoi.regions[selectedRegionIndex] : null;
+
+		public bool IsRegionSelected =>
+			_selectRegion && selectedRegionIndex != -1 && selectedRegionIndex < RegionsCount;
 
 		private Polygon LastRegionGenerated => voronoi.regions[^1];
 
-		private void UpdateMouseRegion()
+
+		/// <summary>
+		///     Update Selected and Hover Region by Mouse Input
+		/// </summary>
+		private void UpdateSelectedRegion()
 		{
-			if (!canSelectRegion) return;
-
-			Renderer.ToggleHightlighted(MouseRegion.HasValue);
-			Renderer.ToggleSelected(SelectedRegion.HasValue);
-
-			int mouseRegionIndex = MouseRegionIndex;
-
-			if (mouseRegionIndex == -1) return;
-
-			// HOVER
-			HoverRegion(mouseRegionIndex);
-
-			// Para seleccionar debe haber acabado la generación
-			if (!voronoi.Ended) return;
+			if (_hoverRegion) HoverRegion(mouseRegionIndex);
+			if (_selectRegion && voronoi.Ended) Renderer.ToggleSelected(IsRegionSelected);
 
 			// CLICK DOWN => Select, and start dragging
-			if (Input.GetMouseButtonDown(0)) SelectRegion(MouseRegionIndex);
+			bool mouseDown = Input.GetMouseButtonDown(0);
+			bool mouseUp = Input.GetMouseButtonUp(0);
+			bool mouse = Input.GetMouseButton(0);
 
-			// DRAGGING
-			if (SelectedRegion.HasValue && Input.GetMouseButton(0))
+			if (mouseDown) SelectRegion(mouseRegionIndex);
+
+			if (!mouseDown && !mouseUp && mouse && IsRegionSelected)
 			{
-				// NO HOVERING
+				// DRAGGING
+				// Hide Hover Region, Selected only
 				HoverRegion(-1);
 				MoveSeed(selectedRegionIndex, MousePosNorm - _draggingOffset);
 			}
 		}
 
-		public void HoverRegion(int index)
+		/// <summary>
+		///     Hover Region by Index
+		///     index == -1 => No Hover
+		/// </summary>
+		private void HoverRegion(int index)
 		{
-			hoveredRegionIndex = MouseRegionIndex;
-
-			Renderer.ToggleHightlighted(index != -1);
-
-			if (HoveredRegion.HasValue)
-				Renderer.SetHightlightedRegion(HoveredRegion.Value);
+			bool regionValid = index != -1 && index < RegionsCount;
+			Renderer.ToggleHovered(regionValid);
+			if (regionValid) Renderer.SetHightlightedRegion(Regions[index]);
 		}
 
-		public void SelectRegion(int index)
+		/// <summary>
+		///     Select Region by Index
+		///     Index == -1 => Deselect
+		/// </summary>
+		private void SelectRegion(int index)
 		{
-			selectedRegionIndex = index;
-			Renderer.ToggleSelected(index != -1);
+			bool regionValid = index != -1 && index < RegionsCount;
+			Renderer.ToggleSelected(regionValid);
 
-			if (SelectedRegion.HasValue)
-			{
-				Renderer.SetSelectedRegion(SelectedRegion.Value);
-				_draggingOffset = MousePosNorm - SelectedRegion.Value.centroid;
-			}
+			if (!regionValid) return;
+
+			selectedRegionIndex = index;
+			Polygon region = Regions[index];
+			Renderer.SetSelectedRegion(region);
+
+			// Update dragging offset to move the region from any point of the polygon
+			_draggingOffset = MousePosNorm - seeds[index];
 		}
 
 		#endregion
@@ -297,10 +313,6 @@ namespace DavidUtils.Geometry.Generators
 			Renderer.SetSelectedRegion(SelectedRegion.Value);
 
 			return true;
-		}
-
-		private void UpdateDragRegion()
-		{
 		}
 
 		#endregion
@@ -361,43 +373,40 @@ namespace DavidUtils.Geometry.Generators
 
 #if UNITY_EDITOR
 
+		public bool drawSelectedTriangles;
+
 		protected override void OnDrawGizmos()
 		{
 			base.OnDrawGizmos();
 
-			return;
-
-			if (!drawGizmos) return;
+			if (!drawGizmos || !DrawVoronoi) return;
 
 			// DrawVoronoiGizmos();
 
 			// Mientras se Genera, dibujamos detallada la ultima region generada
-			if (voronoi.regions != null && voronoi.regions.Count != 0 && !voronoi.Ended)
-				DrawRegionGizmos_Detailed(LastRegionGenerated);
+			if (voronoi.regions.NotNullOrEmpty() && !voronoi.Ended)
+				DrawRegionGizmos_Detailed(RegionsCount - 1);
 
 			// Mouse Position
 			MouseInputUtils.DrawGizmos_XZ();
 
-			if (HoveredRegion.HasValue) DrawRegionGizmos_Highlighted(HoveredRegion.Value);
-			if (SelectedRegion.HasValue)
-			{
-				DrawRegionGizmos_Highlighted(SelectedRegion.Value);
-				if (drawSelectedTriangles)
-					DrawRegionGizmos_Detailed(SelectedRegion.Value);
-			}
+			DrawRegionGizmos_Highlighted(mouseRegionIndex);
 
-			delaunay.OnDrawGizmos(LocalToWorldMatrix, CanProjectOnTerrain);
+			DrawRegionGizmos_Highlighted(selectedRegionIndex);
+
+			if (drawSelectedTriangles)
+				DrawRegionGizmos_Detailed(selectedRegionIndex);
 		}
 
 		public void DrawVoronoiGizmos() =>
 			voronoi.OnDrawGizmos(LocalToWorldMatrix, Renderer.centeredScale, Renderer.colors.ToArray());
 
-		public void DrawRegionGizmos_Detailed(Polygon region) =>
-			voronoi.DrawRegionGizmos_Detailed(region, LocalToWorldMatrix, CanProjectOnTerrain);
+		public void DrawRegionGizmos_Detailed(int index) =>
+			voronoi.DrawRegionGizmos_Detailed(index, LocalToWorldMatrix, CanProjectOnTerrain);
 
-		public void DrawRegionGizmos_Highlighted(Polygon region) =>
+		public void DrawRegionGizmos_Highlighted(int index) =>
 			voronoi.DrawRegionGizmos_Highlighted(
-				region,
+				index,
 				LocalToWorldMatrix,
 				Renderer.centeredScale,
 				CanProjectOnTerrain
