@@ -131,12 +131,12 @@ namespace DavidUtils.ExtensionMethods
 			transform.localRotation = matrix.rotation * transform.localRotation;
 			transform.localScale = transform.localScale.ScaleBy(matrix.lossyScale);
 		}
-		
+
 		// Apply to Multiple Points
 		public static IEnumerable<Vector3> MultiplyPoint3x4(this Matrix4x4 matrix, IEnumerable<Vector3> points) =>
 			points.Select(p => matrix.MultiplyPoint3x4(p));
-		
-		public static IEnumerable<Vector3> MultiplyPoint3x4(this Matrix4x4 matrix, IEnumerable<Vector2> points) => 
+
+		public static IEnumerable<Vector3> MultiplyPoint3x4(this Matrix4x4 matrix, IEnumerable<Vector2> points) =>
 			points.Select(p => matrix.MultiplyPoint3x4(p));
 
 		#endregion

@@ -131,6 +131,24 @@ namespace DavidUtils.Geometry
 				color
 			);
 		}
+
+		public void DrawGizmos_Arrow(Matrix4x4 localToWorldM, float thickness = 1, Color color = default)
+		{
+			float capSize = .2f * localToWorldM.lossyScale.magnitude;
+			if (capSize > Vector.magnitude / 2) capSize = Vector.magnitude / 2;
+			Vector3 beginInWorld = localToWorldM.MultiplyPoint3x4(begin);
+			Vector3 vector = localToWorldM.MultiplyVector(Vector);
+			GizmosExtensions.DrawArrow(beginInWorld, vector, capSize, thickness, color);
+		}
+
+		public void DrawGizmos_ArrowWire(Matrix4x4 localToWorldM, float thickness = 1, Color color = default)
+		{
+			float capSize = .02f * localToWorldM.lossyScale.magnitude;
+			if (capSize > Vector.magnitude / 2) capSize = Vector.magnitude / 2;
+			Vector3 beginInWorld = localToWorldM.MultiplyPoint3x4(begin);
+			Vector3 vector = localToWorldM.MultiplyVector(Vector);
+			GizmosExtensions.DrawArrowWire(beginInWorld, vector, MediatrizLeftDir, capSize, thickness, color);
+		}
 #endif
 
 		#endregion

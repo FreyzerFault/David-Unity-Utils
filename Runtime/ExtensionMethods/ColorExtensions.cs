@@ -71,6 +71,11 @@ namespace DavidUtils.ExtensionMethods
 			return Color.HSVToRGB(h, s, v);
 		}
 
+		public static Color Invert(this Color color) =>
+			color == Color.white ? Color.black :
+			color == Color.black ? Color.white :
+			color.RotateHue(.5f);
+
 		#endregion
 
 		#region VALUE (HSV)

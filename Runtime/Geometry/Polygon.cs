@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
+	[Serializable]
 	public struct Polygon : IEquatable<Polygon>
 	{
 		// Vertices in Counter-Clockwise order
@@ -317,13 +318,23 @@ namespace DavidUtils.Geometry
 				GizmosExtensions.DrawPolygon(verticesInWorld, color, outlineColor ?? color);
 		}
 
-		public void DrawGizmosVertices(Matrix4x4 localToWorldMatrix)
+		public void DrawGizmosVertices(Matrix4x4 localToWorldMatrix, Color color = default, float radius = .1f)
+		{
+			foreach (Vector2 vertex in vertices)
+			{
+				Vector3 worldPoint = localToWorldMatrix.MultiplyPoint3x4(vertex);
+				Gizmos.color = color;
+				Gizmos.DrawSphere(worldPoint, radius * localToWorldMatrix.lossyScale.magnitude);
+			}
+		}
+
+		public void DrawGizmosVertices_CheckAABBborder(Matrix4x4 localToWorldMatrix, float radius = .1f)
 		{
 			foreach (Vector2 vertex in vertices)
 			{
 				Vector3 worldPoint = localToWorldMatrix.MultiplyPoint3x4(vertex);
 				Gizmos.color = AABB_2D.NormalizedAABB.PointOnBorder(vertex, out _) ? Color.red : Color.green;
-				Gizmos.DrawSphere(worldPoint, .1f);
+				Gizmos.DrawSphere(worldPoint, radius);
 			}
 		}
 

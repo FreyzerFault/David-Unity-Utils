@@ -15,42 +15,45 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		#region ARROWS
 
 		public static void DrawArrowWire(
-			Vector3 pos, Vector3 direction, Vector3 headOrientation = default, float length = 1, float capSize = 0.4f,
+			Vector3 pos, Vector3 vector, Vector3 headOrientation = default, float capSize = 0.4f,
 			float thickness = DEFAULT_THICKNESS, Color color = default
 		)
 		{
-			Vector3 tipPos = pos + direction * length;
+			Vector3 tipPos = pos + vector;
 
 			// If headOrientation is same as direction of arrow, take another
-			if (headOrientation == direction) headOrientation = Quaternion.AngleAxis(90, Vector3.up) * direction;
+			if (headOrientation.normalized == vector.normalized)
+				headOrientation = Quaternion.AngleAxis(90, Vector3.up) * vector;
 
 			// Axis rotation of head tips
-			Vector3 tangent = Vector3.Cross(direction, headOrientation);
+			Vector3 tangent = Vector3.Cross(vector.normalized, headOrientation.normalized);
 
 			Vector3[] vertices =
 			{
 				pos,
 				tipPos,
-				tipPos - Quaternion.AngleAxis(30, tangent) * direction * length * capSize,
+				tipPos - Quaternion.AngleAxis(30, tangent) * vector * capSize,
 				tipPos,
-				tipPos - Quaternion.AngleAxis(-30, tangent) * direction * length * capSize
+				tipPos - Quaternion.AngleAxis(-30, tangent) * vector * capSize
 			};
 			DrawLineThick(vertices, thickness, color);
 		}
 
 		public static void DrawArrow(
-			Vector3 pos, Vector3 direction, Vector3 headOrientation = default, float length = 1, float capSize = 0.4f,
+			Vector3 pos, Vector3 vector, float capSize = 0.4f,
+			float thickness = DEFAULT_THICKNESS,
 			Color color = default
 		)
 		{
-			Vector3 tipPos = pos + direction * length;
+			Vector3 tipPos = pos + vector;
 
-			DrawLineThick(pos, tipPos - direction * capSize, 10, color);
+			DrawLineThick(pos, tipPos, thickness, color);
 			DrawCone(
-				tipPos - direction * capSize,
-				capSize / 2,
-				capSize,
-				Quaternion.FromToRotation(Vector3.up, direction),
+				Matrix4x4.TRS(
+					tipPos - vector.normalized * capSize,
+					Quaternion.FromToRotation(Vector3.up, vector),
+					new Vector3(capSize, capSize, capSize * 2)
+				),
 				color
 			);
 		}
@@ -166,18 +169,9 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			float outlineThickness = DEFAULT_THICKNESS
 		)
 		{
-			if (outlineColor.HasValue) DrawPolygonWire(vertices, outlineThickness, outlineColor.Value);
-
 			Handles.color = color;
 			Handles.DrawAAConvexPolygon(vertices);
-
-			vertices.IterateByPairs_InLoop<Vector3, Vector2>(
-				(v1, v2) =>
-				{
-					DrawArrow(v1, v2 - v1, Vector3.up, (v2 - v1).magnitude, (v2 - v1).magnitude / 2);
-					return v2 - v1;
-				}
-			);
+			if (outlineColor.HasValue) DrawPolygonWire(vertices, outlineThickness, outlineColor.Value);
 		}
 
 		#endregion
@@ -204,12 +198,35 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			}
 		}
 
-		public static void DrawCircle(Vector3 pos, Vector3 normal, float radius, Color color = default)
+		public static void DrawCircleWire(
+			Matrix4x4 localToWorldM, float thickness = DEFAULT_THICKNESS, Color color = default
+		)
+		{
+			Vector3 pos = localToWorldM.MultiplyPoint3x4(Vector3.zero);
+			Vector3 normal = localToWorldM.MultiplyVector(Vector3.back);
+			float radius = localToWorldM.lossyScale.x / 2;
+			DrawCircleWire(pos, normal, radius, thickness, color);
+		}
+
+		public static void DrawCircle(
+			Vector3 pos, Vector3 normal, float radius, Color color = default, Color? outlineColor = null
+		)
 		{
 			using (new Handles.DrawingScope(color))
 			{
 				Handles.DrawSolidDisc(pos, normal, radius);
+				if (outlineColor.HasValue) DrawCircleWire(pos, normal, radius, 1, outlineColor.Value);
 			}
+		}
+
+		public static void DrawCircle(
+			Matrix4x4 localToWorldM, Color color = default, Color? outlineColor = null
+		)
+		{
+			Vector3 pos = localToWorldM.MultiplyPoint3x4(Vector3.zero);
+			Vector3 normal = localToWorldM.MultiplyVector(Vector3.back);
+			float radius = localToWorldM.lossyScale.x / 2;
+			DrawCircle(pos, normal, radius, color, outlineColor);
 		}
 
 		#endregion
@@ -323,52 +340,39 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			);
 		}
 
-		public static void DrawCone(
-			Vector3 pos, float radius, float height, Quaternion rotation = default, Color color = default
-		)
+		public static void DrawCone(Matrix4x4 localToWorldM, Color color = default)
 		{
-			Vector3 up = rotation * Vector3.up;
-			Vector3 right = rotation * Vector3.right;
-			Vector3 back = rotation * Vector3.back;
+			Handles.color = color;
 
-			DrawCircle(pos, rotation * Vector3.up, radius, color);
-			DrawTri(
-				new[]
-				{
-					pos - right * radius,
-					pos + up * height,
-					pos + right * radius
-				}
-			);
-			DrawTri(
-				new[]
-				{
-					pos - back * radius,
-					pos + up * height,
-					pos + back * radius
-				},
-				color
-			);
-			Vector3 diagonal1 = (right + back).normalized;
-			Vector3 diagonal2 = (right - back).normalized;
-			DrawTri(
-				new[]
-				{
-					pos - diagonal1 * radius,
-					pos + up * height,
-					pos + diagonal1 * radius
-				},
-				color
-			);
-			DrawTri(
-				new[]
-				{
-					pos - diagonal2 * radius,
-					pos + up * height,
-					pos + diagonal2 * radius
-				},
-				color
-			);
+			Vector3 baseCenter = Vector3.zero;
+
+			var radius = .5f;
+			float height = 1;
+
+			Vector3[] tri =
+			{
+				baseCenter - Vector3.right * radius,
+				baseCenter + Vector3.up * height,
+				baseCenter + Vector3.right * radius
+			};
+
+			Vector3 baseWorld = localToWorldM.MultiplyPoint3x4(Vector3.zero);
+
+			// CIRCLE
+			Quaternion upRotation = Quaternion.FromToRotation(Vector3.forward, Vector3.up);
+			Matrix4x4 circleMatrix = localToWorldM * Matrix4x4.Rotate(upRotation);
+			DrawCircleWire(circleMatrix, 3, color.Invert());
+			DrawCircle(circleMatrix, color);
+
+			// TRIANGLE BILLBOARD
+			Vector3 triUp = localToWorldM.MultiplyVector(Vector3.up);
+			Vector3 triForward = localToWorldM.MultiplyVector(Vector3.forward);
+			Camera cam = SceneView.lastActiveSceneView.camera;
+			Matrix4x4 triMatrix = BillboardMatrix(baseWorld, triUp, triForward, cam) * localToWorldM;
+
+			Vector3[] worldTri = triMatrix.MultiplyPoint3x4(tri).ToArray();
+			DrawTri(worldTri, color);
+			DrawLineThick(worldTri, 3, color.Invert());
 		}
 
 		#endregion
@@ -480,6 +484,26 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 					color,
 					terrain
 				);
+		}
+
+		#endregion
+
+
+		#region BILLBOARD
+
+		/// <summary>
+		///     BILLBOARD Matrix
+		///     Al aplicarla como ultima transformacion orientara su forward a la camara, manteniendo su up
+		/// </summary>
+		public static Matrix4x4 BillboardMatrix(Vector3 position, Vector3 up, Vector3 forward, Camera camera)
+		{
+			Vector3 toCam = position - camera.transform.position;
+			Vector3 camProjection = Vector3.ProjectOnPlane(toCam, up).normalized;
+			float angle = Vector3.SignedAngle(forward, camProjection, up);
+			return
+				Matrix4x4.Translate(position)
+				* Matrix4x4.Rotate(Quaternion.AngleAxis(angle, up))
+				* Matrix4x4.Translate(-position);
 		}
 
 		#endregion

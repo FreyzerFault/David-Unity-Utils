@@ -390,7 +390,7 @@ namespace Geometry.Algorithms
 
 
 			// VERTEX in Bounding Box Edges => Draw in red
-			region.DrawGizmosVertices(localToWorldMatrix);
+			region.DrawGizmosVertices_CheckAABBborder(localToWorldMatrix);
 
 			// Triangulos usados para generar la region
 			foreach (Triangle t in delaunay.FindTrianglesAroundVertex(seed))
