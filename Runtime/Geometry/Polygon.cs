@@ -18,19 +18,32 @@ namespace DavidUtils.Geometry
 		public int VextexCount => vertices.Length;
 
 		// EDGES
-		public IEnumerable<Edge> Edges => vertices.IterateByPairs_InLoop((a, b) => new Edge(a, b), false);
+		public IEnumerable<Edge> Edges => VextexCount > 0
+			? vertices.IterateByPairs_InLoop((a, b) => new Edge(a, b), false)
+			: Array.Empty<Edge>();
 
 
 		public Polygon(IEnumerable<Vector2> vertices, Vector2 centroid)
 		{
 			this.vertices = vertices?.ToArray() ?? Array.Empty<Vector2>();
 			this.centroid = centroid;
+			RemoveInvalidEdges();
 		}
 
 		public Polygon(IEnumerable<Vector2> vertices) : this(vertices, default) => UpdateCentroid();
 
 		public Polygon(IEnumerable<Edge> edges) : this(edges.Select(e => e.begin))
 		{
+		}
+
+		private void RemoveInvalidEdges()
+		{
+			Edge[] newEdges = Edges
+				.IterateByPairs_InLoop(
+					(e1, e2) => Vector2.Distance(e1.Dir, -e2.Dir) < Mathf.Epsilon ? new Edge(e1.begin, e2.end) : e2
+				)
+				.ToArray();
+			vertices = newEdges.Select(e => e.begin).ToArray();
 		}
 
 		public void UpdateCentroid() => centroid = vertices.Center();
@@ -85,13 +98,13 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Polygon Legalize()
 		{
-			Polygon autoIntersectedPolygon = AddAutoIntersections();
+			Polygon autoIntersectedPolygon = AddAutoIntersections(out List<Vector2> intersections);
 
 			// Si no hay intersecciones lo devolvemos tal cual
 			bool hasIntersections = autoIntersectedPolygon.vertices.Length != vertices.Length;
 			if (!hasIntersections) return this;
 
-			Polygon[] polygons = autoIntersectedPolygon.SplitAutoIntersectedPolygons(out Vector2[] intersections);
+			Polygon[] polygons = autoIntersectedPolygon.SplitAutoIntersectedPolygons(intersections);
 
 			// - Filtramos por los poligonos VALIDOS (CCW)
 			(Polygon p, int i)[] sections =
@@ -129,8 +142,9 @@ namespace DavidUtils.Geometry
 		///     Añade a un polígono que se autointersecta, los puntos de interseccion como vértices
 		///     Lo cual dividiria el poligono en subpoligonos que seran algunos CCW y otros CW
 		/// </summary>
-		private Polygon AddAutoIntersections()
+		public Polygon AddAutoIntersections(out List<Vector2> intersections)
 		{
+			intersections = new List<Vector2>();
 			List<Edge> edges = Edges.ToList();
 
 			// - Busca las intersecciones n con n
@@ -148,8 +162,11 @@ namespace DavidUtils.Geometry
 				Vector2? intersection = e1.Intersection(e2);
 				if (intersection.HasValue)
 				{
-					if (Vector2.Distance(intersection.Value, e1.end) < 0.001f
-					    || Vector2.Distance(intersection.Value, e2.begin) < 0.001f) continue;
+					if (intersection.Value == e1.begin
+					    || intersection.Value == e1.end
+					    || intersection.Value == e2.begin
+					    || intersection.Value == e2.end)
+						continue;
 
 					edges.RemoveAt(i);
 					edges.InsertRange(i, e1.Split(intersection.Value));
@@ -157,6 +174,8 @@ namespace DavidUtils.Geometry
 					int newJ = j > i ? j + 1 : j;
 					edges.RemoveAt(newJ);
 					edges.InsertRange(newJ, e2.Split(intersection.Value));
+
+					intersections.Add(intersection.Value);
 
 					// Repite
 					i = -1;
@@ -170,34 +189,31 @@ namespace DavidUtils.Geometry
 			return new Polygon(edges);
 		}
 
-		private Polygon[] SplitAutoIntersectedPolygons(out Vector2[] intersectionVertices)
+		public Polygon[] SplitAutoIntersectedPolygons(List<Vector2> intersectionVertices)
 		{
 			// - Separamos el poligono en secciones validas y no validas
-			// Iteramos los vertices y cuando encontremos un vertice que se repita
-			// guardamos los vertices desde la coincidencia como un polígono cerrado
-			Dictionary<Polygon, Vector2> sections = new();
-			List<Vector2> currentVertices = new();
+			// Iteramos las aristas y en cada interseccion cambiamos de poligono.
+			// Para tener dos listas distintas que forman poligonos CCW y CW
+			List<Polygon> polygons = new();
+			List<Edge> edges1 = new(), edges2 = new();
+			List<Edge> current = edges1;
 			foreach (Edge edge in Edges)
 			{
-				Vector2 vertex = edge.begin;
-				// Si encuentra una coincidencia, añadimos el poligono desde el vertice repetido hasta el final
-				// Este poligono sera una seccion cerrada
-				// Eliminamos los vertices de la seccion manteniendo los anteriores y seguimos
-				int foundIndex = currentVertices.FindIndex(v => v == edge.begin);
-				if (foundIndex != -1)
-				{
-					sections.Add(new Polygon(currentVertices.Skip(foundIndex)), currentVertices[foundIndex]);
-					currentVertices = currentVertices.Take(foundIndex).ToList();
-				}
+				Vector2 begin = edge.begin;
+				Vector2 end = edge.end;
 
-				currentVertices.Add(vertex);
+				// Si el begin es una interseccion, cambiamos de poligono
+				if (intersectionVertices.Contains(begin))
+					current = current == edges1 ? edges2 : edges1;
+
+				current.Add(edge);
 			}
 
-			// Last section
-			sections.Add(new Polygon(currentVertices), currentVertices.First());
+			// Buscamos los bucles en cada lista de aristas. Cada uno es un poligono
+			Edge.SearchLoop(edges1.ToArray())?.ForEach(edges => polygons.Add(new Polygon(edges)));
+			Edge.SearchLoop(edges2.ToArray())?.ForEach(edges => polygons.Add(new Polygon(edges)));
 
-			intersectionVertices = sections.Values.ToArray();
-			return sections.Keys.ToArray();
+			return polygons.ToArray();
 		}
 
 		#endregion

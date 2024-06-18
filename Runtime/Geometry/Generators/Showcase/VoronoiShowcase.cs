@@ -130,12 +130,13 @@ namespace DavidUtils.Geometry.Generators.Showcase
 				Vector2 pos = seeds[i];
 				Vector2 dir = seedDirections[i];
 				GizmosExtensions.DrawCircle(m.MultiplyPoint3x4(pos.ToV3xz()), Vector3.up, .1f, Color.red);
-				GizmosExtensions.DrawArrowWire(
+				GizmosExtensions.DrawArrow(
+					GizmosExtensions.ArrowCap.Line,
 					m.MultiplyPoint3x4(pos.ToV3xz()),
 					m.MultiplyVector(dir.ToV3xz()),
 					Vector3.forward,
 					.05f,
-					color: Color.gray
+					Color.gray
 				);
 			}
 		}

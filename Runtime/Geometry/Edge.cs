@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
@@ -61,6 +62,17 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region SHORTEN
+
+		public Edge Shorten(float padding) =>
+			new(begin + Dir * padding, end - Dir * padding);
+
+		public Edge ShortenProportional(float t) =>
+			new(Vector2.Lerp(begin, end, t / 2), Vector2.Lerp(end, begin, t / 2));
+
+		#endregion
+
+
 		#region CONVEXIDAD
 
 		/// <summary>
@@ -101,6 +113,52 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region LOOP
+
+		/// <summary>
+		///     Busca un BUCLE en una lista de aristas desordenada
+		/// </summary>
+		public static List<Edge[]> SearchLoop(Edge[] edges)
+		{
+			if (edges.IsNullOrEmpty()) return null;
+
+			List<Edge[]> loopList = new();
+			List<Edge> loop = new();
+			// Buscamos un bucle posible por cada arista, n a n
+			foreach (Edge edge in edges)
+			{
+				// Si ya hay un bucle con esta arista no hace falta comprobarla
+				if (loopList.Any(l => l.Contains(edge))) continue;
+
+				loop.Clear();
+				loop.Add(edge);
+				Edge nextEdge = edge;
+				do
+				{
+					Edge currentEdge = nextEdge;
+					nextEdge = null;
+
+					// Buscamos una arista que comience donde termina la actual
+					int nextIndex = edges.FirstIndex(e => e.begin == currentEdge.end);
+					if (nextIndex == -1) continue;
+
+					// si la encontramos, la añadimos al bucle
+					nextEdge = edges[nextIndex];
+					loop.Add(nextEdge);
+
+					// Si completa el bucle, lo añadimos a la lista de bucles
+					if (nextEdge.end == edge.begin) loopList.Add(loop.ToArray());
+
+					// Si no hay siguiente arista, no hay bucle para esta arista
+				} while (nextEdge != null && nextEdge.end != edge.begin);
+			}
+
+			return loopList;
+		}
+
+		#endregion
+
+
 		#region COMPARADORES
 
 		// Ignora el la direccion
@@ -132,22 +190,16 @@ namespace DavidUtils.Geometry
 			);
 		}
 
-		public void DrawGizmos_Arrow(Matrix4x4 localToWorldM, float thickness = 1, Color color = default)
+		public void DrawGizmos_Arrow(
+			GizmosExtensions.ArrowCap cap, Matrix4x4 localToWorldM, Color? color = null, float thickness = 1
+		)
 		{
 			float capSize = .2f * localToWorldM.lossyScale.magnitude;
 			if (capSize > Vector.magnitude / 2) capSize = Vector.magnitude / 2;
 			Vector3 beginInWorld = localToWorldM.MultiplyPoint3x4(begin);
 			Vector3 vector = localToWorldM.MultiplyVector(Vector);
-			GizmosExtensions.DrawArrow(beginInWorld, vector, capSize, thickness, color);
-		}
-
-		public void DrawGizmos_ArrowWire(Matrix4x4 localToWorldM, float thickness = 1, Color color = default)
-		{
-			float capSize = .02f * localToWorldM.lossyScale.magnitude;
-			if (capSize > Vector.magnitude / 2) capSize = Vector.magnitude / 2;
-			Vector3 beginInWorld = localToWorldM.MultiplyPoint3x4(begin);
-			Vector3 vector = localToWorldM.MultiplyVector(Vector);
-			GizmosExtensions.DrawArrowWire(beginInWorld, vector, MediatrizLeftDir, capSize, thickness, color);
+			Vector3 up = localToWorldM.MultiplyVector(Vector3.back);
+			GizmosExtensions.DrawArrow(cap, beginInWorld, vector, up, capSize, color, thickness);
 		}
 #endif
 

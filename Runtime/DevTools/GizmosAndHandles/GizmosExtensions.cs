@@ -14,48 +14,52 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 
 		#region ARROWS
 
-		public static void DrawArrowWire(
-			Vector3 pos, Vector3 vector, Vector3 headOrientation = default, float capSize = 0.4f,
-			float thickness = DEFAULT_THICKNESS, Color color = default
-		)
-		{
-			Vector3 tipPos = pos + vector;
+		public enum ArrowCap { Line, Triangle, Cone, None }
 
-			// If headOrientation is same as direction of arrow, take another
-			if (headOrientation.normalized == vector.normalized)
-				headOrientation = Quaternion.AngleAxis(90, Vector3.up) * vector;
-
-			// Axis rotation of head tips
-			Vector3 tangent = Vector3.Cross(vector.normalized, headOrientation.normalized);
-
-			Vector3[] vertices =
+		private static Vector3[] ArrowTipVertices(
+			Vector3 tipPos, Vector3 dir, Vector3 normal, float capSize = 0.4f, float angle = 20
+		) =>
+			new[]
 			{
-				pos,
+				tipPos - Quaternion.AngleAxis(angle, normal) * dir * capSize,
 				tipPos,
-				tipPos - Quaternion.AngleAxis(30, tangent) * vector * capSize,
-				tipPos,
-				tipPos - Quaternion.AngleAxis(-30, tangent) * vector * capSize
+				tipPos - Quaternion.AngleAxis(-angle, normal) * dir * capSize
 			};
-			DrawLineThick(vertices, thickness, color);
-		}
 
 		public static void DrawArrow(
-			Vector3 pos, Vector3 vector, float capSize = 0.4f,
-			float thickness = DEFAULT_THICKNESS,
-			Color color = default
+			ArrowCap cap, Vector3 pos, Vector3 vector, Vector3 normal = default, float capSize = 0.4f,
+			Color? color = null, float thickness = DEFAULT_THICKNESS
 		)
 		{
 			Vector3 tipPos = pos + vector;
 
+			// BODY
 			DrawLineThick(pos, tipPos, thickness, color);
-			DrawCone(
-				Matrix4x4.TRS(
-					tipPos - vector.normalized * capSize,
-					Quaternion.FromToRotation(Vector3.up, vector),
-					new Vector3(capSize, capSize, capSize * 2)
-				),
-				color
-			);
+
+			// If headOrientation is same as direction of arrow, take another
+			if (normal.normalized == vector.normalized)
+				normal = Quaternion.AngleAxis(90, Vector3.up) * vector;
+
+			switch (cap)
+			{
+				case ArrowCap.Line:
+					DrawLineThick(ArrowTipVertices(tipPos, vector.normalized, normal, capSize), thickness, color);
+					break;
+				case ArrowCap.Triangle:
+					DrawTri(ArrowTipVertices(tipPos, vector.normalized, normal, capSize), color);
+					break;
+				case ArrowCap.Cone:
+					DrawCone(
+						Matrix4x4.TRS(
+							tipPos - vector.normalized * capSize,
+							Quaternion.FromToRotation(Vector3.up, vector),
+							new Vector3(capSize, capSize, capSize * 2)
+						),
+						color
+					);
+					break;
+				case ArrowCap.None: break;
+			}
 		}
 
 		#endregion
@@ -134,23 +138,21 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		#region LINES
 
 		public static void DrawLineThick(
-			Vector3 a, Vector3 b, float thickness = DEFAULT_THICKNESS, Color color = default
+			Vector3 a, Vector3 b, float thickness = DEFAULT_THICKNESS, Color? color = null
 		)
 		{
-			using (new Handles.DrawingScope(color))
-			{
-				Handles.DrawLine(a, b, thickness);
-			}
+			if (color.HasValue) Handles.color = color.Value;
+			Handles.DrawLine(a, b, thickness);
 		}
 
 		public static void DrawLineThick(
-			Vector3[] points, float thickness = DEFAULT_THICKNESS, Color color = default, bool loop = false
+			Vector3[] points, float thickness = DEFAULT_THICKNESS, Color? color = null, bool loop = false
 		)
 		{
 			if (points.Length == 0) return;
 			if (loop) points = points.Append(points[0]).ToArray();
 			var colors = new Color[points.Length + (loop ? 1 : 0)];
-			Array.Fill(colors, color);
+			Array.Fill(colors, color ?? Color.white);
 			Handles.DrawAAPolyLine(thickness, colors, points);
 		}
 
@@ -159,17 +161,17 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		#region POLYGONS
 
 		public static void DrawPolygonWire(
-			Vector3[] vertices, float thickness = DEFAULT_THICKNESS, Color color = default
+			Vector3[] vertices, float thickness = DEFAULT_THICKNESS, Color? color = null
 		) =>
 			DrawLineThick(vertices.Length == 0 ? vertices : vertices.Append(vertices[0]).ToArray(), thickness, color);
 
 
 		public static void DrawPolygon(
-			Vector3[] vertices, Color color = default, Color? outlineColor = default,
+			Vector3[] vertices, Color? color = null, Color? outlineColor = default,
 			float outlineThickness = DEFAULT_THICKNESS
 		)
 		{
-			Handles.color = color;
+			if (color.HasValue) Handles.color = color.Value;
 			Handles.DrawAAConvexPolygon(vertices);
 			if (outlineColor.HasValue) DrawPolygonWire(vertices, outlineThickness, outlineColor.Value);
 		}
@@ -178,28 +180,30 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 
 		#region TRIANGLE
 
-		public static void DrawTriWire(Vector3[] vertices, float thickness = 1, Color color = default) =>
+		public static void DrawTriWire(Vector3[] vertices, float thickness = 1, Color? color = null) =>
 			DrawLineThick(vertices, thickness, color, true);
 
-		public static void DrawTri(Vector3[] vertices, Color color = default, Color? outlineColor = default) =>
-			Handles.DrawSolidRectangleWithOutline(vertices.Append(vertices[2]).ToArray(), color, outlineColor ?? color);
+		public static void DrawTri(Vector3[] vertices, Color? color = null, Color? outlineColor = default) =>
+			Handles.DrawSolidRectangleWithOutline(
+				vertices.Append(vertices[2]).ToArray(),
+				color ?? Color.white,
+				outlineColor ?? color ?? Color.white
+			);
 
 		#endregion
 
 		#region CIRCLES
 
 		public static void DrawCircleWire(
-			Vector3 pos, Vector3 normal, float radius, float thickness = 1, Color color = default
+			Vector3 pos, Vector3 normal, float radius, float thickness = 1, Color? color = null
 		)
 		{
-			using (new Handles.DrawingScope(color))
-			{
-				Handles.DrawWireDisc(pos, normal, radius, thickness);
-			}
+			if (color.HasValue) Handles.color = color.Value;
+			Handles.DrawWireDisc(pos, normal, radius, thickness);
 		}
 
 		public static void DrawCircleWire(
-			Matrix4x4 localToWorldM, float thickness = DEFAULT_THICKNESS, Color color = default
+			Matrix4x4 localToWorldM, float thickness = DEFAULT_THICKNESS, Color? color = null
 		)
 		{
 			Vector3 pos = localToWorldM.MultiplyPoint3x4(Vector3.zero);
@@ -209,18 +213,16 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		}
 
 		public static void DrawCircle(
-			Vector3 pos, Vector3 normal, float radius, Color color = default, Color? outlineColor = null
+			Vector3 pos, Vector3 normal, float radius, Color? color = null, Color? outlineColor = null
 		)
 		{
-			using (new Handles.DrawingScope(color))
-			{
-				Handles.DrawSolidDisc(pos, normal, radius);
-				if (outlineColor.HasValue) DrawCircleWire(pos, normal, radius, 1, outlineColor.Value);
-			}
+			if (color.HasValue) Handles.color = color.Value;
+			Handles.DrawSolidDisc(pos, normal, radius);
+			if (outlineColor.HasValue) DrawCircleWire(pos, normal, radius, 1, outlineColor.Value);
 		}
 
 		public static void DrawCircle(
-			Matrix4x4 localToWorldM, Color color = default, Color? outlineColor = null
+			Matrix4x4 localToWorldM, Color? color = null, Color? outlineColor = null
 		)
 		{
 			Vector3 pos = localToWorldM.MultiplyPoint3x4(Vector3.zero);
@@ -233,9 +235,9 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 
 		#region CUBE
 
-		public static void DrawCube(Matrix4x4 matrix, Color color = default, bool centered = true)
+		public static void DrawCube(Matrix4x4 matrix, Color? color = null, bool centered = true)
 		{
-			Gizmos.color = color;
+			if (color.HasValue) Handles.color = color.Value;
 			Gizmos.DrawCube(
 				matrix.MultiplyPoint3x4(centered ? Vector3.zero : Vector3.one / 2),
 				matrix.MultiplyPoint3x4(Vector3.one / 2)
@@ -243,10 +245,10 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		}
 
 		public static void DrawCubeWire(
-			Matrix4x4 matrix, float thickness = DEFAULT_THICKNESS, Color color = default, bool centered = true
+			Matrix4x4 matrix, float thickness = DEFAULT_THICKNESS, Color? color = null, bool centered = true
 		)
 		{
-			Gizmos.color = color;
+			if (color.HasValue) Handles.color = color.Value;
 			Vector3 pos = matrix.MultiplyPoint3x4(centered ? Vector3.zero : Vector3.one / 2),
 				extent = matrix.MultiplyPoint3x4(Vector3.one) * 2;
 			Gizmos.DrawWireCube(pos, extent);
@@ -309,7 +311,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 
 		public static void DrawConeWire(
 			Vector3 pos, float radius, float height, Quaternion rotation = default, float thickness = 1,
-			Color color = default
+			Color? color = null
 		)
 		{
 			Vector3 up = rotation * Vector3.up;
@@ -340,9 +342,9 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			);
 		}
 
-		public static void DrawCone(Matrix4x4 localToWorldM, Color color = default)
+		public static void DrawCone(Matrix4x4 localToWorldM, Color? color = null)
 		{
-			Handles.color = color;
+			if (color.HasValue) Handles.color = color.Value;
 
 			Vector3 baseCenter = Vector3.zero;
 
@@ -361,7 +363,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			// CIRCLE
 			Quaternion upRotation = Quaternion.FromToRotation(Vector3.forward, Vector3.up);
 			Matrix4x4 circleMatrix = localToWorldM * Matrix4x4.Rotate(upRotation);
-			DrawCircleWire(circleMatrix, 3, color.Invert());
+			DrawCircleWire(circleMatrix, 3, color?.Invert());
 			DrawCircle(circleMatrix, color);
 
 			// TRIANGLE BILLBOARD
@@ -372,8 +374,18 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 
 			Vector3[] worldTri = triMatrix.MultiplyPoint3x4(tri).ToArray();
 			DrawTri(worldTri, color);
-			DrawLineThick(worldTri, 3, color.Invert());
+			DrawLineThick(worldTri, 3, color?.Invert());
 		}
+
+		public static void DrawCone(Vector3 baseCenter, float radius, float height, Vector3 up, Color? color = null) =>
+			DrawCone(
+				Matrix4x4.TRS(
+					baseCenter,
+					Quaternion.FromToRotation(Vector3.up, up),
+					new Vector3(radius, height, radius)
+				),
+				color
+			);
 
 		#endregion
 
