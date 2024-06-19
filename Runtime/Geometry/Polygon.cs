@@ -15,13 +15,12 @@ namespace DavidUtils.Geometry
 		public Vector2[] vertices;
 		public Vector2 centroid;
 
-		public int VextexCount => vertices.Length;
+		public int VertexCount => vertices?.Length ?? 0;
 
 		// EDGES
-		public IEnumerable<Edge> Edges => VextexCount > 0
+		public IEnumerable<Edge> Edges => VertexCount > 0
 			? vertices.IterateByPairs_InLoop((a, b) => new Edge(a, b), false)
 			: Array.Empty<Edge>();
-
 
 		public Polygon(IEnumerable<Vector2> vertices, Vector2 centroid)
 		{
@@ -60,6 +59,31 @@ namespace DavidUtils.Geometry
 			Mathf.Approximately(centeredScale, 1) ? this : new Polygon(VerticesScaledByCenter(centeredScale), centroid);
 
 
+		public (int, int) GetNearestPoints_Indices(Polygon other)
+		{
+			int i1 = -1, i2 = -1;
+			var minDist = float.MaxValue;
+			for (var i = 0; i < vertices.Length; i++)
+			for (var j = 0; j < other.vertices.Length; j++)
+			{
+				float dist = Vector2.Distance(vertices[i], other.vertices[j]);
+				if (minDist < dist) continue;
+				minDist = dist;
+				i1 = i;
+				i2 = j;
+			}
+
+			return (i1, i2);
+		}
+
+		public (Vector2, Vector2)? GetNearestPoints(Polygon other)
+		{
+			(int i1, int i2) = GetNearestPoints_Indices(other);
+			if (i1 == -1 || i2 == -1) return null;
+			return (vertices[i1], other.vertices[i2]);
+		}
+
+
 		#region POLYGON CONVERSIONS
 
 		/// <summary>
@@ -73,7 +97,14 @@ namespace DavidUtils.Geometry
 			Edge[] edges = Edges.ToArray();
 
 			// Genero las Aristas paralelas a la distancia dada
-			Edge[] parallels = edges.Select(e => e.ParallelLeft(new Vector2(margin2D.x, margin2D.y))).ToArray();
+			List<Edge> parallels = edges.Select(e => e.ParallelLeft(new Vector2(margin2D.x, margin2D.y))).ToList();
+
+			// Eliminar aristas invalidas (caen fuera del poligono por completo)
+			// Polygon polygon = this;
+			// parallels = parallels.Where(
+			// 		e => polygon.Contains_RayCast(e.begin) || polygon.Contains_RayCast(e.end)
+			// 	)
+			// 	.ToArray();
 
 			// Genero las intersecciones de las aristas paralelas
 			Vector2[] newVertices = parallels.IterateByPairs_InLoop(
@@ -86,8 +117,58 @@ namespace DavidUtils.Geometry
 				)
 				.ToArray();
 
-			// El poligono puede tener intersecciones consigo mismo, se legaliza
-			return new Polygon(newVertices); //.Legalize();
+			var interiorPolygon = new Polygon(newVertices);
+
+			// Comparamos los ejes con las paralelas.
+			// Si la dirección es la contraria, es un eje inválido. Lo eliminamos
+			List<Edge> interiorEdges = interiorPolygon.Edges.ToList();
+			for (var i = 0; i < interiorEdges.Count; i++)
+			{
+				Vector2 edgeDir = interiorEdges[i].Dir;
+				Vector2 parallelDir = parallels[i].Dir;
+
+				if (edgeDir == parallelDir) continue;
+				if (edgeDir != -parallelDir) continue;
+
+				// Calculamos la intersección de los ejes adyacentes
+				Edge prev = interiorEdges[(i - 1 + interiorEdges.Count) % interiorEdges.Count];
+				Edge next = interiorEdges[(i + 1) % interiorEdges.Count];
+				Vector2? intersection = prev.Intersection_LineLine(next);
+
+				if (!intersection.HasValue) continue;
+
+				// Si es el primer o ultimo eje, lo movemos para que los 3 sean consecutivos
+				if (i == 0)
+				{
+					interiorEdges = interiorEdges.Prepend(interiorEdges.Last()).SkipLast(1).ToList();
+					parallels = parallels.Prepend(parallels.Last()).SkipLast(1).ToList();
+					i = 1;
+				}
+
+				if (i == interiorEdges.Count - 1)
+				{
+					interiorEdges = interiorEdges.Append(interiorEdges.First()).Skip(1).ToList();
+					parallels = parallels.Append(parallels.First()).Skip(1).ToList();
+					i = interiorEdges.Count - 2;
+				}
+
+				interiorEdges.RemoveRange(i - 1, 3);
+				parallels.RemoveAt(i);
+				interiorEdges.InsertRange(
+					i - 1,
+					new[] { new Edge(prev.begin, intersection.Value), new Edge(intersection.Value, next.end) }
+				);
+
+				// Reiniciamos la busqueda porque a veces se salta el primero
+				i = -1;
+			}
+
+			// Si han habido invalidos tendra menos ejes, actualizamos el poligono con estos
+			if (interiorEdges.Count != newVertices.Length)
+				interiorPolygon = new Polygon(interiorEdges);
+
+			interiorPolygon.RemoveInvalidEdges();
+			return interiorPolygon;
 		}
 
 		// Overload para usar el mismo margen en ambos ejes
@@ -150,7 +231,6 @@ namespace DavidUtils.Geometry
 			// - Busca las intersecciones n con n
 			// Se busca n a n y se dividen las aristas en caso de interseccion
 			// Se repite hasta que no haya intersecciones (por seguridad hasta un maximo de repeticiones)
-			int initialEdges = edges.Count;
 			var restartCount = 0;
 			var maxRestarts = 20;
 			for (var i = 0; i < edges.Count && restartCount < maxRestarts; i++)
@@ -186,7 +266,10 @@ namespace DavidUtils.Geometry
 
 			if (edges.Count > 40)
 				Debug.Log("DEMASIADOS");
-			return new Polygon(edges);
+
+			var autointersectedPoly = new Polygon(edges);
+			autointersectedPoly.RemoveInvalidEdges();
+			return autointersectedPoly;
 		}
 
 		public Polygon[] SplitAutoIntersectedPolygons(List<Vector2> intersectionVertices)
@@ -216,6 +299,26 @@ namespace DavidUtils.Geometry
 			return polygons.ToArray();
 		}
 
+		/// <summary>
+		///     Merge 2 polygons into one by the nearest point
+		///     TODO Si intersectan no es viable
+		/// </summary>
+		public Polygon Merge(Polygon other)
+		{
+			if (other.VertexCount < 3) return this;
+			if (VertexCount < 3) return other;
+
+			// Merge polygons siendo a y b los puntos mas cercanos de cada poligono
+			// Ordeno los poligonos empezando por a y b y añado a y b repetidos al final
+			// Al unirlos se conectan a y b y termina en b, loopeando en a
+			(int i1, int i2) = GetNearestPoints_Indices(other);
+			return new Polygon(
+				vertices.Skip(i1)
+					.Concat(vertices.Take(i1 + 1)) // a -> a
+					.Concat(other.vertices.Skip(i2).Concat(other.vertices.Take(i2 + 1))) // b -> b
+			);
+		}
+
 		#endregion
 
 
@@ -230,7 +333,7 @@ namespace DavidUtils.Geometry
 
 		// No 1/2 para cuando necesito solo el signo
 		public float DoubleArea() => vertices
-			.IterateByPairs_NoLoop((v1, v2) => v1.x * v2.y - v2.x * v1.y)
+			.IterateByPairs_InLoop((v1, v2) => v1.x * v2.y - v2.x * v1.y)
 			.Sum();
 
 		public bool IsCounterClockwise() => DoubleArea() > 0;

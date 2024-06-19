@@ -7,6 +7,7 @@ using DavidUtils.DevTools.Testing;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry.Testing
@@ -16,6 +17,7 @@ namespace DavidUtils.Geometry.Testing
 		public Polygon polygon;
 		public Polygon interiorPolygon;
 		public Polygon[] splitPolygons;
+		[FormerlySerializedAs("resultPolygon")] public Polygon mergedPolygon;
 
 		private List<Vector2> intersectionPoints = new();
 
@@ -89,6 +91,7 @@ namespace DavidUtils.Geometry.Testing
 			splitPolygons = Array.Empty<Polygon>();
 			intersectionPoints.Clear();
 			interiorPolygon.vertices = Array.Empty<Vector2>();
+			mergedPolygon.vertices = Array.Empty<Vector2>();
 		}
 
 
@@ -103,10 +106,15 @@ namespace DavidUtils.Geometry.Testing
 				() => polygon.vertices.NotNullOrEmpty() && intersectionPoints.Count < 40
 			);
 			AddTest(SplitPolygonsTest, () => splitPolygons.NotNullOrEmpty());
+
+			// AddTest(SelectCCWpolygons, () => ccwPolygons.Length <= splitPolygons.Length);
+			AddTest(MergePolygonInOne, () => mergedPolygon.vertices != null);
+
 			// AddTest(LegalizeTest, () => polygon.vertices.NotNullOrEmpty());
 
 			OnEndTest += () =>
 			{
+				Debug.Log($"Test Finished! - Seed: {seed} - NumVertices: {numVertices} - Time: {Time.time}");
 				Reset();
 				RandomizeSeed();
 			};
@@ -116,9 +124,30 @@ namespace DavidUtils.Geometry.Testing
 			interiorPolygon = polygon.InteriorPolygon(Vector2.one * interiorPolygonMargin);
 
 		public void AddAutoIntersectionsTest() =>
-			polygon = interiorPolygon.AddAutoIntersections(out intersectionPoints);
+			interiorPolygon = interiorPolygon.AddAutoIntersections(out intersectionPoints);
 
-		public void SplitPolygonsTest() => splitPolygons = polygon.SplitAutoIntersectedPolygons(intersectionPoints);
+		public void SplitPolygonsTest()
+		{
+			AddAutoIntersectionsTest();
+			splitPolygons = interiorPolygon.SplitAutoIntersectedPolygons(intersectionPoints);
+		}
+
+		public void SelectCCWpolygons() => splitPolygons = splitPolygons.Where(p => p.IsCounterClockwise()).ToArray();
+
+		public void MergePolygonInOne()
+		{
+			SelectCCWpolygons();
+			mergedPolygon = new Polygon();
+			if (splitPolygons.IsNullOrEmpty()) return;
+			if (splitPolygons.Length > 1)
+			{
+				Vector2 firstCentroid = splitPolygons.First().centroid;
+				splitPolygons = splitPolygons.OrderByDescending(p => Vector2.Distance(firstCentroid, p.centroid))
+					.ToArray();
+			}
+
+			splitPolygons.ForEach(p => mergedPolygon = mergedPolygon.Merge(p));
+		}
 
 		public void LegalizeTest() => polygon = polygon.Legalize();
 
@@ -148,22 +177,30 @@ namespace DavidUtils.Geometry.Testing
 
 #if UNITY_EDITOR
 
+		private enum DrawMode { StartingPolygon, InteriorPolygon, SplitPolygons, MergedPolygon }
+
 		private void OnDrawGizmos()
 		{
-			bool drawInterior = interiorPolygon.vertices.NotNullOrEmpty();
-			bool drawSplitPolygons = splitPolygons.NotNullOrEmpty();
+			var mode = DrawMode.StartingPolygon;
+			if (interiorPolygon.vertices.NotNullOrEmpty()) mode = DrawMode.InteriorPolygon;
+			if (splitPolygons.NotNullOrEmpty()) mode = DrawMode.SplitPolygons;
+			if (mergedPolygon.vertices.NotNullOrEmpty()) mode = DrawMode.MergedPolygon;
 
-			if (drawSplitPolygons) DrawSplitPolygons();
-			else if (drawInterior) DrawInteriorPolygon();
-			else DrawPolygon();
-
-			Gizmos.color = Color.red;
-			Edge[] edges = drawInterior ? interiorPolygon.Edges.ToArray() : polygon.Edges.ToArray();
-			for (var i = 0; i < (drawInterior ? interiorPolygon.VextexCount : polygon.VextexCount); i++)
+			switch (mode)
 			{
-				Edge edge = edges[i].Shorten(.05f);
-				Color color = Color.red.RotateHue(0.1f * i);
-				edge.DrawGizmos_Arrow(GizmosExtensions.ArrowCap.Triangle, transform.localToWorldMatrix, color);
+				case DrawMode.StartingPolygon:
+					DrawPolygon();
+					break;
+				case DrawMode.InteriorPolygon:
+					DrawInteriorPolygon();
+					break;
+				case DrawMode.SplitPolygons:
+					DrawSplitPolygons();
+					break;
+				case DrawMode.MergedPolygon:
+					DrawMerged();
+					break;
+				default: throw new ArgumentOutOfRangeException();
 			}
 		}
 
@@ -171,6 +208,7 @@ namespace DavidUtils.Geometry.Testing
 		{
 			polygon.DrawGizmos(transform.localToWorldMatrix, Color.green.Darken(0.6f));
 			polygon.DrawGizmosVertices(transform.localToWorldMatrix, Color.red, .02f);
+			DrawEdges(polygon);
 		}
 
 		private void DrawInteriorPolygon()
@@ -178,17 +216,17 @@ namespace DavidUtils.Geometry.Testing
 			polygon.DrawGizmos(transform.localToWorldMatrix, Color.green.Darken(0.8f), Color.green.Darken(0.4f));
 			interiorPolygon.DrawGizmos(transform.localToWorldMatrix, Color.yellow.Darken(0.4f), Color.yellow);
 			transform.localToWorldMatrix.MultiplyPoint3x4(intersectionPoints).ForEach(p => Gizmos.DrawSphere(p, .05f));
+			DrawEdges(interiorPolygon);
 		}
 
 		private void DrawSplitPolygons()
 		{
+			polygon.DrawGizmos(transform.localToWorldMatrix, Color.gray.Lighten(0.2f), Color.gray);
+
 			int ccwCount = 0, cwCount = 0;
 			splitPolygons.ForEach(
 				p =>
 				{
-					Matrix4x4 separationMatrix =
-						Matrix4x4.Translate((p.centroid - polygon.centroid).normalized * 0.2f);
-					p.vertices = separationMatrix.MultiplyPoint3x4(p.vertices).ToV2().ToArray();
 					Color color = p.IsCounterClockwise()
 						? Color.green.RotateHue(0.1f * ccwCount++).Darken(0.6f)
 						: Color.red.RotateHue(0.1f * cwCount++).Darken(0.6f);
@@ -197,8 +235,28 @@ namespace DavidUtils.Geometry.Testing
 						color,
 						p.IsCounterClockwise() ? Color.green : Color.red
 					);
+					DrawEdges(p);
 				}
 			);
+		}
+
+		private void DrawEdges(Polygon polygon)
+		{
+			Gizmos.color = Color.red;
+			Edge[] edges = polygon.Edges.ToArray();
+			for (var i = 0; i < polygon.VertexCount; i++)
+			{
+				Edge edge = edges[i].Shorten(.05f);
+				Color color = Color.red.RotateHue(0.1f * i);
+				edge.DrawGizmos_Arrow(GizmosExtensions.ArrowCap.Triangle, transform.localToWorldMatrix, color);
+			}
+		}
+
+		private void DrawMerged()
+		{
+			polygon.DrawGizmos(transform.localToWorldMatrix, Color.gray.Lighten(0.2f), Color.gray);
+			mergedPolygon.DrawGizmos(transform.localToWorldMatrix, Color.green.Darken(0.4f), Color.green);
+			DrawEdges(mergedPolygon);
 		}
 
 #endif

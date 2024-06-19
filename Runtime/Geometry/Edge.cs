@@ -141,9 +141,12 @@ namespace DavidUtils.Geometry
 					// Buscamos una arista que comience donde termina la actual
 					int nextIndex = edges.FirstIndex(e => e.begin == currentEdge.end);
 					if (nextIndex == -1) continue;
-
-					// si la encontramos, la añadimos al bucle
 					nextEdge = edges[nextIndex];
+
+					// Comprobamos que no este ya en el bucle
+					// Si ya esta, podría entrar en un bucle interno y nunca volver al eje inicial
+					if (loop.Contains(nextEdge)) break;
+
 					loop.Add(nextEdge);
 
 					// Si completa el bucle, lo añadimos a la lista de bucles

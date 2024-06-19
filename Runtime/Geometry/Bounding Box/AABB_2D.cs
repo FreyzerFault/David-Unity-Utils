@@ -225,7 +225,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			croppedVertices.AddRange(cornersInside);
 
 			// Cortamos las aristas del poligono con la Bounding Box
-			for (var i = 0; i < polygon.VextexCount; i++)
+			for (var i = 0; i < polygon.VertexCount; i++)
 			{
 				Vector2 vertex = polygon.vertices[i];
 
@@ -233,7 +233,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 				if (Contains(vertex)) croppedVertices.Add(vertex);
 
 				// Si esta fuera de la Bounding Box, buscamos la interseccion de sus aristas con la BB
-				Vector2 next = polygon.vertices[(i + 1) % polygon.VextexCount];
+				Vector2 next = polygon.vertices[(i + 1) % polygon.VertexCount];
 				Vector2[] i2 = Intersections_Segment(vertex, next).ToArray();
 
 				// Añadimos las intersecciones en vez del vertice si las hay
