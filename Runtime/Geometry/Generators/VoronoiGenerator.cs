@@ -61,7 +61,7 @@ namespace DavidUtils.Geometry.Generators
 		{
 			ResetDelaunay();
 			ResetVoronoi();
-			if (AnimatedDelaunay)
+			if (AnimatedVoronoi)
 			{
 				animationCoroutine = StartCoroutine(RunCoroutine());
 			}
@@ -379,9 +379,9 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.OnDrawGizmos();
 
-			if (!drawGizmos || !DrawVoronoi) return;
-
-			// DrawVoronoiGizmos();
+			if (!drawGizmos) return;
+			
+			DrawVoronoiGizmos();
 
 			// Mientras se Genera, dibujamos detallada la ultima region generada
 			if (voronoi.regions.NotNullOrEmpty() && !voronoi.Ended)

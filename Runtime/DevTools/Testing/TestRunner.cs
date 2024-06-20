@@ -8,6 +8,24 @@ namespace DavidUtils.DevTools.Testing
 {
 	public abstract class TestRunner : MonoBehaviour
 	{
+		public struct TestInfo
+		{
+			public string name;
+			public Func<bool> successCondition;
+			public Action onSuccess;
+			public Action onFailure;
+			
+			public TestInfo(string name, Func<bool> successCondition = null, Action onSuccess = null, Action onFailure = null)
+			{
+				this.name = name;
+				this.successCondition = successCondition;
+				this.onSuccess = onSuccess;
+				this.onFailure = onFailure;
+			}
+
+			public TestInfo(Func<bool> successCondition): this(null, successCondition) { }
+		}
+        
 		[Header("Tests")]
 		public bool runOnStart;
 		public bool autoRun;
@@ -17,7 +35,7 @@ namespace DavidUtils.DevTools.Testing
 		protected Action OnEndTest;
 
 		// TESTS => [Test Action, Test Condition]
-		protected Dictionary<Action, Func<bool>> tests = new();
+		protected Dictionary<Action, TestInfo> tests = new();
 
 		protected Coroutine testsCoroutine;
 		protected bool playing = true;
@@ -35,7 +53,9 @@ namespace DavidUtils.DevTools.Testing
 			if (Input.GetKeyDown(KeyCode.Space)) TogglePlaying();
 		}
 
-		public void AddTest(Action test, Func<bool> condition = null) => tests.Add(test, condition);
+		public void AddTest(Action test, TestInfo info) => tests.Add(test, info);
+		public void AddTest(Action test, Func<bool> condition = null) => tests.Add(test, new TestInfo(condition));
+		public void AddTest(Action test, string name) => tests.Add(test, new TestInfo(name));
 
 		public void StartTests()
 		{
@@ -79,10 +99,16 @@ namespace DavidUtils.DevTools.Testing
 
 		private IEnumerator TestsCoroutine()
 		{
-			foreach ((Action test, Func<bool> condition) in tests)
+			foreach ((Action test, TestInfo info) in tests)
 			{
 				test();
-				LogTest(test.Method.Name, condition?.Invoke() ?? true);
+				
+				bool success = info.successCondition?.Invoke() ?? true;
+				LogTest(info.name, success);
+				
+				if (success) info.onSuccess?.Invoke();
+				else info.onFailure?.Invoke();
+				
 				yield return new WaitForSeconds(waitSeconds);
 				yield return new WaitUntil(() => playing);
 			}

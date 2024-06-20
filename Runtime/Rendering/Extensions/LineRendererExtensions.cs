@@ -43,7 +43,7 @@ namespace DavidUtils.Rendering.Extensions
 			lr.SetPoints(points.ToV3().ToArray());
 
 		public static void SetPolygon(this LineRenderer lr, Polygon polygon) =>
-			lr.SetPoints(polygon.vertices);
+			lr.SetPoints(polygon.Vertices);
 
 		#endregion
 
@@ -133,7 +133,7 @@ namespace DavidUtils.Rendering.Extensions
 		) => ToLineRenderer(
 			parent,
 			$"{name} [Line]",
-			polygon.vertices.ToV3().ToArray(),
+			polygon.Vertices.ToV3().ToArray(),
 			new[] { color },
 			thickness,
 			smoothness,

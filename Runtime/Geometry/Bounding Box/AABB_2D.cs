@@ -55,7 +55,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			max = pointsEnumerable.MaxPosition();
 		}
 
-		public AABB_2D(Polygon polygon) : this(polygon.vertices)
+		public AABB_2D(Polygon polygon) : this(polygon.Vertices)
 		{
 		}
 
@@ -141,14 +141,13 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 			// Normalizamos el punto a [0,1] si el AABB no es [0,0 - 1,1]
 			if (!IsNormalized) p = BoundsToLocalMatrix().MultiplyPoint3x4(p);
+		
+			float epsilon = GeometryUtils.Epsilon;
 
-			// Esta fuera del AABB
-			if (!p.IsIn01()) return false;
-
-			if (Mathf.Approximately(p.x, 0)) side = Side.Left;
-			else if (Mathf.Approximately(p.x, 1)) side = Side.Right;
-			else if (Mathf.Approximately(p.y, 0)) side = Side.Bottom;
-			else if (Mathf.Approximately(p.y, 1)) side = Side.Top;
+			if (Mathf.Abs(p.x) < epsilon) side = Side.Left;
+			else if (Mathf.Abs(p.x - 1) < epsilon) side = Side.Right;
+			else if (Mathf.Abs(p.y) < epsilon) side = Side.Bottom;
+			else if (Mathf.Abs(p.y - 1) < epsilon) side = Side.Top;
 
 			return side != null;
 		}
@@ -227,26 +226,23 @@ namespace DavidUtils.Geometry.Bounding_Box
 			// Cortamos las aristas del poligono con la Bounding Box
 			for (var i = 0; i < polygon.VertexCount; i++)
 			{
-				Vector2 vertex = polygon.vertices[i];
+				Vector2 vertex = polygon.Vertices[i];
 
 				// Si está dentro, conservamos el vertice
 				if (Contains(vertex)) croppedVertices.Add(vertex);
 
 				// Si esta fuera de la Bounding Box, buscamos la interseccion de sus aristas con la BB
-				Vector2 next = polygon.vertices[(i + 1) % polygon.VertexCount];
-				Vector2[] i2 = Intersections_Segment(vertex, next).ToArray();
+				Vector2 next = polygon.Vertices[(i + 1) % polygon.VertexCount];
+				Vector2[] intersections = Intersections_Segment(vertex, next).ToArray();
 
 				// Añadimos las intersecciones en vez del vertice si las hay
-				croppedVertices.AddRange(i2);
+				croppedVertices.AddRange(intersections);
 			}
 
-			polygon = new Polygon(croppedVertices);
-			polygon.vertices = polygon.vertices.SortByAngle(polygon.centroid);
-
-			return polygon;
+			return new Polygon(croppedVertices.SortByAngle(croppedVertices.Center()).ToArray());
 		}
 
-		public Vector2[] CropPolygon(Vector2[] polygonVertices) => CropPolygon(new Polygon(polygonVertices)).vertices;
+		public Vector2[] CropPolygon(Vector2[] polygonVertices) => CropPolygon(new Polygon(polygonVertices)).Vertices;
 
 		#endregion
 

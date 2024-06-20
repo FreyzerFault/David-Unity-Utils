@@ -44,7 +44,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			max = aabb.max.Rotate(Angle, centroid);
 		}
 
-		public OBB_2D(Polygon polygon, Vector2 up) : this(polygon.vertices, up)
+		public OBB_2D(Polygon polygon, Vector2 up) : this(polygon.Vertices, up)
 		{
 		}
 
