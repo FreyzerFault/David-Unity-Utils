@@ -11,6 +11,8 @@ namespace DavidUtils.Geometry
 	[Serializable]
 	public struct Polygon : IEquatable<Polygon>
 	{
+		public static Polygon Empty => new();
+
 		// Vertices in Counter-Clockwise order
 		private Vector2[] _vertices;
 		public Vector2 centroid;
@@ -21,7 +23,7 @@ namespace DavidUtils.Geometry
 			set
 			{
 				if (_vertices == value) return;
-				_vertices = value; 
+				_vertices = value;
 				_edges = VerticesToEdges(value);
 				centroid = value.Center();
 				RemoveInvalidEdges();
@@ -29,7 +31,7 @@ namespace DavidUtils.Geometry
 		}
 		public int VertexCount => _vertices?.Length ?? 0;
 
-		
+
 		#region EDGES
 
 		private Edge[] _edges;
@@ -45,19 +47,19 @@ namespace DavidUtils.Geometry
 				RemoveInvalidEdges();
 			}
 		}
-		
+
 		private static Edge[] VerticesToEdges(Vector2[] verts) =>
-			verts.IsNullOrEmpty() 
+			verts.IsNullOrEmpty()
 				? Array.Empty<Edge>()
 				: verts.IterateByPairs_InLoop((a, b) => new Edge(a, b), false).ToArray();
-		
+
 		private static Vector2[] EdgesToVertices(Edge[] edges) =>
 			edges.IsNullOrEmpty()
 				? Array.Empty<Vector2>()
 				: edges.Select(e => e.begin).ToArray();
 
 		#endregion
-		
+
 		public Polygon(Vector2[] vertices, Edge[] edges, Vector2 centroid)
 		{
 			_vertices = vertices;
@@ -65,14 +67,22 @@ namespace DavidUtils.Geometry
 			this.centroid = centroid;
 			RemoveInvalidEdges();
 		}
-		
-		public Polygon(Vector2[] vertices): this(vertices, VerticesToEdges(vertices), vertices.Center()) { }
-		public Polygon(Vector2[] vertices, Edge[] edges): this(vertices, edges, vertices.Center()) { }
-		public Polygon(Edge[] edges): this(EdgesToVertices(edges), edges) { }
+
+		public Polygon(Vector2[] vertices) : this(vertices, VerticesToEdges(vertices), vertices.Center())
+		{
+		}
+
+		public Polygon(Vector2[] vertices, Edge[] edges) : this(vertices, edges, vertices.Center())
+		{
+		}
+
+		public Polygon(Edge[] edges) : this(EdgesToVertices(edges), edges)
+		{
+		}
 
 
 		#region SECONDARY PROPERTIES
-		
+
 		/// <summary>
 		///     Calcula el area como la suma de areas de los triangulos formados por el centroide y cada arista
 		///     Pero la formula simplificada es
@@ -86,45 +96,41 @@ namespace DavidUtils.Geometry
 			.Sum();
 
 		#endregion
-		
-		
+
+
 		#region CLEANING
 
 		/// <summary>
-		/// Quita las aristas invalidas (colineales que van y vuelven, generando area nula)
+		///     Quita las aristas invalidas (colineales que van y vuelven, generando area nula)
 		/// </summary>
 		private void RemoveInvalidEdges()
 		{
 			if (_edges is not { Length: > 2 }) return;
 			_edges = _edges.IterateByPairs_InLoop(
-				(e1, e2) => Vector2.Distance(e1.Dir, -e2.Dir) < Mathf.Epsilon ? new Edge(e1.begin, e2.end) : e2
-			).ToArray();
+					(e1, e2) => Vector2.Distance(e1.Dir, -e2.Dir) < Mathf.Epsilon ? new Edge(e1.begin, e2.end) : e2
+				)
+				.ToArray();
 		}
 
 		#endregion
-		
-
-
-
-
 
 
 		#region POLYGON CONVERSIONS
-		
-		public Polygon SortCCW() => new (_vertices.SortByAngle(centroid).ToArray());
+
+		public Polygon SortCCW() => new(_vertices.SortByAngle(centroid).ToArray());
 
 		/// <summary>
-		/// Escala el polígono con centro en su centroide
+		///     Escala el polígono con centro en su centroide
 		/// </summary>
 		public Polygon ScaleByCenter(float centeredScale) =>
 			Mathf.Approximately(centeredScale, 1) ? this : new Polygon(VerticesScaledByCenter(centeredScale));
-		
+
 		private Vector2[] VerticesScaledByCenter(float centeredScale)
 		{
 			Vector2 c = centroid;
-			return _vertices.Select(v => c + (v - c) * centeredScale).ToArray();
+			return _vertices?.Select(v => c + (v - c) * centeredScale).ToArray();
 		}
-		
+
 		/// <summary>
 		///     Reduce el poligono a uno con aristas paralelas, a una distancia dada
 		///     Movemos cada arista hacia dentro (vector perpendicular) la distancia del margen (magnitud)
@@ -166,7 +172,7 @@ namespace DavidUtils.Geometry
 
 				// Puede que fueran colineales, lo cual no deberia pasar, pero por si acaso, ignoramos este caso
 				if (!intersection.HasValue) continue;
-				
+
 				// NO ES VALIDA => La eliminamos
 				interiorEdges.RemoveAt(i);
 				parallels.RemoveAt(i);
@@ -175,12 +181,13 @@ namespace DavidUtils.Geometry
 				// Con cuidado si estan en los extremos
 				interiorEdges[i == interiorEdges.Count ? 0 : i].begin = intersection.Value;
 				interiorEdges[i == 0 ? ^1 : i - 1].end = intersection.Value;
-				
+
 				// Reiniciamos la busqueda desde 0 porque puede generar aristas invalidas de nuevo
 				i = -1;
 			}
 
-			return new Polygon(interiorEdges.ToArray());
+			// Legalize() hara un postprocessing de limpieza de aristas invalidas y se asegura que sea CCW
+			return new Polygon(interiorEdges.ToArray()).Legalize();
 		}
 
 		// Overload para usar el mismo margen en ambos ejes
@@ -201,19 +208,19 @@ namespace DavidUtils.Geometry
 			// - Filtramos por los poligonos VALIDOS (CCW)
 			polygons = polygons.Where(p => p.IsCounterClockwise()).ToArray();
 			if (polygons.IsNullOrEmpty()) return new Polygon();
-			
+
 
 			// - Los unimos en un solo poligono
 			if (polygons.Length == 1) return polygons.First();
-			Polygon mergedPolygon = new Polygon();
-			
+			var mergedPolygon = new Polygon();
+
 			// Los ordeno segun la distancia con el centroide del 1º poligono
 			Vector2 firstCentroid = polygons.First().centroid;
 			polygons = polygons.OrderByDescending(p => Vector2.Distance(firstCentroid, p.centroid)).ToArray();
 
 			// UNION
 			polygons.ForEach(p => mergedPolygon = mergedPolygon.Merge(p));
-			
+
 			return mergedPolygon;
 		}
 
@@ -238,7 +245,7 @@ namespace DavidUtils.Geometry
 				Edge e1 = edgeList[i];
 				Edge e2 = edgeList[j];
 				Vector2? intersection = e1.Intersection(e2);
-				
+
 				if (!intersection.HasValue
 				    || intersection.Value == e1.begin
 				    || intersection.Value == e1.end
@@ -317,7 +324,7 @@ namespace DavidUtils.Geometry
 		#region TESTS
 
 		/// <summary>
-		/// Indices de los vertices mas cercanos de dos poligonos que no se intersectan
+		///     Indices de los vertices mas cercanos de dos poligonos que no se intersectan
 		/// </summary>
 		public (int, int) GetNearestPoints_Indices(Polygon other)
 		{
@@ -337,7 +344,7 @@ namespace DavidUtils.Geometry
 		}
 
 		/// <summary>
-		/// Puntos mas cercanos de dos poligonos que no se intersectan
+		///     Puntos mas cercanos de dos poligonos que no se intersectan
 		/// </summary>
 		public (Vector2, Vector2)? GetNearestPoints(Polygon other)
 		{
@@ -347,16 +354,17 @@ namespace DavidUtils.Geometry
 		}
 
 		/// <summary>
-		/// +Area => CCW
-		/// -Area => CW
+		///     +Area => CCW
+		///     -Area => CW
 		/// </summary>
 		public bool IsCounterClockwise() => DoubleArea > 0;
+
 		public bool IsClockwise() => DoubleArea < 0;
 
 		// TEST Point is inside Polygon
 		// Using Cross Product
 		// Only works on CONVEX polygons
-		public bool Contains_CrossProd(Vector2 point) => 
+		public bool Contains_CrossProd(Vector2 point) =>
 			_edges.All(e => GeometryUtils.IsLeft(e.begin, e.end, point));
 
 		// TEST Point is inside Polygon
@@ -365,12 +373,14 @@ namespace DavidUtils.Geometry
 		public bool Contains_RayCast(Vector2 point)
 		{
 			var contains = false;
-			_edges.ForEach(e =>
-			{
-				Vector2 a = e.begin, b = e.end;
-				if (b.y > point.y != a.y > point.y && point.x < (a.x - b.x) * (point.y - b.y) / (a.y - b.y) + b.x)
-					contains = !contains;
-			});
+			_edges.ForEach(
+				e =>
+				{
+					Vector2 a = e.begin, b = e.end;
+					if (b.y > point.y != a.y > point.y && point.x < (a.x - b.x) * (point.y - b.y) / (a.y - b.y) + b.x)
+						contains = !contains;
+				}
+			);
 			return contains;
 		}
 
@@ -425,23 +435,25 @@ namespace DavidUtils.Geometry
 		public void DrawGizmosVertices(Matrix4x4 localToWorldMatrix, Color color = default, float radius = .1f)
 		{
 			Gizmos.color = color;
-			_vertices.ForEach(v => 
-				Gizmos.DrawSphere(
-					localToWorldMatrix.MultiplyPoint3x4(v),
-					radius * localToWorldMatrix.lossyScale.magnitude
-				));
+			_vertices.ForEach(
+				v =>
+					Gizmos.DrawSphere(
+						localToWorldMatrix.MultiplyPoint3x4(v),
+						radius * localToWorldMatrix.lossyScale.magnitude
+					)
+			);
 		}
 
-		public void DrawGizmosVertices_CheckAABBborder(Matrix4x4 localToWorldMatrix, float radius = .1f)
-		{
-			_vertices.ForEach(v =>
-			{
-				bool inBorder = AABB_2D.NormalizedAABB.PointOnBorder(v, out _);
-				Vector3 worldPoint = localToWorldMatrix.MultiplyPoint3x4(v);
-				Gizmos.color = inBorder ? Color.red : Color.green;
-				Gizmos.DrawSphere(worldPoint, radius);
-			});
-		}
+		public void DrawGizmosVertices_CheckAABBborder(Matrix4x4 localToWorldMatrix, float radius = .1f) =>
+			_vertices.ForEach(
+				v =>
+				{
+					bool inBorder = AABB_2D.NormalizedAABB.PointOnBorder(v, out _);
+					Vector3 worldPoint = localToWorldMatrix.MultiplyPoint3x4(v);
+					Gizmos.color = inBorder ? Color.red : Color.green;
+					Gizmos.DrawSphere(worldPoint, radius);
+				}
+			);
 
 #endif
 

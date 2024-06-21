@@ -244,6 +244,8 @@ namespace DavidUtils.ExtensionMethods
 		// Utiliza el primer punto como referencia de ángulo 0, por lo que siempre sera el primero
 		public static Vector3[] SortByAngle(this IEnumerable<Vector3> points, Vector3 centroid, Vector3 axis)
 		{
+			points = points as Vector3[] ?? points?.ToArray();
+			if (points.IsNullOrEmpty()) return null;
 			Vector3 refPoint = points.First();
 			return points.OrderBy(p => Vector3.SignedAngle(refPoint - centroid, p - centroid, axis)).ToArray();
 		}
@@ -255,7 +257,8 @@ namespace DavidUtils.ExtensionMethods
 
 		public static Bounds GetBoundingBox(this IEnumerable<Vector3> points)
 		{
-			points = points as Vector3[] ?? points.ToArray();
+			points = points as Vector3[] ?? points?.ToArray();
+			if (points.IsNullOrEmpty()) return new Bounds();
 			Vector3 min = points.MinPosition(), max = points.MaxPosition();
 			Vector3 size = max - min;
 			return new Bounds(min + size / 2, size);
@@ -282,13 +285,15 @@ namespace DavidUtils.ExtensionMethods
 		// CENTROIDE (Punto Medio)
 		public static Vector2 Center(this IEnumerable<Vector2> points)
 		{
-			IEnumerable<Vector2> pointsEnumerable = points as Vector2[] ?? points.ToArray();
+			IEnumerable<Vector2> pointsEnumerable = points as Vector2[] ?? points?.ToArray();
+			if (pointsEnumerable.IsNullOrEmpty()) return default;
 			return pointsEnumerable.Aggregate(Vector2.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
 		}
 
 		public static Vector3 Center(this IEnumerable<Vector3> points)
 		{
-			IEnumerable<Vector3> pointsEnumerable = points as Vector3[] ?? points.ToArray();
+			IEnumerable<Vector3> pointsEnumerable = points as Vector3[] ?? points?.ToArray();
+			if (pointsEnumerable.IsNullOrEmpty()) return default;
 			return pointsEnumerable.Aggregate(Vector3.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
 		}
 

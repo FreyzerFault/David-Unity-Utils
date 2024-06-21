@@ -19,11 +19,11 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 		#region UNITY
 
-		protected override void Awake()
+		protected override void Start()
 		{
 			AnimatedDelaunay = false;
 
-			base.Awake();
+			base.Start();
 
 			InitializeDirections();
 		}

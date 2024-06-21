@@ -61,7 +61,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Matrix4x4 LocalToBoundsMatrix => Matrix4x4.TRS(
 			Min,
 			is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity,
-			is2D ? aabb2D.Size : bounds3D.size
+			is2D ? aabb2D.Size.ToV3().WithZ(1) : bounds3D.size
 		);
 		public Matrix4x4 WorldToLocalMatrix => BoundsToLocalMatrix * transform.worldToLocalMatrix;
 		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * LocalToBoundsMatrix;
@@ -99,11 +99,6 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#endregion
 
-		public void AdjustTransformToBounds(MonoBehaviour obj)
-		{
-			obj.transform.localPosition = Min;
-			obj.transform.localRotation = XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity;
-			obj.transform.localScale = is2D ? aabb2D.Size.ToV3xy().WithZ(1) : bounds3D.size;
-		}
+		public void AdjustTransformToBounds(MonoBehaviour obj) => obj.transform.ApplyMatrix(LocalToWorldMatrix);
 	}
 }

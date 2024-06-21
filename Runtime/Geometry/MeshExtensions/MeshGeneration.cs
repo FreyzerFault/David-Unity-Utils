@@ -27,8 +27,8 @@ namespace DavidUtils.Geometry.MeshExtensions
 				triangles = indices
 			};
 
-			if (colors != null)
-				mesh.SetColors(colors.SelectMany(c => new[] { c, c, c }).ToArray());
+			if (colors.NotNullOrEmpty())
+				mesh.SetColors(colors?.SelectMany(c => new[] { c, c, c }).ToArray());
 
 			mesh.normals = mesh.vertices.Select(v => Vector3.back).ToArray();
 

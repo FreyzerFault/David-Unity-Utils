@@ -76,7 +76,7 @@ namespace DavidUtils.Rendering
 
 		public override void UpdateGeometry(Triangle[] points)
 		{
-			if (points.Length == 0) return;
+			if (points.IsNullOrEmpty()) return;
 
 			if (points.Length != colors.Length) SetRainbowColors(points.Length);
 
@@ -113,8 +113,7 @@ namespace DavidUtils.Rendering
 
 		#region MESH
 
-		private void InstantiateMesh(Triangle[] tris) =>
-			meshFilter.sharedMesh = tris.CreateMesh(colors.ToArray());
+		private void InstantiateMesh(Triangle[] tris) => meshFilter.sharedMesh = tris.CreateMesh(colors?.ToArray());
 
 		// Si cambian los triangulos minimamente, se instancia de cero el Mesh
 		public void UpdateMesh(Triangle[] tris) => InstantiateMesh(tris);

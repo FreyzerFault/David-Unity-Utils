@@ -19,6 +19,7 @@ namespace DavidUtils.Geometry.Generators
 		[ExposedField]
 		public int randSeed = 10;
 
+		[ExposedField]
 		public int numSeeds = 10;
 		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
 
@@ -53,12 +54,15 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Awake()
 		{
-			InitializeRenderer();
 			Reset();
 			GenerateSeeds();
+			InitializeRenderer();
+			InstantiateRenderer();
 		}
 
-		protected virtual void Start() => InstantiateRenderer();
+		protected virtual void Start()
+		{
+		}
 
 		#endregion
 

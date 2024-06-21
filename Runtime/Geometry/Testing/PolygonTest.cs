@@ -7,7 +7,6 @@ using DavidUtils.DevTools.Testing;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry.Testing
@@ -24,7 +23,7 @@ namespace DavidUtils.Geometry.Testing
 		[ExposedField] public int seed = 9999;
 		[ExposedField] public int numVertices = 5;
 		public Vector2 interiorPolygonMargin = Vector2.one * 0.1f;
-		public bool stepByStep = false;
+		public bool stepByStep;
 
 
 		public int Seed
@@ -58,7 +57,6 @@ namespace DavidUtils.Geometry.Testing
 		{
 			Random.InitState(seed);
 			GenerateVertices();
-			InitializeTests();
 			base.Awake();
 		}
 
@@ -98,36 +96,58 @@ namespace DavidUtils.Geometry.Testing
 
 		#region TESTS
 
-		private void InitializeTests()
+		protected override void InitializeTests()
 		{
 			// ACTION, CONDITION
-			AddTest(BuildInteriorPolygon, new TestInfo(
-				$"Interior Polygon", 
-				() => polygon.Vertices.NotNullOrEmpty()
-				));
+			AddTest(
+				BuildInteriorPolygon,
+				new TestInfo(
+					"Interior Polygon",
+					() => polygon.Vertices.NotNullOrEmpty()
+				)
+			);
 			if (stepByStep)
 			{
-				AddTest(AddAutoIntersectionsTest, new TestInfo(
-					$"Add Auto Intersections",
-					() => polygon.Vertices.NotNullOrEmpty() && intersectionPoints.Count < 40
-				));
-				AddTest(SplitPolygonsTest, new TestInfo(
-					$"Split Polygon",
-					() => splitPolygons.NotNullOrEmpty()
-				));
-				AddTest(MergePolygonInOne, new TestInfo(
-					$"Merge {splitPolygons.Length} Polygons",
-					() => mergedPolygon.Vertices.NotNullOrEmpty()
-				));
+				AddTest(
+					AddAutoIntersectionsTest,
+					new TestInfo(
+						"Add Auto Intersections",
+						() => polygon.Vertices.NotNullOrEmpty() && intersectionPoints.Count < 40
+					)
+				);
+				AddTest(
+					SplitPolygonsTest,
+					new TestInfo(
+						"Split Polygon",
+						() => splitPolygons.NotNullOrEmpty()
+					)
+				);
+				AddTest(
+					MergePolygonInOne,
+					new TestInfo(
+						"Merge Polygons",
+						() => mergedPolygon.Vertices.NotNullOrEmpty()
+					)
+				);
+
+				OnStartTest += () =>
+				{
+					Debug.Log(
+						$"<color=#00ffff><b>Starting Test #{iterations}</b> - Seed: {seed} - NumVertices: {numVertices} - Time: {Time.time}</color>",
+						this
+					);
+				};
+
 				OnEndTest += () =>
 				{
-					Debug.Log($"<color=#00ff00><b>\u2714 Test Finished!</b> - Seed: {seed} - NumVertices: {numVertices} - Time: {Time.time}</color>", this);
 					Reset();
 					RandomizeSeed();
 				};
 			}
 			else
-				AddTest(LegalizeTest, new TestInfo($"Legalización del Polígono Interior - Seed: {seed}"));
+			{
+				AddTest(LegalizeTest, new TestInfo("Legalización del Polígono Interior"));
+			}
 		}
 
 		// Construye el poligono interior con un margen
@@ -136,7 +156,7 @@ namespace DavidUtils.Geometry.Testing
 
 		// Esto ya hace to el proceso de legalización del poligono interior
 		public void LegalizeTest() => mergedPolygon = interiorPolygon.Legalize();
-		
+
 		// Las siguientes funciones son para mostrar el proceso de legalización paso a paso
 		public void AddAutoIntersectionsTest() =>
 			interiorPolygon = interiorPolygon.AddAutoIntersections(out intersectionPoints);
@@ -163,7 +183,6 @@ namespace DavidUtils.Geometry.Testing
 
 			splitPolygons.ForEach(p => mergedPolygon = mergedPolygon.Merge(p));
 		}
-
 
 		#endregion
 

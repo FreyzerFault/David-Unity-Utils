@@ -25,12 +25,6 @@ namespace DavidUtils.Geometry.Generators
 
 		#region UNITY
 
-		protected override void Awake()
-		{
-			base.Awake();
-			voronoi = new Voronoi(seeds, delaunay);
-		}
-
 		protected override void Update()
 		{
 			UpdateMouseRegion();
@@ -161,6 +155,9 @@ namespace DavidUtils.Geometry.Generators
 			Renderer.Initialize();
 
 			BoundsComp.AdjustTransformToBounds(Renderer);
+
+			// Selected
+			InitializeSelectedRenderer();
 		}
 
 		protected override void InstantiateRenderer()
@@ -237,6 +234,24 @@ namespace DavidUtils.Geometry.Generators
 		private Polygon LastRegionGenerated => voronoi.regions[^1];
 
 
+		#region RENDERING
+
+		private PolygonRenderer _selectedRenderer;
+
+		private void InitializeSelectedRenderer()
+		{
+			_selectedRenderer ??= UnityUtils.InstantiateEmptyObject(transform, "Selected Polygon")
+				.AddComponent<PolygonRenderer>();
+			_selectedRenderer.Initialize();
+			_selectedRenderer.centeredScale = RegionScale;
+			BoundsComp.AdjustTransformToBounds(_selectedRenderer);
+		}
+
+		private void UpdateSelectedRenderer() => _selectedRenderer.UpdatePolygon(SelectedRegion ?? Polygon.Empty, 0);
+
+		#endregion
+
+
 		/// <summary>
 		///     Update Selected and Hover Region by Mouse Input
 		/// </summary>
@@ -280,10 +295,12 @@ namespace DavidUtils.Geometry.Generators
 		{
 			bool regionValid = index != -1 && index < RegionsCount;
 			Renderer.ToggleSelected(regionValid);
+			selectedRegionIndex = index;
+
+			UpdateSelectedRenderer();
 
 			if (!regionValid) return;
 
-			selectedRegionIndex = index;
 			Polygon region = Regions[index];
 			Renderer.SetSelectedRegion(region);
 
@@ -380,7 +397,7 @@ namespace DavidUtils.Geometry.Generators
 			base.OnDrawGizmos();
 
 			if (!drawGizmos) return;
-			
+
 			DrawVoronoiGizmos();
 
 			// Mientras se Genera, dibujamos detallada la ultima region generada

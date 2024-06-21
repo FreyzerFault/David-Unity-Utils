@@ -116,6 +116,8 @@ namespace DavidUtils.Rendering
 
 		private void InstatiatePolygon(Polygon polygon, Color color, string polygonName = null)
 		{
+			if (polygon.Vertices.IsNullOrEmpty()) return;
+
 			// LINE
 			lineRenderers.Add(polygon.ToLineRenderer(lineParent, $"{polygonName}", color));
 

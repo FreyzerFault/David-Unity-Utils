@@ -39,7 +39,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 			Vector3[] newVertices = tris.SelectMany(t => new[] { t.v3, t.v2, t.v1 }).ToV3().ToArray();
 
 			// Indices, Normales y Colores no deberian cambiar si el numero de vertices no cambia
-			if (oldVertexCount == tris.Length * 3)
+			if (oldVertexCount == newVertices.Length)
 			{
 				mesh.vertices = newVertices;
 			}

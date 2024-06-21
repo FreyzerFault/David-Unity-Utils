@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DavidUtils.DevTools.Reflection;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace DavidUtils.DevTools.Testing
 {
@@ -14,8 +15,10 @@ namespace DavidUtils.DevTools.Testing
 			public Func<bool> successCondition;
 			public Action onSuccess;
 			public Action onFailure;
-			
-			public TestInfo(string name, Func<bool> successCondition = null, Action onSuccess = null, Action onFailure = null)
+
+			public TestInfo(
+				string name, Func<bool> successCondition = null, Action onSuccess = null, Action onFailure = null
+			)
 			{
 				this.name = name;
 				this.successCondition = successCondition;
@@ -23,26 +26,33 @@ namespace DavidUtils.DevTools.Testing
 				this.onFailure = onFailure;
 			}
 
-			public TestInfo(Func<bool> successCondition): this(null, successCondition) { }
+			public TestInfo(Func<bool> successCondition) : this(null, successCondition)
+			{
+			}
 		}
-        
+
 		[Header("Tests")]
 		public bool runOnStart;
 		public bool autoRun;
 		public float waitSeconds = 1;
 
+		protected int iterations;
+
 		protected Action OnStartTest;
 		protected Action OnEndTest;
 
 		// TESTS => [Test Action, Test Condition]
-		protected Dictionary<Action, TestInfo> tests = new();
+		protected Dictionary<Func<IEnumerator>, TestInfo> tests = new();
 
 		protected Coroutine testsCoroutine;
 		protected bool playing = true;
 		[ExposedField] public bool IsPlaying => playing;
-		[ExposedField] public string PlayingStr => playing ? "Playing" : "Paused";
+		[ExposedField] public string PlayingStr => playing ? "PLAYING" : "PAUSED";
+		[ExposedField] public string ToggleLabel => playing ? "STOP" : "PLAY";
 
-		protected virtual void Awake()
+		protected virtual void Awake() => InitializeTests();
+
+		private void Start()
 		{
 			if (runOnStart) StartTests();
 		}
@@ -53,12 +63,32 @@ namespace DavidUtils.DevTools.Testing
 			if (Input.GetKeyDown(KeyCode.Space)) TogglePlaying();
 		}
 
-		public void AddTest(Action test, TestInfo info) => tests.Add(test, info);
-		public void AddTest(Action test, Func<bool> condition = null) => tests.Add(test, new TestInfo(condition));
-		public void AddTest(Action test, string name) => tests.Add(test, new TestInfo(name));
+
+		protected abstract void InitializeTests();
+
+		public void AddTest(Func<IEnumerator> test, TestInfo info) => tests.Add(test, info);
+
+		public void AddTest(Func<IEnumerator> test, Func<bool> condition = null) =>
+			tests.Add(test, new TestInfo(condition));
+
+		public void AddTest(Func<IEnumerator> test, string name) => tests.Add(test, new TestInfo(name));
+
+		public void AddTest(Action test, TestInfo info) => AddTest(ActionToCoroutine(test), info);
+
+		public void AddTest(Action test, Func<bool> condition = null) =>
+			AddTest(ActionToCoroutine(test), new TestInfo(condition));
+
+		public void AddTest(Action test, string name) => AddTest(ActionToCoroutine(test), new TestInfo(name));
+
+		private Func<IEnumerator> ActionToCoroutine(Action action) => () =>
+		{
+			action();
+			return null;
+		};
 
 		public void StartTests()
 		{
+			iterations = 0;
 			playing = true;
 			if (testsCoroutine != null) EndTests();
 			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(waitSeconds) : RunTests_Single());
@@ -81,6 +111,7 @@ namespace DavidUtils.DevTools.Testing
 			OnStartTest?.Invoke();
 			yield return TestsCoroutine();
 			OnEndTest?.Invoke();
+			iterations++;
 			playing = false;
 		}
 
@@ -90,25 +121,26 @@ namespace DavidUtils.DevTools.Testing
 			while (playing)
 			{
 				(before ?? OnStartTest)?.Invoke();
-				yield return new WaitForSeconds(waitSeconds);
 				yield return TestsCoroutine();
+				yield return new WaitForSeconds(waitSeconds);
 				yield return new WaitUntil(() => playing);
 				(after ?? OnEndTest)?.Invoke();
+				iterations++;
 			}
 		}
 
 		private IEnumerator TestsCoroutine()
 		{
-			foreach ((Action test, TestInfo info) in tests)
+			foreach ((Func<IEnumerator> test, TestInfo info) in tests)
 			{
-				test();
-				
+				yield return test();
+
 				bool success = info.successCondition?.Invoke() ?? true;
 				LogTest(info.name, success);
-				
+
 				if (success) info.onSuccess?.Invoke();
 				else info.onFailure?.Invoke();
-				
+
 				yield return new WaitForSeconds(waitSeconds);
 				yield return new WaitUntil(() => playing);
 			}
@@ -116,10 +148,12 @@ namespace DavidUtils.DevTools.Testing
 
 		private void LogTest(string testName, bool success, string msg = null)
 		{
-			if (success)
-				Debug.Log($"<color=#00ff00><b>\u2714 Test: {testName}</b> - {msg ?? "Success"}</color>", this);
-			else
-				Debug.LogError($"<color=#ff0000><b>\u2716 Test: {testName}</b> - {msg ?? "Failed"}</color>", this);
+			string color = success ? "#00ff00" : "#ff0000";
+			string symbol = success ? "\u2714" : "\u2716";
+			string numTests = autoRun ? $"#{iterations}" : "";
+			msg ??= success ? "Success" : "Failed";
+			Action<string, Object> logFunction = success ? Debug.Log : Debug.LogError;
+			logFunction($"<color={color}><b>{symbol} {numTests} Test: {testName}</b> - {msg}</color>", this);
 		}
 	}
 }
