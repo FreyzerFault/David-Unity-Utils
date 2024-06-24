@@ -56,12 +56,14 @@ namespace DavidUtils.Geometry.Generators
 		{
 			Reset();
 			GenerateSeeds();
-			InitializeRenderer();
-			InstantiateRenderer();
+
+			BoundsComp.OnChanged += PositionRenderer;
 		}
 
 		protected virtual void Start()
 		{
+			InitializeRenderer();
+			InstantiateRenderer();
 		}
 
 		#endregion
@@ -157,10 +159,7 @@ namespace DavidUtils.Geometry.Generators
 			_seedsRenderer ??= Renderer
 			                   ?? UnityUtils.InstantiateEmptyObject(transform, "Seeds Renderer")
 				                   .AddComponent<Points2DRenderer>();
-
-			BoundsComp.AdjustTransformToBounds(Renderer);
-
-			Renderer.transform.Translate(Vector3.back * .5f);
+			PositionRenderer();
 		}
 
 		protected virtual void InstantiateRenderer()
@@ -173,6 +172,14 @@ namespace DavidUtils.Geometry.Generators
 		}
 
 		protected virtual void UpdateRenderer() => Renderer.UpdateGeometry(seeds.ToArray());
+
+		protected virtual void PositionRenderer()
+		{
+			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+			Renderer.transform.localScale = Vector3.one;
+			BoundsComp.AdjustTransformToBounds(Renderer);
+			Renderer.transform.Translate(Vector3.back * .5f);
+		}
 
 		#endregion
 

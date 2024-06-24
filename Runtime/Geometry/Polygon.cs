@@ -17,9 +17,11 @@ namespace DavidUtils.Geometry
 		private Vector2[] _vertices;
 		public Vector2 centroid;
 
+		public bool IsEmpty => _vertices.IsNullOrEmpty();
+
 		public Vector2[] Vertices
 		{
-			get => _vertices;
+			get => _vertices ?? Array.Empty<Vector2>();
 			set
 			{
 				if (_vertices == value) return;

@@ -12,6 +12,14 @@ namespace DavidUtils.Rendering.Extensions
 		public const int DEFAULT_SMOOTHNESS = 5;
 		public static Material DefaultLineMaterial => new(Shader.Find("Sprites/Default"));
 
+
+		public static bool IsInXY(this LineRenderer lr) => lr.GetPoints().Select(p => p.z).Distinct().Count() == 1;
+		public static bool IsInXZ(this LineRenderer lr) => lr.GetPoints().Select(p => p.y).Distinct().Count() == 1;
+		public static bool is2D(this LineRenderer lr) => lr.IsInXY() || lr.IsInXZ();
+
+		public static Vector3 GetNormal2D(this LineRenderer lr) => lr.IsInXY() ? Vector3.back : Vector3.up;
+
+
 		#region MODIFY LINE
 
 		public static void CopyLineRendererPoints(this LineRenderer lr, LineRenderer other)
@@ -28,6 +36,9 @@ namespace DavidUtils.Rendering.Extensions
 			lr.GetPositions(points);
 			return points;
 		}
+
+		public static Vector2[] GetPoints2D(this LineRenderer lr) =>
+			lr.GetPoints().Select(p => lr.IsInXY() ? p.ToV2() : p.ToV2xz()).ToArray();
 
 		public static void SetPoints(this LineRenderer lr, Vector3[] points)
 		{

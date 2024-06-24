@@ -1,3 +1,4 @@
+using System;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
@@ -20,12 +21,15 @@ namespace DavidUtils.Geometry.Bounding_Box
 		[ConditionalField("is2D", false)]
 		public bool XZplane = true;
 
+		public Action OnChanged;
+
 		public Vector3 Center
 		{
 			get => bounds3D.center;
 			set
 			{
 				bounds3D.center = value;
+				OnChanged?.Invoke();
 				Sincronize2D();
 			}
 		}
@@ -36,6 +40,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			set
 			{
 				bounds3D.size = value;
+				OnChanged?.Invoke();
 				Sincronize2D();
 			}
 		}
@@ -46,6 +51,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			set
 			{
 				aabb2D.Size = value;
+				OnChanged?.Invoke();
 				Sincronize3D();
 			}
 		}
@@ -67,9 +73,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * LocalToBoundsMatrix;
 
 		private void Awake() => SincronizeBounds();
-
 		private void OnEnable() => SincronizeBounds();
-
 		private void OnValidate() => SincronizeBounds();
 
 
@@ -99,6 +103,6 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#endregion
 
-		public void AdjustTransformToBounds(MonoBehaviour obj) => obj.transform.ApplyMatrix(LocalToWorldMatrix);
+		public void AdjustTransformToBounds(MonoBehaviour obj) => obj?.transform.ApplyMatrix(LocalToWorldMatrix);
 	}
 }

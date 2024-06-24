@@ -168,10 +168,6 @@ namespace DavidUtils.Geometry.Generators
 				.AddComponent<Triangles2DRenderer>();
 
 			Renderer.Initialize();
-
-			BoundsComp.AdjustTransformToBounds(Renderer);
-
-			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 
 		protected override void InstantiateRenderer()
@@ -189,6 +185,15 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.UpdateRenderer();
 			Renderer.UpdateGeometry(Triangles.ToArray());
+		}
+
+		protected override void PositionRenderer()
+		{
+			base.PositionRenderer();
+			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+			Renderer.transform.localScale = Vector3.one;
+			BoundsComp.AdjustTransformToBounds(Renderer);
+			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 
 		#endregion

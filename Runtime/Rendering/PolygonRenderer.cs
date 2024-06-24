@@ -6,66 +6,247 @@ using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
 	[Serializable]
 	public class PolygonRenderer : DynamicRenderer<Polygon[]>
 	{
+		public enum PolygonRenderMode
+		{
+			Wire,
+			Mesh,
+			OutlinedMesh
+		}
+
+		[Serializable]
+		public class PolygonRenderData
+		{
+			private Polygon _polygon;
+			private Color _color;
+			private float _thickness;
+			private PolygonRenderMode _renderMode;
+
+			// SCALE SLIDER
+			[FormerlySerializedAs("centeredScale")]
+			[SerializeField] [Range(.2f, 1)]
+			private float _centeredScale = 1;
+
+			public LineRenderer lineRenderer;
+			public MeshFilter meshFilter;
+			public MeshRenderer meshRenderer;
+
+			public PolygonRenderData(
+				Polygon polygon, Color color, float thickness, PolygonRenderMode renderMode, float centeredScale,
+				LineRenderer lineRenderer,
+				MeshFilter meshFilter, MeshRenderer meshRenderer
+			)
+			{
+				_polygon = polygon;
+				_color = color;
+				_thickness = thickness;
+				_renderMode = renderMode;
+				_centeredScale = centeredScale;
+				this.lineRenderer = lineRenderer;
+				this.meshFilter = meshFilter;
+				this.meshRenderer = meshRenderer;
+			}
+
+			public PolygonRenderData(
+				Polygon polygon, Transform parent, string name = null, Color? color = null, float thickness = 1f,
+				PolygonRenderMode renderMode = PolygonRenderMode.Mesh, float centeredScale = 1
+			)
+			{
+				_polygon = polygon;
+				_color = color ?? Color.white;
+				_thickness = thickness;
+				_renderMode = renderMode;
+				_centeredScale = centeredScale;
+
+				lineRenderer = polygon.ToLineRenderer(parent, $"{name ?? "Polygon"}", _color, _thickness);
+
+				polygon.InstantiateMesh(
+					out MeshRenderer mr,
+					out MeshFilter mf,
+					parent,
+					$"{name ?? "Polygon"}",
+					_color
+				);
+				meshRenderer = mr;
+				meshFilter = mf;
+			}
+
+			public void Destroy()
+			{
+				UnityUtils.DestroySafe(meshFilter.gameObject);
+				UnityUtils.DestroySafe(lineRenderer.gameObject);
+			}
+
+			public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f)
+			{
+				terrain.ProjectMeshInTerrain(meshFilter.sharedMesh, meshFilter.transform, offset);
+				lineRenderer.SetPoints(lineRenderer.GetPoints().Select(p => terrain.Project(p, offset)).ToArray());
+			}
+
+			private Polygon ScaledPolygon => _polygon.ScaleByCenter(_centeredScale);
+
+			#region MODIFIABLE PROPERTIES
+
+			public PolygonRenderMode Mode
+			{
+				get => _renderMode;
+				set
+				{
+					_renderMode = value;
+					bool line = _renderMode is PolygonRenderMode.Wire or PolygonRenderMode.OutlinedMesh;
+					bool solid = _renderMode is PolygonRenderMode.Mesh or PolygonRenderMode.OutlinedMesh;
+					lineRenderer.gameObject.SetActive(line);
+					meshRenderer.gameObject.SetActive(solid);
+					meshFilter.gameObject.SetActive(solid);
+				}
+			}
+
+
+			public Polygon Polygon
+			{
+				get => _polygon;
+				set
+				{
+					lineRenderer.SetPolygon(ScaledPolygon);
+					meshFilter.mesh.SetPolygon(ScaledPolygon);
+				}
+			}
+
+			public Color Color
+			{
+				get => _color;
+				set
+				{
+					_color = value;
+					lineRenderer.startColor = lineRenderer.endColor = _color;
+					meshFilter.mesh.SetColors(_color.ToFilledArray(meshFilter.mesh.vertexCount).ToArray());
+				}
+			}
+
+			public float Thickness
+			{
+				get => _thickness;
+				set
+				{
+					_thickness = value;
+					lineRenderer.startWidth = lineRenderer.endWidth = _thickness;
+				}
+			}
+
+			public float CenteredScale
+			{
+				get => _centeredScale;
+				set
+				{
+					_centeredScale = value;
+					lineRenderer.SetPolygon(ScaledPolygon);
+					meshFilter.mesh.SetPolygon(ScaledPolygon);
+				}
+			}
+
+			#endregion
+		}
+
 		protected override string DefaultChildName => "Polygon";
 
-		// LINE
-		protected Transform lineParent;
-		protected readonly List<LineRenderer> lineRenderers = new();
+		private const float DEFAULT_THICKNESS = 1f;
+		private const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.Mesh;
+		private const float DEFAULT_CENTERED_SCALE = 1f;
 
-		// MESH
-		protected Transform meshParent;
-		protected readonly List<MeshRenderer> meshRenderers = new();
-		protected readonly List<MeshFilter> meshFilters = new();
 
-		[SerializeField] private bool wire;
-		public bool Wire
+		private List<PolygonRenderData> _data = new();
+
+
+		#region SINGLE POLYGON
+
+		public Polygon Polygon
 		{
-			get => wire;
-			set
-			{
-				wire = value;
-				lineParent.gameObject.SetActive(wire);
-				meshParent.gameObject.SetActive(!wire);
-			}
+			get => _data[0].Polygon;
+			set => _data[0].Polygon = value;
 		}
 
-		// SCALE SLIDER
-		[SerializeField] [Range(.2f, 1)]
-		public float centeredScale = .9f;
-
-		private void Awake() => Initialize();
-
-		public void Initialize()
+		public float Thickness
 		{
-			if (lineParent == null)
-				lineParent = UnityUtils.InstantiateEmptyObject(transform, "Lines").transform;
-			if (meshParent == null)
-				meshParent = UnityUtils.InstantiateEmptyObject(transform, "Meshes").transform;
-
-			lineParent.gameObject.SetActive(wire);
-			meshParent.gameObject.SetActive(!wire);
-
-			InitializeSpetialRenderers();
+			get => _data[0].Thickness;
+			set => _data.ForEach(d => d.Thickness = value);
 		}
 
-		public override void Instantiate(Polygon[] points, string childName = null)
+		public Color MainColor
 		{
-			if (lineRenderers.Count != 0 || meshRenderers.Count != 0) Clear();
-
-			if (colors.Length != points.Length) SetRainbowColors(points.Length);
-
-			for (var i = 0; i < points.Length; i++)
-			{
-				Polygon polygon = points[i];
-				InstatiatePolygon(polygon, colors[i], childName);
-			}
+			get => _data[0].Color;
+			set => _data.ForEach(d => d.Color = value);
 		}
+
+		public PolygonRenderMode RenderMode
+		{
+			get => _data[0].Mode;
+			set => _data[0].Mode = value;
+		}
+
+		public float CenteredScale
+		{
+			get => _data[0].CenteredScale;
+			set => _data[0].CenteredScale = value;
+		}
+
+		#endregion
+
+
+		#region POLYGON GROUP
+
+		public Polygon[] Polygons
+		{
+			get => _data.Select(d => d.Polygon).ToArray();
+			set => _data.ForEach((d, i) => d.Polygon = value[i]);
+		}
+
+		public Color[] Colors
+		{
+			get => _data.Select(d => d.Color).ToArray();
+			set => _data.ForEach((d, i) => d.Color = value[i]);
+		}
+
+		public float[] Thicknesses
+		{
+			get => _data.Select(d => d.Thickness).ToArray();
+			set => _data.ForEach((d, i) => d.Thickness = value[i]);
+		}
+
+		public PolygonRenderMode[] AllRenderModes
+		{
+			get => _data.Select(d => d.Mode).ToArray();
+			set => _data.ForEach((d, i) => d.Mode = value[i]);
+		}
+
+
+		public float[] AllCenteredScales
+		{
+			get => _data.Select(d => d.CenteredScale).ToArray();
+			set => _data.ForEach((d, i) => d.CenteredScale = value[i]);
+		}
+
+		#endregion
+
+
+		#region MODIFY INDIVIDUAL POLYGON
+
+		// Set Individually
+		public void SetPolygon(int i, Polygon polygon) => _data[i].Polygon = polygon;
+		public void SetColor(int i, Color color) => _data[i].Color = color;
+		public void SetThickness(int i, float thickness) => _data[i].Thickness = thickness;
+		public void SetRenderMode(int i, PolygonRenderMode mode) => _data[i].Mode = mode;
+		public void SetScale(int i, float scale) => _data[i].CenteredScale = scale;
+
+		#endregion
+
+		public override void Instantiate(Polygon[] points, string childName = null) =>
+			UpdateGeometry(points);
 
 		/// <summary>
 		///     Update ALL Renderers
@@ -74,128 +255,70 @@ namespace DavidUtils.Rendering
 		/// </summary>
 		public override void UpdateGeometry(Polygon[] points)
 		{
-			if (points.Length != colors.Length) SetRainbowColors(points.Length);
-
-			for (var i = 0; i < points.Length; i++)
+			if (points.Length == _data.Count)
 			{
-				Polygon region = points[i];
-				UpdatePolygon(region, i);
+				Polygons = points;
+			}
+			else
+			{
+				SetRainbowColors(points.Length);
+				// Update or ADD polygon
+				for (var i = 0; i < points.Length; i++)
+					if (i < _data.Count)
+						SetPolygon(i, points[i]);
+					else
+						InstatiatePolygon(points[i], DefaultChildName, colors[i]);
 			}
 
-			int removeCount = meshFilters.Count - points.Length;
+			// Elimina los Poligonos sobrantes
+			int removeCount = _data.Count - points.Length;
 			if (removeCount <= 0) return;
+			RemovePolygon(points.Length, removeCount);
+		}
 
-			// Elimina los Renderers sobrantes
-			for (int i = points.Length; i < meshFilters.Count; i++)
-			{
-				Destroy(meshFilters[i].gameObject);
-				Destroy(lineRenderers[i].gameObject);
-			}
 
-			meshFilters.RemoveRange(points.Length, removeCount);
-			meshRenderers.RemoveRange(points.Length, removeCount);
-			lineRenderers.RemoveRange(points.Length, removeCount);
+		private PolygonRenderData InstatiatePolygon(
+			Polygon polygon, string polygonName = null, Color? color = null, float thickness = 1f,
+			PolygonRenderMode renderMode = PolygonRenderMode.Mesh, float centeredScale = 1
+		)
+		{
+			_data.Add(
+				new PolygonRenderData(
+					polygon,
+					transform,
+					polygonName ?? DefaultChildName,
+					color,
+					thickness,
+					renderMode,
+					centeredScale
+				)
+			);
+			return _data[^1];
+		}
+
+		public bool RemovePolygon(int index, int count = 1)
+		{
+			if (index < 0 || index >= _data.Count) return false;
+
+			for (var i = 0; i < count; i++) _data[index + i].Destroy();
+
+			_data.RemoveRange(index, count);
+
+			return true;
 		}
 
 		public override void Clear()
 		{
 			base.Clear();
 
-			if (meshFilters == null) return;
-			for (var i = 0; i < meshFilters.Count; i++)
-			{
-				UnityUtils.DestroySafe(meshFilters[i]);
-				UnityUtils.DestroySafe(lineRenderers[i]);
-			}
-
-			if (lineRenderers == null || meshFilters == null || meshRenderers == null) return;
-			lineRenderers.Clear();
-			meshFilters.Clear();
-			meshRenderers.Clear();
-		}
-
-		private void InstatiatePolygon(Polygon polygon, Color color, string polygonName = null)
-		{
-			if (polygon.Vertices.IsNullOrEmpty()) return;
-
-			// LINE
-			lineRenderers.Add(polygon.ToLineRenderer(lineParent, $"{polygonName}", color));
-
-			// MESH
-			polygon.InstantiateMesh(
-				out MeshRenderer mr,
-				out MeshFilter mf,
-				meshParent,
-				$"{polygonName ?? DefaultChildName}",
-				color
-			);
-			meshRenderers.Add(mr);
-			meshFilters.Add(mf);
-		}
-
-		public void UpdatePolygon(Polygon polygon, int i)
-		{
-			Polygon scaledPolygon = polygon.ScaleByCenter(centeredScale);
-			if (i >= meshRenderers.Count)
-			{
-				SetRainbowColors(i + 1);
-				InstatiatePolygon(scaledPolygon, colors[i], DefaultChildName);
-			}
-			else
-			{
-				meshFilters[i].sharedMesh.SetPolygon(scaledPolygon);
-				lineRenderers[i].SetPolygon(scaledPolygon);
-			}
+			RemovePolygon(0, _data.Count);
 		}
 
 
 		#region PROJECTION ON TERRAIN
 
-		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f)
-		{
-			foreach (MeshFilter mf in meshFilters)
-				terrain.ProjectMeshInTerrain(mf.sharedMesh, mf.transform, offset);
-
-			foreach (LineRenderer lr in lineRenderers)
-				lr.SetPoints(lr.GetPoints().Select(p => terrain.Project(p, offset)).ToArray());
-		}
-
-		#endregion
-
-
-		#region REGION SELECTION
-
-		protected LineRenderer hightlightedRegionLineRenderer;
-		protected LineRenderer selectedRegionLineRenderer;
-
-		public void SetHightlightedRegion(Polygon region) =>
-			hightlightedRegionLineRenderer.SetPolygon(region.ScaleByCenter(centeredScale));
-
-		public void SetSelectedRegion(Polygon region) =>
-			selectedRegionLineRenderer.SetPolygon(region.ScaleByCenter(centeredScale));
-
-		public void ToggleHovered(bool toggle) => hightlightedRegionLineRenderer.gameObject.SetActive(toggle);
-		public void ToggleSelected(bool toggle) => selectedRegionLineRenderer.gameObject.SetActive(toggle);
-
-		private void InitializeSpetialRenderers()
-		{
-			// SELECTED & HIGHTLIGHTED (hovered)
-			if (hightlightedRegionLineRenderer == null)
-				hightlightedRegionLineRenderer = LineRendererExtensions.ToLineRenderer(
-					transform,
-					"Hightlighted Region",
-					colors: new[] { Color.yellow },
-					loop: true
-				);
-			if (selectedRegionLineRenderer == null)
-				selectedRegionLineRenderer = LineRendererExtensions.ToLineRenderer(
-					transform,
-					"Selected Region",
-					colors: new[] { Color.yellow },
-					thickness: .2f,
-					loop: true
-				);
-		}
+		public void ProjectAllOnTerrain(Terrain terrain, float offset = 0.1f) =>
+			_data.ForEach(d => d.ProjectOnTerrain(terrain, offset));
 
 		#endregion
 	}
