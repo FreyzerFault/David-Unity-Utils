@@ -21,6 +21,7 @@ namespace Geometry.Algorithms
 
 		[HideInInspector] public List<Polygon> regions = new();
 
+
 		public List<Vector2> seeds;
 		public List<Vector2> Seeds
 		{
@@ -32,40 +33,34 @@ namespace Geometry.Algorithms
 			}
 		}
 
+		public int RegionCount => regions?.Count ?? 0;
+		public int SeedCount => seeds?.Count ?? 0;
+
 		// Vertices sin repetir de todas las regiones
 		public Vector2[] AllRegionVertices => regions.SelectMany(r => r.Vertices).Distinct().ToArray();
 
 		public Voronoi(IEnumerable<Vector2> seeds, Delaunay delaunay = null)
 		{
 			this.seeds = seeds.ToList();
-			regions = new List<Polygon>();
 			this.delaunay = delaunay ?? new Delaunay(this.seeds);
+			regions = new List<Polygon>(SeedCount);
 		}
 
 		public void Reset()
 		{
-			_iteration = 0;
-			regions = new List<Polygon>();
 			delaunay.Reset();
+			regions = new List<Polygon>(SeedCount);
+			_iteration = 0;
 		}
 
-
-		#region DELAUNAY
-
-		// Triangulos de Delaunay
-		private Triangle[] Triangles => delaunay.triangles.ToArray();
+		#region GENERATION
 
 		public void GenerateDelaunay() => delaunay.Triangulate(seeds);
-
-		#endregion
-
-
-		#region GENERATION
 
 		public IEnumerable<Polygon> GenerateVoronoi()
 		{
 			// Se necesita triangular las seeds primero.
-			if (Triangles.Length == 0) GenerateDelaunay();
+			if (delaunay.NotGenerated) GenerateDelaunay();
 
 			foreach (Vector2 regionSeed in seeds) regions.Add(GenerateRegionPolygon(regionSeed));
 
@@ -75,27 +70,29 @@ namespace Geometry.Algorithms
 		// Genera los vertices de una region a partir de la semilla y los triangulos generados con Delaunay
 		private Polygon GenerateRegionPolygon(Vector2 seed)
 		{
-			Polygon polygon = new Polygon();
+			var polygon = new Polygon();
 			Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
-			Triangle[] borderTris = regionTris.Where(t => t.IsBorder && t.BorderEdges.Any(e => e.Vertices.Any(v => v == seed))).ToArray();
+			Triangle[] borderTris = regionTris
+				.Where(t => t.IsBorder && t.BorderEdges.Any(e => e.Vertices.Any(v => v == seed)))
+				.ToArray();
 			bool isBorder = borderTris.NotNullOrEmpty();
 			AABB_2D aabb = AABB_2D.NormalizedAABB;
 
 			// Obtenemos cada circuncentro CCW
 			polygon.Vertices = regionTris.Select(t => t.GetCircumcenter()).ToArray();
 
-			if (polygon.VertexCount == 0) return polygon;
+			// if (polygon.VertexCount == 0) return polygon;
 
 			// Para que la Region este dentro de unas fronteras
 			// Aplicamos algunas modificaciones para RECORTAR o EXPANDIR la región al borde
 
 			// ORDENAMOS CCW
 			polygon = polygon.SortCCW();
-			
+
 			// RECORTE
 			// Clampeamos cada Region a la Bounding Box
 			polygon = aabb.CropPolygon(polygon);
-			
+
 			// EXTENDER MEDIATRIZ
 			// Si la semilla forma parte del borde
 			if (isBorder)
@@ -104,26 +101,26 @@ namespace Geometry.Algorithms
 				// Extendemos la mediatriz de la arista del borde hasta la Bounding Box hasta que intersecte
 				Edge[] mediatrizEdges = borderTris
 					// Triangulos con Circuncentro dentro de la Bounding Box
-					.Where(t => aabb.Contains(t.GetCircumcenter())) 
+					.Where(t => aabb.Contains(t.GetCircumcenter()))
 					// Cogemos solo las aristas borde que conectan con la semilla
 					.SelectMany(t => t.BorderEdges.Where(e => e.Vertices.Any(v => v == seed)))
 					.ToArray();
-				
+
 				// Usamos un Rayo de la Mediatriz hacia fuera (derecha)
 				// Añadimos las intersecciones con el AABB como nuevos vertices
 				polygon.Vertices = polygon.Vertices
-						.Concat(mediatrizEdges.Select(e => aabb.Intersections_Ray(e.Median, e.MediatrizRightDir).First()))
-						.ToArray();
-				
+					.Concat(mediatrizEdges.Select(e => aabb.Intersections_Ray(e.Median, e.MediatrizRightDir).First()))
+					.ToArray();
+
 				polygon = polygon.SortCCW();
 			}
 
-			if (polygon.VertexCount <= 2) return polygon;
-			
+			if (polygon.VertexCount < 2) return polygon;
+
 			// Eliminamos repetidos
 			polygon.Vertices = polygon.Vertices.Distinct().ToArray();
 
-			if (polygon.VertexCount <= 2) return polygon;
+			if (polygon.VertexCount < 2) return polygon;
 
 			// ESQUINAS
 			// Añadimos las esquinas de la Bounding Box
@@ -131,11 +128,11 @@ namespace Geometry.Algorithms
 			if (isBorder)
 			{
 				List<Vector2> vertices = polygon.Vertices.ToList();
-				
+
 				for (var i = 0; i < polygon.VertexCount; i++)
 				{
 					Edge edge = polygon.Edges[i];
-					
+
 					// NOT CORNERS
 					if (aabb.Corners.Contains(edge.begin) || aabb.Corners.Contains(edge.end)) continue;
 
@@ -144,19 +141,21 @@ namespace Geometry.Algorithms
 					bool endOnBorder = aabb.PointOnBorder(edge.end, out AABB_2D.Side? endBorderSide);
 					bool bothOnBorder = endOnBorder && beginOnBorder;
 
-					// Borders of each vertex are DIFFEREMT
+					// Borders of each vertex are DIFFERENT
 					bool bordersAreDifferent = bothOnBorder && beginBorderSide!.Value != endBorderSide!.Value;
 
-					// Añadimos la esquina si
-					if (bordersAreDifferent) 
-						vertices.Insert(i+1, aabb.GetCorner(beginBorderSide.Value, endBorderSide.Value));
+					if (!bordersAreDifferent) continue;
+
+					// Añadimos la esquina si el eje empieza y acaba en un borde distinto, y si no esta ya añadida
+					Vector2 corner = aabb.GetCorner(beginBorderSide.Value, endBorderSide.Value);
+					if (vertices.All(v => corner != v))
+						vertices.Insert(i + 1, corner);
 				}
-				
+
 				// Hay una o mas esquinas añadidas
 				// Problema: Puede que haya vertices colineares que sobran
 				// Asignamos como vertices SOLO si no son colineares con sus vecinos
 				if (vertices.Count > polygon.VertexCount)
-				{
 					for (var i = 0; i < vertices.Count; i++)
 					{
 						Vector2 prev = vertices[(i - 1 + vertices.Count) % vertices.Count];
@@ -169,7 +168,6 @@ namespace Geometry.Algorithms
 						vertices.RemoveAt(i);
 						i--;
 					}
-				}
 
 				polygon.Vertices = vertices.ToArray();
 			}
@@ -250,7 +248,7 @@ namespace Geometry.Algorithms
 		private int _iteration;
 
 		// Habra terminado cuando para todas las semillas haya una region
-		public bool Ended => regions != null && regions.Count == seeds.Count;
+		public bool Ended => regions.NotNullOrEmpty() && regions.Count == seeds.Count;
 
 		public void Run_OneIteration()
 		{
@@ -376,7 +374,7 @@ namespace Geometry.Algorithms
 			Polygon region = regions[index];
 			Vector2 seed = seeds[index];
 
-			localToWorldMatrix *= Matrix4x4.Translate(Vector3.back * 5);
+			// localToWorldMatrix *= Matrix4x4.Translate(Vector3.back * 5);
 
 
 			// VERTEX in Bounding Box Edges => Draw in red

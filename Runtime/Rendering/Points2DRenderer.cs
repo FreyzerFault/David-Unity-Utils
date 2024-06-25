@@ -4,7 +4,6 @@ using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -15,13 +14,13 @@ namespace DavidUtils.Rendering
 
 		protected override string DefaultChildName => "Point";
 
-		[FormerlySerializedAs("sphereScale")]
 		[Range(0.1f, 1)]
 		public float scale = .5f;
 		public Vector3 Scale => Vector3.one * scale;
 
-		public override void Instantiate(IEnumerable<Vector2> points, string childName = null)
+		public override void Instantiate(IEnumerable<Vector2> inGeometry, string childName = null)
 		{
+			IEnumerable<Vector2> points = inGeometry as Vector2[] ?? inGeometry.ToArray();
 			if (points.IsNullOrEmpty()) return;
 
 			if (spheresMr.Count != 0) Clear();
@@ -31,9 +30,10 @@ namespace DavidUtils.Rendering
 			spheresMr = points.Select((p, i) => InstantiateSphere(i, p, childName)).ToList();
 		}
 
-		public override void UpdateGeometry(IEnumerable<Vector2> points)
+		public override void UpdateGeometry(IEnumerable<Vector2> inGeometry)
 		{
 			// Faltan o sobran MeshRenderers para los puntos dados
+			IEnumerable<Vector2> points = inGeometry as Vector2[] ?? inGeometry.ToArray();
 			if (points.Count() != colors.Length)
 				SetRainbowColors(points.Count());
 

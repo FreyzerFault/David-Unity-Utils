@@ -17,15 +17,15 @@ namespace DavidUtils.Rendering
 		/// <summary>
 		///     Instancia SpriteRenderers en los puntos dados
 		/// </summary>
-		public override void Instantiate(IEnumerable<Vector2> points, string childName = null) =>
-			points.ForEach((p, i) => InstantiateSprite(p, $"{childName ?? DefaultChildName} {i}"));
+		public override void Instantiate(IEnumerable<Vector2> inGeometry, string childName = null) =>
+			inGeometry.ForEach((p, i) => InstantiateSprite(p, $"{childName ?? DefaultChildName} {i}"));
 
 		/// <summary>
 		///     Update All SpriteRenderers' positions
 		/// </summary>
-		public override void UpdateGeometry(IEnumerable<Vector2> points) =>
+		public override void UpdateGeometry(IEnumerable<Vector2> inGeometry) =>
 			// Actualiza las posiciones o añade si no existe
-			points.ForEach(
+			inGeometry.ForEach(
 				(p, i) =>
 				{
 					if (i >= spriteRenderers.Count) InstantiateSprite(p, $"{DefaultChildName} {i}");

@@ -109,7 +109,7 @@ namespace DavidUtils.Geometry.Generators
 		public virtual IEnumerator RunCoroutine()
 		{
 			ResetDelaunay();
-			if (animatedDelaunay)
+			if (DrawDelaunay && AnimatedDelaunay)
 			{
 				while (!delaunay.ended)
 				{
@@ -162,12 +162,12 @@ namespace DavidUtils.Geometry.Generators
 
 		protected override void InitializeRenderer()
 		{
-			base.InitializeRenderer();
-
 			_delaunayRenderer ??= Renderer ?? UnityUtils.InstantiateEmptyObject(transform, "DELAUNAY Renderer")
 				.AddComponent<Triangles2DRenderer>();
 
 			Renderer.Initialize();
+
+			base.InitializeRenderer();
 		}
 
 		protected override void InstantiateRenderer()
@@ -190,6 +190,7 @@ namespace DavidUtils.Geometry.Generators
 		protected override void PositionRenderer()
 		{
 			base.PositionRenderer();
+			if (Renderer == null) return;
 			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 			Renderer.transform.localScale = Vector3.one;
 			BoundsComp.AdjustTransformToBounds(Renderer);
@@ -207,7 +208,7 @@ namespace DavidUtils.Geometry.Generators
 		}
 		public bool DelaunayWire
 		{
-			get => Renderer.Active && Renderer.Wire;
+			get => Renderer.Wire;
 			set => Renderer.Wire = value;
 		}
 

@@ -123,20 +123,19 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 		protected override void OnDrawGizmos()
 		{
-			Matrix4x4 m = LocalToWorldMatrix;
-
 			for (var i = 0; i < seeds.Count; i++)
 			{
-				Vector2 pos = seeds[i];
-				Vector2 dir = seedDirections[i];
-				GizmosExtensions.DrawCircle(m.MultiplyPoint3x4(pos.ToV3xz()), Vector3.up, .1f, Color.red);
+				Vector3 pos = LocalToWorldMatrix.MultiplyPoint3x4(seeds[i]);
+				Vector3 dir = LocalToWorldMatrix.MultiplyVector(seedDirections[i]);
+				GizmosExtensions.DrawCircle(pos, Vector3.up, .1f, Color.red);
 				GizmosExtensions.DrawArrow(
-					GizmosExtensions.ArrowCap.Line,
-					m.MultiplyPoint3x4(pos.ToV3xz()),
-					m.MultiplyVector(dir.ToV3xz()),
-					Vector3.forward,
-					.05f,
-					Color.gray
+					GizmosExtensions.ArrowCap.Triangle,
+					pos,
+					dir * 0.02f,
+					Vector3.up,
+					.1f,
+					Color.gray,
+					0.5f
 				);
 			}
 		}

@@ -50,25 +50,18 @@ namespace DavidUtils.Geometry.MeshExtensions
 				mesh.vertices = newVertices;
 				mesh.triangles = indices;
 
-				if (mesh.normals.Length > 0) mesh.SetNormal(mesh.normals[0]);
+				mesh.SetNormal(Vector3.back);
+
 				if (mesh.colors.Length > 0) mesh.SetColor(mesh.colors[0]);
 			}
 
 			mesh.RecalculateBounds();
 		}
 
-		public static void SetColor(this Mesh mesh, Color color)
-		{
-			var colors = new Color[mesh.vertexCount];
-			Array.Fill(colors, color);
-			mesh.SetColors(colors);
-		}
+		public static void SetColor(this Mesh mesh, Color color) =>
+			mesh.SetColors(color.ToFilledArray(mesh.vertexCount).ToArray());
 
-		public static void SetNormal(this Mesh mesh, Vector3 normal)
-		{
-			var normals = new Vector3[mesh.vertexCount];
-			Array.Fill(normals, normal);
-			mesh.SetNormals(normals);
-		}
+		public static void SetNormal(this Mesh mesh, Vector3 normal) =>
+			mesh.SetNormals(normal.ToFilledArray(mesh.vertexCount).ToArray());
 	}
 }

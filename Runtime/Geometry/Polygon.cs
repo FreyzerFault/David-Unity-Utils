@@ -395,8 +395,9 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Triangle[] Triangulate()
 		{
-			Vector2 centroid = this.centroid;
-			return _edges.Select(e => new Triangle(e.begin, e.end, centroid)).ToArray();
+			if (IsEmpty) return Array.Empty<Triangle>();
+			Vector2 c = centroid;
+			return _edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
 		}
 
 		#endregion

@@ -175,6 +175,7 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void PositionRenderer()
 		{
+			if (Renderer == null) return;
 			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 			Renderer.transform.localScale = Vector3.one;
 			BoundsComp.AdjustTransformToBounds(Renderer);
@@ -239,7 +240,7 @@ namespace DavidUtils.Geometry.Generators
 				cellRow = (cellRow + 1) % cellRows;
 
 				// Jump Column
-				if (cellRow == cellRows - 1)
+				if (cellRow == 0)
 					cellCol = (cellCol + 1) % cellRows;
 			}
 

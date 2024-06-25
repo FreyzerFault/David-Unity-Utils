@@ -65,35 +65,35 @@ namespace DavidUtils.Rendering
 				InitializeBorderLine();
 		}
 
-		public override void Instantiate(Triangle[] points, string childName = null)
+		public override void Instantiate(Triangle[] inGeometry, string childName = null)
 		{
 			if (lineRenderers.Count != 0) Clear();
 
-			if (points.Length != colors.Length) SetRainbowColors(points.Length);
+			if (inGeometry.Length != colors.Length) SetRainbowColors(inGeometry.Length);
 
-			InstantiateMesh(points);
+			InstantiateMesh(inGeometry);
 		}
 
-		public override void UpdateGeometry(Triangle[] points)
+		public override void UpdateGeometry(Triangle[] inGeometry)
 		{
-			if (points.IsNullOrEmpty()) return;
+			if (inGeometry.IsNullOrEmpty()) return;
 
-			if (points.Length != colors.Length) SetRainbowColors(points.Length);
+			if (inGeometry.Length != colors.Length) SetRainbowColors(inGeometry.Length);
 
-			InstantiateMesh(points);
-			UpdateBorderLine(points);
+			InstantiateMesh(inGeometry);
+			UpdateBorderLine(inGeometry);
 
 			// LINE
-			for (var i = 0; i < points.Length; i++) UpdateTri(points[i], i);
+			for (var i = 0; i < inGeometry.Length; i++) UpdateTri(inGeometry[i], i);
 
 			// Elimina los Renderers sobrantes
-			int removeCount = lineRenderers.Count - points.Length;
+			int removeCount = lineRenderers.Count - inGeometry.Length;
 			if (removeCount <= 0) return;
 
-			for (int i = points.Length; i < lineRenderers.Count; i++)
+			for (int i = inGeometry.Length; i < lineRenderers.Count; i++)
 				Destroy(lineRenderers[i].gameObject);
 
-			lineRenderers.RemoveRange(points.Length, removeCount);
+			lineRenderers.RemoveRange(inGeometry.Length, removeCount);
 		}
 
 		public override void Clear()

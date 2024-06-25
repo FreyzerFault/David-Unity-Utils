@@ -26,8 +26,21 @@ namespace Geometry.Algorithms
 		[HideInInspector] public List<Vector2> vertices = new();
 		[HideInInspector] public List<Triangle> triangles = new();
 
+		public int SeedCount => _seeds.Count;
+		public int TriangleCount => triangles.Count;
+		public int VerticesCount => vertices.Count;
+
+		public bool NotGenerated => triangles.Count == 0;
+
 		public Delaunay(IEnumerable<Vector2> seeds = null) =>
-			_seeds = seeds == null ? new List<Vector2>() : seeds.ToList();
+			_seeds = seeds?.ToList() ?? new List<Vector2>();
+
+
+		public IEnumerable<Triangle> FindTrianglesAroundVertex(Vector2 vertex) =>
+			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex)));
+
+
+		#region TRIANGULATION
 
 		public List<Triangle> RunTriangulation() => triangles = Triangulate(_seeds).ToList();
 
@@ -35,9 +48,9 @@ namespace Geometry.Algorithms
 		// - Por cada punto busca los triangulos cuyo círculo circunscrito contenga al punto
 		// - Elimina los triangulos invalidos y crea nuevos triangulos con el punto
 		// points deben estar Normalizados entre [0,1]
-		public IEnumerable<Triangle> Triangulate(List<Vector2> points)
+		public IEnumerable<Triangle> Triangulate(List<Vector2> points = null)
 		{
-			Reset();
+			Seeds = points ?? _seeds;
 
 			foreach (Vector2 p in points)
 				Triangulate(p);
@@ -52,125 +65,6 @@ namespace Geometry.Algorithms
 
 			return triangles;
 		}
-
-
-		public IEnumerable<Triangle> FindTrianglesAroundVertex(Vector2 vertex) =>
-			triangles.Where(t => t.Vertices.Any(v => v.Equals(vertex)));
-
-		/// <summary>
-		///     Crea un borde a partir de un vertice.
-		///     Recoge todas las aristas opuestas al vertice de los triangulos a los que pertenece
-		///     Y los ordena CCW
-		/// </summary>
-		private IEnumerable<Border> GetBordersAround(Vector2 centerVertex, IEnumerable<Triangle> trisAround = null)
-		{
-			trisAround ??= FindTrianglesAroundVertex(centerVertex);
-			IEnumerable<Border> borders = trisAround
-				.SelectMany(
-					t =>
-					{
-						List<Border> borders = new();
-						for (var i = 0; i < 3; i++)
-						{
-							Edge edge = t.Edges[i];
-							Triangle neighbour = t.neighbours[i];
-							if (edge.begin != centerVertex && edge.end != centerVertex)
-								borders.Add(new Border(neighbour, edge));
-						}
-
-						return borders;
-					}
-				);
-
-			return Border.SortByAngle(borders, centerVertex);
-		}
-
-		/// <summary>
-		///     Legaliza el triangulo. Si no es legal, hace FLIP
-		///     Comprueba despues todos los vecinos de forma recursiva hasta que todos sean legales
-		/// </summary>
-		/// <returns>True si era ilegal y se legalizo</returns>
-		private bool Legalize(Triangle tri, out Triangle[] flippedTris, int recursiveCalls = 0, int maxCalls = 100)
-		{
-			flippedTris = null;
-
-			if (IsLegal(tri, out List<int> illegalSides)) return false;
-
-			Flip(tri, illegalSides[0], out flippedTris);
-
-			// PARA si supera el maximo de llamadas recursivas
-			if (recursiveCalls >= maxCalls) return true;
-			recursiveCalls++;
-
-			// Comprobamos vecinos de forma recursiva
-			foreach (Triangle flippedTri in flippedTris)
-			{
-				// Temp var to use out var in lambda
-				Triangle[] flippedTemp = flippedTris;
-				foreach (Triangle neighbour in flippedTri.neighbours.Where(t => !flippedTemp.Contains(t)))
-					if (neighbour != null)
-						Legalize(neighbour, out Triangle[] _, recursiveCalls, maxCalls);
-			}
-
-			return true;
-		}
-
-		/// <summary>
-		///     Comprueba si el triangulo es legal
-		///     (Alguno de los triangulos vecinos tiene un vértice opuesto
-		///     dentro del circulo circunscrito formado por el triangulo)
-		///     Guarda los indices de los lados ilegales en illegalSides
-		/// </summary>
-		private bool IsLegal(Triangle tri, out List<int> illegalSides)
-		{
-			illegalSides = new List<int>();
-			for (var i = 0; i < 3; i++)
-			{
-				Edge edge = tri.Edges[i];
-				Triangle neighbour = tri.neighbours[i];
-				if (neighbour == null) continue;
-				if (GeometryUtils.PointInCirle(neighbour.GetOppositeVertex(edge, out int side), tri.v1, tri.v2, tri.v3))
-					illegalSides.Add(i);
-			}
-
-			return illegalSides.Count == 0;
-		}
-
-		/// <summary>
-		///     Flipea la arista del triangulo tri.Edges[side]
-		///     Eliminando el triangulo y su vecino, y creando nuevos
-		///     Actualiza los vecinos también
-		/// </summary>
-		private void Flip(Triangle tri, int side, out Triangle[] flippedTris)
-		{
-			Edge edge = tri.Edges[side];
-			Triangle neighbour = tri.neighbours[side];
-
-			Vector2 opposite1 = tri.GetOppositeVertex(edge, out int opSide1);
-			Vector2 opposite2 = neighbour.GetOppositeVertex(edge, out int opSide2);
-
-			var newTri1 = new Triangle(opposite1, opposite2, edge.end);
-			var newTri2 = new Triangle(opposite2, opposite1, edge.begin);
-
-			// NEIGHBOURS
-			newTri1.SetAllNeightbours(new[] { newTri2, neighbour.neighbours[opSide2], tri.neighbours[(side + 1) % 3] });
-			newTri2.SetAllNeightbours(
-				new[] { newTri1, tri.neighbours[(side + 2) % 3], neighbour.neighbours[(opSide2 + 2) % 3] }
-			);
-
-			addedTris = new List<Triangle>(new[] { newTri1, newTri2 });
-			removedTris = new List<Triangle>(new[] { tri, neighbour });
-
-			triangles.Remove(tri);
-			triangles.Remove(neighbour);
-
-			triangles.AddRange(addedTris);
-
-			flippedTris = new[] { newTri1, newTri2 };
-		}
-
-
-		#region TRIANGULATION
 
 		/// <summary>
 		///     Delaunay Incremental Bowyer–Watson Algorithm
@@ -262,6 +156,95 @@ namespace Geometry.Algorithms
 		#endregion
 
 
+		#region LEGALIZATION
+
+		/// <summary>
+		///     Legaliza el triangulo. Si no es legal, hace FLIP
+		///     Comprueba despues todos los vecinos de forma recursiva hasta que todos sean legales
+		/// </summary>
+		/// <returns>True si era ilegal y se legalizo</returns>
+		private bool Legalize(Triangle tri, out Triangle[] flippedTris, int recursiveCalls = 0, int maxCalls = 100)
+		{
+			flippedTris = null;
+
+			if (IsLegal(tri, out List<int> illegalSides)) return false;
+
+			Flip(tri, illegalSides[0], out flippedTris);
+
+			// PARA si supera el maximo de llamadas recursivas
+			if (recursiveCalls >= maxCalls) return true;
+			recursiveCalls++;
+
+			// Comprobamos vecinos de forma recursiva
+			foreach (Triangle flippedTri in flippedTris)
+			{
+				// Temp var to use out var in lambda
+				Triangle[] flippedTemp = flippedTris;
+				foreach (Triangle neighbour in flippedTri.neighbours.Where(t => !flippedTemp.Contains(t)))
+					if (neighbour != null)
+						Legalize(neighbour, out Triangle[] _, recursiveCalls, maxCalls);
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		///     Comprueba si el triangulo es legal
+		///     (Alguno de los triangulos vecinos tiene un vértice opuesto
+		///     dentro del circulo circunscrito formado por el triangulo)
+		///     Guarda los indices de los lados ilegales en illegalSides
+		/// </summary>
+		private bool IsLegal(Triangle tri, out List<int> illegalSides)
+		{
+			illegalSides = new List<int>();
+			for (var i = 0; i < 3; i++)
+			{
+				Edge edge = tri.Edges[i];
+				Triangle neighbour = tri.neighbours[i];
+				if (neighbour == null) continue;
+				if (GeometryUtils.PointInCirle(neighbour.GetOppositeVertex(edge, out int side), tri.v1, tri.v2, tri.v3))
+					illegalSides.Add(i);
+			}
+
+			return illegalSides.Count == 0;
+		}
+
+		/// <summary>
+		///     Flipea la arista del triangulo tri.Edges[side]
+		///     Eliminando el triangulo y su vecino, y creando nuevos
+		///     Actualiza los vecinos también
+		/// </summary>
+		private void Flip(Triangle tri, int side, out Triangle[] flippedTris)
+		{
+			Edge edge = tri.Edges[side];
+			Triangle neighbour = tri.neighbours[side];
+
+			Vector2 opposite1 = tri.GetOppositeVertex(edge, out int opSide1);
+			Vector2 opposite2 = neighbour.GetOppositeVertex(edge, out int opSide2);
+
+			var newTri1 = new Triangle(opposite1, opposite2, edge.end);
+			var newTri2 = new Triangle(opposite2, opposite1, edge.begin);
+
+			// NEIGHBOURS
+			newTri1.SetAllNeightbours(new[] { newTri2, neighbour.neighbours[opSide2], tri.neighbours[(side + 1) % 3] });
+			newTri2.SetAllNeightbours(
+				new[] { newTri1, tri.neighbours[(side + 2) % 3], neighbour.neighbours[(opSide2 + 2) % 3] }
+			);
+
+			addedTris = new List<Triangle>(new[] { newTri1, newTri2 });
+			removedTris = new List<Triangle>(new[] { tri, neighbour });
+
+			triangles.Remove(tri);
+			triangles.Remove(neighbour);
+
+			triangles.AddRange(addedTris);
+
+			flippedTris = new[] { newTri1, newTri2 };
+		}
+
+		#endregion
+
+
 		#region BORDER
 
 		// Lista de Aristas que forman el Borde
@@ -284,6 +267,35 @@ namespace Geometry.Algorithms
 			}
 		}
 
+
+		/// <summary>
+		///     Crea un borde a partir de un vertice.
+		///     Recoge todas las aristas opuestas al vertice de los triangulos a los que pertenece
+		///     Y los ordena CCW
+		/// </summary>
+		private IEnumerable<Border> GetBordersAround(Vector2 centerVertex, IEnumerable<Triangle> trisAround = null)
+		{
+			trisAround ??= FindTrianglesAroundVertex(centerVertex);
+			IEnumerable<Border> borders = trisAround
+				.SelectMany(
+					t =>
+					{
+						List<Border> borders = new();
+						for (var i = 0; i < 3; i++)
+						{
+							Edge edge = t.Edges[i];
+							Triangle neighbour = t.neighbours[i];
+							if (edge.begin != centerVertex && edge.end != centerVertex)
+								borders.Add(new Border(neighbour, edge));
+						}
+
+						return borders;
+					}
+				);
+
+			return Border.SortByAngle(borders, centerVertex);
+		}
+
 		#endregion
 
 
@@ -297,14 +309,14 @@ namespace Geometry.Algorithms
 
 		public void Run_OnePoint()
 		{
-			if (iterations > _seeds.Count)
+			if (iterations > SeedCount)
 				return;
 
-			removedTris = new List<Triangle>();
-			addedTris = new List<Triangle>();
-			holePolygon = new List<Edge>();
+			removedTris.Clear();
+			addedTris.Clear();
+			holePolygon.Clear();
 
-			if (iterations == _seeds.Count)
+			if (iterations == SeedCount)
 				RemoveBoundingBox();
 			else
 				Triangulate(_seeds[iterations]);
@@ -318,8 +330,8 @@ namespace Geometry.Algorithms
 		{
 			iterations = 0;
 			ended = false;
-			triangles = new List<Triangle>();
-			vertices = new List<Vector2>();
+			triangles = new List<Triangle>(SeedCount);
+			vertices = new List<Vector2>(SeedCount);
 			removedTris = new List<Triangle>();
 			addedTris = new List<Triangle>();
 			holePolygon = new List<Edge>();
