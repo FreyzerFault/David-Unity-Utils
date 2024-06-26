@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DavidUtils.Geometry;
 using Geometry.Algorithms;
 using UnityEngine;
@@ -12,14 +13,25 @@ namespace DavidUtils.Rendering
 		public Voronoi voronoi;
 		private List<PolygonRenderer> _renderers = new();
 
-		private RenderMode _renderMode = RenderMode.Mesh;
+		[SerializeField] private RenderMode renderMode = RenderMode.Mesh;
 		public RenderMode RenderMode
 		{
-			get => _renderMode;
+			get => renderMode;
 			set
 			{
-				_renderMode = value;
+				renderMode = value;
 				_renderers.ForEach(r => r.RenderMode = value);
+			}
+		}
+
+		[SerializeField] private float thickness = PolygonRenderer.DEFAULT_THICKNESS;
+		public float Thickness
+		{
+			get => thickness;
+			set
+			{
+				thickness = value;
+				_renderers.ForEach(r => r.Thickness = value);
 			}
 		}
 
@@ -41,15 +53,18 @@ namespace DavidUtils.Rendering
 		{
 			if (voronoi == null || voronoi.RegionCount == 0) return;
 
-			UpdatePolygons();
+			_renderers.ForEach(r => r.UpdateAllProperties());
 		}
 
-		public override void Instantiate(Voronoi inGeometry, string childName = null)
+		public override void SetGeometry(Voronoi inGeometry, string childName = null)
 		{
 			voronoi = inGeometry;
-			_renderers = new List<PolygonRenderer>(voronoi.SeedCount);
-			SetRainbowColors(voronoi.SeedCount);
-			UpdatePolygons();
+			Clear();
+
+			if (voronoi.RegionCount <= 0) return;
+
+			SetRainbowColors(voronoi.RegionCount);
+			_renderers = voronoi.regions.Select((r, i) => InstantiateRegion(r, $"Region {i}", colors[i])).ToList();
 		}
 
 		public override void UpdateGeometry(Voronoi inGeometry) => throw new NotImplementedException();
@@ -57,10 +72,10 @@ namespace DavidUtils.Rendering
 		public override void Clear()
 		{
 			_renderers.ForEach(UnityUtils.DestroySafe);
-			_renderers.Clear();
+			_renderers = new List<PolygonRenderer>(voronoi?.SeedCount ?? 0);
 		}
 
-		public void UpdatePolygons()
+		public void UpdateRegions()
 		{
 			if (_renderers.Count != voronoi.RegionCount)
 				SetRainbowColors(voronoi.RegionCount);
@@ -83,13 +98,58 @@ namespace DavidUtils.Rendering
 		}
 
 		private PolygonRenderer InstantiateRegion(Polygon region, string polygonName = null, Color? color = null) =>
-			PolygonRenderer.Instantiate(region, transform, polygonName, _renderMode, color, centeredScale: regionScale);
+			PolygonRenderer.Instantiate(
+				region,
+				transform,
+				polygonName,
+				renderMode,
+				color,
+				thickness,
+				regionScale,
+				projectOnTerrain,
+				terrainHeightOffset
+			);
 
 
 		#region TERRAIN
 
+		private Terrain Terrain => Terrain.activeTerrain;
+		public bool projectOnTerrain;
+		public float terrainHeightOffset = 0.1f;
+
 		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f) =>
 			_renderers.ForEach(r => r.ProjectOnTerrain(terrain, offset));
+
+		#endregion
+
+
+		#region INSTANTIATION
+
+		public static VoronoiRenderer Instantiate(
+			Voronoi voronoi,
+			Transform parent,
+			string name = "Voronoi Renderer",
+			RenderMode renderMode = PolygonRenderer.DEFAULT_RENDER_MODE,
+			Color? color = null,
+			float thickness = PolygonRenderer.DEFAULT_THICKNESS,
+			float centeredScale = PolygonRenderer.DEFAULT_CENTERED_SCALE,
+			bool projectOnTerrain = false,
+			float terrainHeightOffset = 0.1f
+		)
+		{
+			var renderer = UnityUtils.InstantiateEmptyObject(parent, name).AddComponent<VoronoiRenderer>();
+			renderer.voronoi = voronoi;
+			renderer.initColorPalette = color ?? PolygonRenderer.DefaultColor;
+			renderer.renderMode = renderMode;
+			renderer.thickness = thickness;
+			renderer.regionScale = centeredScale;
+			renderer.projectOnTerrain = projectOnTerrain;
+			renderer.terrainHeightOffset = terrainHeightOffset;
+
+			renderer.UpdateRegions();
+
+			return renderer;
+		}
 
 		#endregion
 	}

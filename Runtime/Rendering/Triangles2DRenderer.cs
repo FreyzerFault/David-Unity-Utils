@@ -65,13 +65,13 @@ namespace DavidUtils.Rendering
 				InitializeBorderLine();
 		}
 
-		public override void Instantiate(Triangle[] inGeometry, string childName = null)
+		public override void SetGeometry(Triangle[] inGeometry, string childName = null)
 		{
 			if (lineRenderers.Count != 0) Clear();
 
 			if (inGeometry.Length != colors.Length) SetRainbowColors(inGeometry.Length);
 
-			InstantiateMesh(inGeometry);
+			SetMesh(inGeometry);
 		}
 
 		public override void UpdateGeometry(Triangle[] inGeometry)
@@ -80,7 +80,7 @@ namespace DavidUtils.Rendering
 
 			if (inGeometry.Length != colors.Length) SetRainbowColors(inGeometry.Length);
 
-			InstantiateMesh(inGeometry);
+			SetMesh(inGeometry);
 			UpdateBorderLine(inGeometry);
 
 			// LINE
@@ -113,10 +113,10 @@ namespace DavidUtils.Rendering
 
 		#region MESH
 
-		private void InstantiateMesh(Triangle[] tris) => meshFilter.sharedMesh = tris.CreateMesh(colors?.ToArray());
+		private void SetMesh(Triangle[] tris) => meshFilter.sharedMesh = tris.CreateMesh(colors?.ToArray());
 
 		// Si cambian los triangulos minimamente, se instancia de cero el Mesh
-		public void UpdateMesh(Triangle[] tris) => InstantiateMesh(tris);
+		public void UpdateMesh(Triangle[] tris) => SetMesh(tris);
 
 		#endregion
 

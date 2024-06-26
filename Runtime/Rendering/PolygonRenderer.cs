@@ -10,10 +10,10 @@ namespace DavidUtils.Rendering
 	[RequireComponent(typeof(LineRenderer), typeof(MeshRenderer), typeof(MeshFilter))]
 	public class PolygonRenderer : MonoBehaviour
 	{
-		private static readonly Color DefaultColor = Color.white;
-		private const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.Mesh;
-		private const float DEFAULT_THICKNESS = 1f;
-		private const float DEFAULT_CENTERED_SCALE = 1f;
+		public static readonly Color DefaultColor = Color.white;
+		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.Mesh;
+		public const float DEFAULT_THICKNESS = 1f;
+		public const float DEFAULT_CENTERED_SCALE = 1f;
 
 		public enum PolygonRenderMode
 		{
@@ -57,12 +57,13 @@ namespace DavidUtils.Rendering
 
 		private void OnEnable() => UpdateAllProperties();
 
-		private void UpdateAllProperties()
+		public void UpdateAllProperties()
 		{
 			UpdateRenderMode();
 			UpdatePolygon();
 			UpdateColor();
 			UpdateThickness();
+			UpdateTerrainProjection();
 		}
 
 
@@ -127,8 +128,15 @@ namespace DavidUtils.Rendering
 
 		private void UpdatePolygon()
 		{
-			_lineRenderer.SetPolygon(ScaledPolygon);
-			_meshFilter.mesh.SetPolygon(ScaledPolygon);
+			if (projectOnTerrain && Terrain != null)
+			{
+				ProjectOnTerrain(Terrain, terrainHeightOffset);
+			}
+			else
+			{
+				_lineRenderer.SetPolygon(ScaledPolygon);
+				_meshFilter.mesh.SetPolygon(ScaledPolygon);
+			}
 		}
 
 		private void UpdateColor()
@@ -145,10 +153,30 @@ namespace DavidUtils.Rendering
 
 		#region TERRAIN
 
-		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f)
+		private Terrain Terrain => Terrain.activeTerrain;
+		public bool projectOnTerrain;
+		public float terrainHeightOffset = 0.1f;
+
+		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f, bool scaleToTerrainBounds = true)
 		{
-			terrain.ProjectMeshInTerrain(_meshFilter.sharedMesh, _meshFilter.transform, offset);
-			_lineRenderer.SetPoints(_lineRenderer.GetPoints().Select(p => terrain.Project(p, offset)).ToArray());
+			_lineRenderer.SetPoints(
+				Terrain.ProjectPathToTerrain(
+					scaleToTerrainBounds
+						? ScaledPolygon.Vertices.Select(terrain.GetWorldPosition).ToArray()
+						: ScaledPolygon.Vertices.ToV3xz().ToArray(),
+					true,
+					terrainHeightOffset
+				)
+			);
+			UpdateTerrainProjection();
+		}
+
+
+		// If project on terrain => render as wire on world space
+		private void UpdateTerrainProjection()
+		{
+			if (projectOnTerrain) renderMode = PolygonRenderMode.Wire;
+			_lineRenderer.useWorldSpace = projectOnTerrain;
 		}
 
 		#endregion
@@ -163,15 +191,22 @@ namespace DavidUtils.Rendering
 			PolygonRenderMode renderMode = DEFAULT_RENDER_MODE,
 			Color? color = null,
 			float thickness = DEFAULT_THICKNESS,
-			float centeredScale = DEFAULT_CENTERED_SCALE
+			float centeredScale = DEFAULT_CENTERED_SCALE,
+			bool projectOnTerrain = false,
+			float terrainHeightOffset = 0.1f
 		)
 		{
 			var polygonRenderer = UnityUtils.InstantiateEmptyObject(parent, name).AddComponent<PolygonRenderer>();
-			polygonRenderer.Polygon = polygon;
-			polygonRenderer.Color = color ?? DefaultColor;
-			polygonRenderer.Thickness = thickness;
-			polygonRenderer.RenderMode = renderMode;
-			polygonRenderer.CenteredScale = centeredScale;
+			polygonRenderer.polygon = polygon;
+			polygonRenderer.color = color ?? DefaultColor;
+			polygonRenderer.thickness = thickness;
+			polygonRenderer.renderMode = renderMode;
+			polygonRenderer.centeredScale = centeredScale;
+			polygonRenderer.projectOnTerrain = projectOnTerrain;
+			polygonRenderer.terrainHeightOffset = terrainHeightOffset;
+
+			polygonRenderer.UpdateAllProperties();
+
 			return polygonRenderer;
 		}
 

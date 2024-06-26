@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -9,7 +12,9 @@ namespace DavidUtils.Rendering
 	public abstract class DynamicRenderer<T> : MonoBehaviour
 	{
 		protected virtual Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
-		protected virtual string DefaultChildName => "Render Child";
+		protected virtual string DefaultChildName => "Render Object";
+
+		protected List<GameObject> renderObjs = new();
 
 		public bool Active
 		{
@@ -17,26 +22,86 @@ namespace DavidUtils.Rendering
 			set => gameObject.SetActive(value);
 		}
 
-		public abstract void Instantiate(T inGeometry, string childName = null);
-		public abstract void UpdateGeometry(T inGeometry);
+		public virtual void ToggleVisibility(bool visible) => gameObject.SetActive(visible);
+
+
+		#region INSTANTIATION
+
+		public void InstantiateObjs(Vector2[] localPositions, string objName = null) =>
+			InstantiateObjs(localPositions.ToV3().ToArray(), objName);
+
+		public void InstantiateObjs(Vector3[] localPositions, string objName = null) =>
+			renderObjs = new List<GameObject>(localPositions.Select((p, i) => InstantiateObj(p, i, objName)));
+
+		public virtual GameObject InstantiateObj(Vector3 pos, int i = -1, string objName = null) =>
+			UnityUtils.InstantiateEmptyObject(transform, objName ?? DefaultChildName, pos);
+
+		#endregion
+
+
+		#region CRUD
+
+		public void AddObj(Vector3 pos) => renderObjs.Add(InstantiateObj(pos));
+
+		public void RemoveObj(int i)
+		{
+			UnityUtils.DestroySafe(renderObjs[i]);
+			renderObjs.RemoveAt(i);
+		}
+
+		public void UpdateObj(int i, Vector3 pos) => renderObjs[i].transform.localPosition = pos;
+		public void UpdateAllObj(Vector3[] pos) => renderObjs.ForEach((obj, i) => obj.transform.localPosition = pos[i]);
 
 		public virtual void Clear()
 		{
+			renderObjs.ForEach(UnityUtils.DestroySafe);
+			renderObjs.Clear();
 		}
 
-		public virtual void ToggleVisibility(bool visible) => gameObject.SetActive(visible);
+		#endregion
+
 
 		#region COLOR
 
+		private static readonly Color DefaultColor = Color.white;
+
+		public bool useColor = true;
+
+		[Serializable]
+		private struct ColorData
+		{
+			[FormerlySerializedAs("initColorPalette")] public Color initialColor;
+			[FormerlySerializedAs("paletteStep")] [FormerlySerializedAs("colorPaletteStep")]
+			[Min(-1)] public float palletteStep;
+			[FormerlySerializedAs("paletteRange")] [FormerlySerializedAs("colorPaletteRange")]
+			[Min(0)] public int palletteRange;
+		}
+
+		[ConditionalField("useColor")]
+		[SerializeField] private ColorData colorPallette = new()
+		{
+			initialColor = DefaultColor,
+			palletteStep = .05f,
+			palletteRange = 20
+		};
+
+		public Color InitialColor
+		{
+			get => colorPallette.initialColor;
+			set
+			{
+				colorPallette.initialColor = value;
+				SetRainbowColors(colors.Length);
+			}
+		}
+
 		[HideInInspector] public Color[] colors = Array.Empty<Color>();
 
-		public Color initColorPalette = Color.cyan;
-		[Min(-1)] public float colorPaletteStep = .05f;
-		[Min(0)] public int colorPaletteRange = 20;
+		protected Color GetColor(int i) => i >= 0 && i < colors.Length ? colors[i] : DefaultColor;
 
 		public Color[] SetRainbowColors(int numColors, Color? initColor = null) =>
-			colors = (initColor ?? initColorPalette)
-				.GetRainBowColors(numColors, colorPaletteStep, colorPaletteRange)
+			colors = (initColor ?? colorPallette.initialColor)
+				.GetRainBowColors(numColors, colorPallette.palletteStep, colorPallette.palletteRange)
 				.ToArray();
 
 		#endregion
@@ -46,6 +111,17 @@ namespace DavidUtils.Rendering
 
 		public void ToggleShadows(bool castShadows = true) =>
 			gameObject.ToggleShadows(castShadows);
+
+		#endregion
+
+
+		#region TERRAIN
+
+		public virtual void ProjectOnTerrain(Terrain terrain)
+		{
+			foreach (GameObject pointObj in renderObjs)
+				pointObj.transform.position = terrain.Project(pointObj.transform.position);
+		}
 
 		#endregion
 	}

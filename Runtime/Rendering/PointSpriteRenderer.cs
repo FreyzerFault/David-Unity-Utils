@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Sprites;
 using UnityEngine;
@@ -12,12 +13,12 @@ namespace DavidUtils.Rendering
 		protected override string DefaultChildName => "Sprite";
 
 		public Texture2D spriteTexture;
-		public List<SpriteRenderer> spriteRenderers = new();
+		public SpriteRenderer[] SpriteRenderers => pointObjs.Select(p => p.GetComponent<SpriteRenderer>()).ToArray();
 
 		/// <summary>
 		///     Instancia SpriteRenderers en los puntos dados
 		/// </summary>
-		public override void Instantiate(IEnumerable<Vector2> inGeometry, string childName = null) =>
+		public override void SetGeometry(IEnumerable<Vector2> inGeometry, string childName = null) =>
 			inGeometry.ForEach((p, i) => InstantiateSprite(p, $"{childName ?? DefaultChildName} {i}"));
 
 		/// <summary>
@@ -28,7 +29,7 @@ namespace DavidUtils.Rendering
 			inGeometry.ForEach(
 				(p, i) =>
 				{
-					if (i >= spriteRenderers.Count) InstantiateSprite(p, $"{DefaultChildName} {i}");
+					if (i >= SpriteRenderers.Count) InstantiateSprite(p, $"{DefaultChildName} {i}");
 					else UpdateSpriteRenderer(i, p);
 				}
 			);
@@ -37,20 +38,20 @@ namespace DavidUtils.Rendering
 		///     Actualiza la posicion de un Sprite Renderer
 		/// </summary>
 		public void UpdateSpriteRenderer(int i, Vector2 point) =>
-			spriteRenderers[i].transform.localPosition = point;
+			SpriteRenderers[i].transform.localPosition = point;
 
 
 		public override void Clear()
 		{
 			base.Clear();
 
-			if (spriteRenderers == null) return;
-			foreach (SpriteRenderer sr in spriteRenderers)
+			if (SpriteRenderers == null) return;
+			foreach (SpriteRenderer sr in SpriteRenderers)
 				UnityUtils.DestroySafe(sr);
 
 			// foreach (SpriteRenderer sr in spriteRenderers) sr.gameObject.SetActive(false);
 
-			spriteRenderers = new List<SpriteRenderer>();
+			SpriteRenderers = new List<SpriteRenderer>();
 		}
 
 		private SpriteRenderer InstantiateSprite(Vector2 point, string spriteName = null)
@@ -70,19 +71,9 @@ namespace DavidUtils.Rendering
 			sr.drawMode = SpriteDrawMode.Sliced;
 			sr.size = Vector2.one;
 
-			spriteRenderers.Add(sr);
+			SpriteRenderers.Add(sr);
 
 			return sr;
-		}
-
-		public void ProjectOnTerrain(Terrain terrain)
-		{
-			foreach (SpriteRenderer sr in spriteRenderers)
-			{
-				Vector3 pos = sr.transform.position;
-				pos.y = terrain.SampleHeight(pos) + .1f;
-				sr.transform.position = pos;
-			}
 		}
 	}
 }

@@ -18,51 +18,48 @@ namespace Geometry.Algorithms
 		private const float VERTEX_COLLISION_RADIUS = 0.01f;
 
 		[HideInInspector] public Delaunay delaunay;
+		public List<Polygon> regions = new();
 
-		[HideInInspector] public List<Polygon> regions = new();
-
-
-		public List<Vector2> seeds;
+		private List<Vector2> _seeds;
 		public List<Vector2> Seeds
 		{
-			get => seeds;
+			get => _seeds;
 			set
 			{
-				seeds = value;
+				_seeds = value;
 				Reset();
 			}
 		}
 
 		public int RegionCount => regions?.Count ?? 0;
-		public int SeedCount => seeds?.Count ?? 0;
+		public int SeedCount => _seeds?.Count ?? 0;
 
 		// Vertices sin repetir de todas las regiones
 		public Vector2[] AllRegionVertices => regions.SelectMany(r => r.Vertices).Distinct().ToArray();
 
 		public Voronoi(IEnumerable<Vector2> seeds, Delaunay delaunay = null)
 		{
-			this.seeds = seeds.ToList();
-			this.delaunay = delaunay ?? new Delaunay(this.seeds);
+			_seeds = seeds.ToList();
+			this.delaunay = delaunay ?? new Delaunay(_seeds);
 			regions = new List<Polygon>(SeedCount);
 		}
 
 		public void Reset()
 		{
-			delaunay.Reset();
 			regions = new List<Polygon>(SeedCount);
 			_iteration = 0;
 		}
 
 		#region GENERATION
 
-		public void GenerateDelaunay() => delaunay.Triangulate(seeds);
+		public void GenerateDelaunay() => delaunay.Triangulate(_seeds);
 
 		public IEnumerable<Polygon> GenerateVoronoi()
 		{
 			// Se necesita triangular las seeds primero.
 			if (delaunay.NotGenerated) GenerateDelaunay();
 
-			foreach (Vector2 regionSeed in seeds) regions.Add(GenerateRegionPolygon(regionSeed));
+			foreach (Vector2 regionSeed in _seeds) regions.Add(GenerateRegionPolygon(regionSeed));
 
 			return regions;
 		}
@@ -248,7 +245,7 @@ namespace Geometry.Algorithms
 		private int _iteration;
 
 		// Habra terminado cuando para todas las semillas haya una region
-		public bool Ended => regions.NotNullOrEmpty() && regions.Count == seeds.Count;
+		public bool Ended => regions.NotNullOrEmpty() && regions.Count == _seeds.Count;
 
 		public void Run_OneIteration()
 		{
@@ -256,7 +253,7 @@ namespace Geometry.Algorithms
 
 			if (!delaunay.ended) Debug.LogError("Delaunay no ha terminado antes de generar Voronoi");
 
-			regions.Add(GenerateRegionPolygon(seeds[_iteration]));
+			regions.Add(GenerateRegionPolygon(_seeds[_iteration]));
 
 			_iteration++;
 		}
@@ -319,7 +316,7 @@ namespace Geometry.Algorithms
 			if (regions.Count == 0 || !point.IsIn01()) return -1;
 
 			// Distancias con cada centroide
-			Tuple<int, float>[] distances = seeds
+			Tuple<int, float>[] distances = _seeds
 				.Select((s, i) => new Tuple<int, float>(i, Vector2.Distance(s, point)))
 				// Ordenamos por distancia -> La 1º será la más cercana
 				.OrderBy(t => t.Item2)
@@ -372,7 +369,7 @@ namespace Geometry.Algorithms
 		{
 			if (index < 0 || index >= regions.Count) return;
 			Polygon region = regions[index];
-			Vector2 seed = seeds[index];
+			Vector2 seed = _seeds[index];
 
 			// localToWorldMatrix *= Matrix4x4.Translate(Vector3.back * 5);
 

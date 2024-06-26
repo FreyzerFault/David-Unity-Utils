@@ -50,9 +50,13 @@ namespace DavidUtils.DevTools.Testing
 		[ExposedField] public string PlayingStr => playing ? "PLAYING" : "PAUSED";
 		[ExposedField] public string ToggleLabel => playing ? "STOP" : "PLAY";
 
-		protected virtual void Awake() => InitializeTests();
+		protected virtual void Awake()
+		{
+			tests = new Dictionary<Func<IEnumerator>, TestInfo>();
+			InitializeTests();
+		}
 
-		private void Start()
+		protected virtual void Start()
 		{
 			if (runOnStart) StartTests();
 		}

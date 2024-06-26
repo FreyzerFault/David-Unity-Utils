@@ -125,11 +125,17 @@ namespace DavidUtils.ExtensionMethods
 
 		#region MATRIX
 
-		public static void ApplyMatrix(this Transform transform, Matrix4x4 matrix)
+		public static void ApplyLocalMatrix(this Transform transform, Matrix4x4 matrix)
 		{
-			transform.localPosition = matrix.GetPosition() + transform.localPosition;
-			transform.localRotation = matrix.rotation * transform.localRotation;
-			transform.localScale = transform.localScale.ScaleBy(matrix.lossyScale);
+			transform.localPosition = matrix.GetPosition();
+			transform.localRotation = matrix.rotation;
+			transform.localScale = matrix.lossyScale;
+		}
+
+		public static void ApplyWorldMatrix(this Transform transform, Matrix4x4 matrix)
+		{
+			transform.SetPositionAndRotation(matrix.GetPosition(), matrix.rotation);
+			transform.SetGlobalScale(matrix.lossyScale);
 		}
 
 		// Apply to Multiple Points

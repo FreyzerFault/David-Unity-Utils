@@ -10,7 +10,7 @@ namespace DavidUtils.Rendering
 	[Serializable]
 	public class Points2DRenderer : DynamicRenderer<IEnumerable<Vector2>>
 	{
-		protected List<MeshRenderer> spheresMr = new();
+		protected List<GameObject> pointObjs = new();
 
 		protected override string DefaultChildName => "Point";
 
@@ -18,16 +18,16 @@ namespace DavidUtils.Rendering
 		public float scale = .5f;
 		public Vector3 Scale => Vector3.one * scale;
 
-		public override void Instantiate(IEnumerable<Vector2> inGeometry, string childName = null)
+		public override void SetGeometry(IEnumerable<Vector2> inGeometry, string childName = null)
 		{
 			IEnumerable<Vector2> points = inGeometry as Vector2[] ?? inGeometry.ToArray();
 			if (points.IsNullOrEmpty()) return;
 
-			if (spheresMr.Count != 0) Clear();
+			if (pointObjs.Count != 0) Clear();
 
 			SetRainbowColors(points.Count());
 
-			spheresMr = points.Select((p, i) => InstantiateSphere(i, p, childName)).ToList();
+			pointObjs = points.Select((p, i) => InstantiateSphere(i, p, childName).gameObject).ToList();
 		}
 
 		public override void UpdateGeometry(IEnumerable<Vector2> inGeometry)
@@ -41,10 +41,10 @@ namespace DavidUtils.Rendering
 			points.ForEach(
 				(p, i) =>
 				{
-					if (i >= spheresMr.Count)
-						spheresMr.Add(InstantiateSphere(i, p));
+					if (i >= pointObjs.Count)
+						pointObjs.Add(InstantiateSphere(i, p).gameObject);
 					else
-						spheresMr[i].transform.localPosition = p;
+						pointObjs[i].transform.localPosition = p;
 				}
 			);
 		}
@@ -78,23 +78,23 @@ namespace DavidUtils.Rendering
 		{
 			base.Clear();
 
-			if (spheresMr == null) return;
-			foreach (MeshRenderer meshRenderer in spheresMr)
-				UnityUtils.DestroySafe(meshRenderer);
+			if (pointObjs == null) return;
+			foreach (GameObject pointObject in pointObjs)
+				UnityUtils.DestroySafe(pointObject);
 
-			spheresMr.Clear();
+			pointObjs.Clear();
 		}
 
 		public void MovePoint(int index, Vector2 newPos) =>
-			spheresMr[index].transform.localPosition = newPos;
+			pointObjs[index].transform.localPosition = newPos;
 
 		public void ProjectOnTerrain(Terrain terrain)
 		{
-			foreach (MeshRenderer sphere in spheresMr)
+			foreach (GameObject pointObj in pointObjs)
 			{
-				Vector3 pos = sphere.transform.position;
+				Vector3 pos = pointObj.transform.position;
 				pos.y = terrain.SampleHeight(pos);
-				sphere.transform.position = pos;
+				pointObj.transform.position = pos;
 			}
 		}
 
@@ -109,12 +109,12 @@ namespace DavidUtils.Rendering
 			if (!drawGizmos) return;
 
 			Gizmos.color = colors?.Length > 0 ? colors[0] : Color.grey;
-			for (var i = 0; i < spheresMr.Count; i++)
+			for (var i = 0; i < pointObjs.Count; i++)
 			{
 				if (colors?.Length > 0)
 					Gizmos.color = colors[i];
 				Gizmos.DrawSphere(
-					transform.localToWorldMatrix.MultiplyPoint3x4(spheresMr[i].transform.position),
+					transform.localToWorldMatrix.MultiplyPoint3x4(pointObjs[i].transform.position),
 					scale
 				);
 			}

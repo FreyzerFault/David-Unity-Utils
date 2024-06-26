@@ -289,10 +289,10 @@ namespace DavidUtils.ExtensionMethods
 		/// <summary>
 		///     Fills an array with values generated using a factory function with index.
 		/// </summary>
-		public static T[] FillBy<T>(this T[] source, Func<int, T> valueFactory)
+		public static IEnumerable<T> FillBy<T>(this IEnumerable<T> source, Func<int, T> valueFactory)
 		{
-			for (var i = 0; i < source.Length; ++i) source[i] = valueFactory(i);
-			return source;
+			IEnumerable<T> array = source as T[] ?? source.ToArray();
+			return array.Select((_, i) => valueFactory(i));
 		}
 
 		/// <summary>
@@ -360,7 +360,7 @@ namespace DavidUtils.ExtensionMethods
 		///     Itera la colección por pares [i,j] => [0,1], [1,2], [2,3], ...
 		///     Es un ciclo, el ultimo par sera [^1, 0]
 		/// </summary>
-		private static IEnumerable<R> IterateByPairs<T, R>(
+		public static IEnumerable<R> IterateByPairs<T, R>(
 			this IEnumerable<T> source, Func<T, T, R> action, bool loop = true, bool loopAtStart = true
 		)
 		{

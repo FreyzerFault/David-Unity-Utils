@@ -56,8 +56,24 @@ namespace DavidUtils.Geometry.Bounding_Box
 			}
 		}
 
-		public Vector3 Min => is2D ? aabb2D.min.ToV3(XZplane) : bounds3D.min;
-		public Vector3 Max => is2D ? aabb2D.max.ToV3(XZplane) : bounds3D.max;
+		public Vector3 Min
+		{
+			get => is2D ? aabb2D.min.ToV3(XZplane) : bounds3D.min;
+			set
+			{
+				bounds3D.min = value;
+				aabb2D.min = value.ToV2(XZplane);
+			}
+		}
+		public Vector3 Max
+		{
+			get => is2D ? aabb2D.max.ToV3(XZplane) : bounds3D.max;
+			set
+			{
+				bounds3D.max = value;
+				aabb2D.max = value.ToV2(XZplane);
+			}
+		}
 
 		public Matrix4x4 BoundsToLocalMatrix =>
 			Matrix4x4.Scale(is2D ? aabb2D.Size.Inverse() : bounds3D.size.Inverse()) *
@@ -103,6 +119,14 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#endregion
 
-		public void AdjustTransformToBounds(MonoBehaviour obj) => obj?.transform.ApplyMatrix(LocalToWorldMatrix);
+		public void TransformToBounds_Local(MonoBehaviour obj) => obj?.transform.ApplyLocalMatrix(LocalToBoundsMatrix);
+		public void TransformToBounds_World(MonoBehaviour obj) => obj?.transform.ApplyWorldMatrix(LocalToWorldMatrix);
+
+		public void AdjustToTerrain(Terrain terrain)
+		{
+			bounds3D = terrain.terrainData.bounds;
+			Sincronize2D();
+			OnChanged?.Invoke();
+		}
 	}
 }

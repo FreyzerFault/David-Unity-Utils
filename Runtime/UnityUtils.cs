@@ -49,8 +49,8 @@ namespace DavidUtils
 
 		public static void ToggleShadows(this GameObject go, bool castShadows = true)
 		{
-			foreach (MeshRenderer mr in go.GetComponentsInChildren<MeshRenderer>())
-				mr.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
+			foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>(true))
+				renderer.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
 		}
 
 		#endregion

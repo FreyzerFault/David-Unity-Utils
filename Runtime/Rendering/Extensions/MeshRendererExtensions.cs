@@ -1,4 +1,5 @@
-using System;
+using System.Linq;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using UnityEngine;
@@ -99,12 +100,12 @@ namespace DavidUtils.Rendering.Extensions
 
 		#region SPHERE
 
-		public static void InstantiateSphere(
+		public static GameObject InstantiateSphere(
 			out MeshRenderer mr,
 			out MeshFilter mf,
 			Transform parent = null,
 			string name = "",
-			Color color = default,
+			Color? color = null,
 			Material material = null
 		)
 		{
@@ -116,12 +117,12 @@ namespace DavidUtils.Rendering.Extensions
 			mf = sphere.GetComponent<MeshFilter>();
 
 			// COLOR
-			var colors = new Color[mf.sharedMesh.vertexCount];
-			Array.Fill(colors, color);
-			mf.mesh.SetColors(colors);
+			if (color.HasValue) mf.mesh.SetColors(color.Value.ToFilledArray(mf.sharedMesh.vertexCount).ToArray());
 
 			// MATERIAL
 			mr.sharedMaterial = material ?? DefaultMaterial;
+
+			return sphere;
 		}
 
 		#endregion

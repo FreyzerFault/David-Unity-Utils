@@ -56,15 +56,12 @@ namespace DavidUtils.Geometry.Generators
 		{
 			Reset();
 			GenerateSeeds();
+			InitializeRenderer();
 
 			BoundsComp.OnChanged += PositionRenderer;
 		}
 
-		protected virtual void Start()
-		{
-			InitializeRenderer();
-			InstantiateRenderer();
-		}
+		protected virtual void Start() => InstantiateRenderer();
 
 		#endregion
 
@@ -164,7 +161,7 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void InstantiateRenderer()
 		{
-			Renderer.Instantiate(seeds.ToArray(), "Seed");
+			Renderer.SetGeometry(seeds.ToArray(), "Seed");
 			if (CanProjectOnTerrain && Terrain != null)
 				Renderer.ProjectOnTerrain(Terrain);
 
@@ -176,9 +173,7 @@ namespace DavidUtils.Geometry.Generators
 		protected virtual void PositionRenderer()
 		{
 			if (Renderer == null) return;
-			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-			Renderer.transform.localScale = Vector3.one;
-			BoundsComp.AdjustTransformToBounds(Renderer);
+			BoundsComp.TransformToBounds_Local(Renderer);
 			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 

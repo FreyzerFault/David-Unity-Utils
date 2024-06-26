@@ -30,7 +30,7 @@ namespace Geometry.Algorithms
 		public int TriangleCount => triangles.Count;
 		public int VerticesCount => vertices.Count;
 
-		public bool NotGenerated => triangles.Count == 0;
+		public bool NotGenerated => triangles == null || triangles.Count == 0;
 
 		public Delaunay(IEnumerable<Vector2> seeds = null) =>
 			_seeds = seeds?.ToList() ?? new List<Vector2>();

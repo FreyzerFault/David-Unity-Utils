@@ -191,9 +191,7 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.PositionRenderer();
 			if (Renderer == null) return;
-			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-			Renderer.transform.localScale = Vector3.one;
-			BoundsComp.AdjustTransformToBounds(Renderer);
+			BoundsComp.TransformToBounds_Local(Renderer);
 			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 

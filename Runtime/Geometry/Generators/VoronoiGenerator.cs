@@ -6,6 +6,7 @@ using DavidUtils.MouseInput;
 using DavidUtils.Rendering;
 using Geometry.Algorithms;
 using UnityEngine;
+using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
 namespace DavidUtils.Geometry.Generators
 {
@@ -45,11 +46,8 @@ namespace DavidUtils.Geometry.Generators
 		public void ResetVoronoi()
 		{
 			selectedRegionIndex = -1;
-
-			voronoi = new Voronoi(seeds, delaunay);
-
+			voronoi.Seeds = seeds;
 			Renderer.Clear();
-			InstantiateRenderer();
 		}
 
 		public override void Run()
@@ -145,10 +143,21 @@ namespace DavidUtils.Geometry.Generators
 		private VoronoiRenderer _voronoiRenderer;
 		private VoronoiRenderer Renderer => _voronoiRenderer ??= GetComponentInChildren<VoronoiRenderer>(true);
 
+		[SerializeField] private RenderMode renderMode = RenderMode.OutlinedMesh;
+
 		protected override void InitializeRenderer()
 		{
-			_voronoiRenderer ??= Renderer ?? UnityUtils.InstantiateEmptyObject(transform, "VORONOI Renderer")
-				.AddComponent<VoronoiRenderer>();
+			_voronoiRenderer ??= Renderer
+			                     ?? VoronoiRenderer.Instantiate(
+				                     voronoi,
+				                     transform,
+				                     "VORONOI Renderer",
+				                     projectOnTerrain: CanProjectOnTerrain,
+				                     centeredScale: RegionScale,
+				                     renderMode: renderMode
+			                     );
+
+			Renderer.projectOnTerrain = CanProjectOnTerrain;
 
 			// Selected
 			InitializeSelectedRenderer();
@@ -162,7 +171,7 @@ namespace DavidUtils.Geometry.Generators
 
 			if (!Renderer.Active) return;
 			Renderer.Clear();
-			Renderer.Instantiate(voronoi);
+			Renderer.SetGeometry(voronoi);
 
 			if (CanProjectOnTerrain && Terrain.activeTerrain != null)
 				Renderer.ProjectOnTerrain(Terrain.activeTerrain);
@@ -174,7 +183,7 @@ namespace DavidUtils.Geometry.Generators
 		{
 			base.UpdateRenderer();
 			if (!Renderer.Active) return;
-			Renderer.UpdatePolygons();
+			Renderer.UpdateRegions();
 			Renderer.ToggleShadows(false);
 		}
 
@@ -191,9 +200,7 @@ namespace DavidUtils.Geometry.Generators
 			base.PositionRenderer();
 
 			if (Renderer == null) return;
-			Renderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-			Renderer.transform.localScale = Vector3.one;
-			BoundsComp.AdjustTransformToBounds(Renderer);
+			BoundsComp.TransformToBounds_Local(Renderer);
 
 			PositionSelectedRenderer();
 		}
@@ -259,19 +266,21 @@ namespace DavidUtils.Geometry.Generators
 				Polygon.Empty,
 				transform,
 				"Selected Region",
-				PolygonRenderer.PolygonRenderMode.Wire,
+				RenderMode.Wire,
 				Color.yellow,
 				.1f,
-				RegionScale + 0.01f
+				RegionScale + 0.01f,
+				CanProjectOnTerrain
 			);
 			hoverRenderer ??= PolygonRenderer.Instantiate(
 				Polygon.Empty,
 				transform,
 				"Hover Region",
-				PolygonRenderer.PolygonRenderMode.Wire,
+				RenderMode.Wire,
 				Color.yellow,
 				.05f,
-				RegionScale + 0.01f
+				RegionScale + 0.01f,
+				CanProjectOnTerrain
 			);
 
 			PositionSelectedRenderer();
@@ -285,8 +294,8 @@ namespace DavidUtils.Geometry.Generators
 			hoverRenderer.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 			hoverRenderer.transform.localScale = Vector3.one;
 
-			BoundsComp.AdjustTransformToBounds(selectedRenderer);
-			BoundsComp.AdjustTransformToBounds(hoverRenderer);
+			BoundsComp.TransformToBounds_Local(selectedRenderer);
+			BoundsComp.TransformToBounds_Local(hoverRenderer);
 			selectedRenderer.transform.localPosition += Vector3.up * 1;
 			hoverRenderer.transform.localPosition += Vector3.up * 1;
 		}
@@ -357,7 +366,7 @@ namespace DavidUtils.Geometry.Generators
 			voronoi.Seeds = seeds;
 			voronoi.GenerateVoronoi();
 
-			Renderer.UpdatePolygons();
+			Renderer.UpdateRegions();
 
 			UpdateSelectedRenderer();
 
@@ -388,11 +397,20 @@ namespace DavidUtils.Geometry.Generators
 			set => Renderer.Active = value;
 		}
 
+		public RenderMode RenderMode
+		{
+			get => renderMode;
+			set
+			{
+				renderMode = value;
+				Renderer.RenderMode = value;
+			}
+		}
+
 		public bool WireVoronoi
 		{
-			get => Renderer.RenderMode == PolygonRenderer.PolygonRenderMode.Wire && Renderer.Active;
-			set => Renderer.RenderMode =
-				value ? PolygonRenderer.PolygonRenderMode.Wire : PolygonRenderer.PolygonRenderMode.Mesh;
+			get => RenderMode == RenderMode.Wire && Renderer.Active;
+			set => RenderMode = value ? RenderMode.Wire : RenderMode.OutlinedMesh;
 		}
 
 		public float RegionScale

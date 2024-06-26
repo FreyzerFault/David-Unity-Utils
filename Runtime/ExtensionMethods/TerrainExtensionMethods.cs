@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -361,33 +360,28 @@ namespace DavidUtils.ExtensionMethods
 			new(point.x, terrain.SampleHeight(point) + offset, point.z);
 
 		public static Vector3[] ProjectPathToTerrain(
-			this Terrain terrain,
-			Vector3[] pathCheckpoints
+			this Terrain terrain, Vector3[] pathCheckpoints, bool loop = false, float offset = 0
 		)
 		{
-			if (pathCheckpoints.Length == 0) return Array.Empty<Vector3>();
+			if (pathCheckpoints.IsNullOrEmpty()) return Array.Empty<Vector3>();
 
-			var finalPath = new List<Vector3>();
-
-			// Concatena cada segmento proyectado
-			for (var i = 1; i < pathCheckpoints.Length; i++)
-				finalPath.AddRange(
-					terrain
-						.ProjectSegmentToTerrain(pathCheckpoints[i - 1], pathCheckpoints[i])
-						.SkipLast(1)
-				);
-
-			// Last Point
-			finalPath.Add(pathCheckpoints[^1]);
-
-			return finalPath.ToArray();
+			// Segment -> Path: each point sampled to Terrain Heights by Terrain Resolution
+			return pathCheckpoints.IterateByPairs(
+					(a, b) => terrain.ProjectSegmentToTerrain(a, b, -1, offset).SkipLast(1),
+					loop,
+					false
+				)
+				.SelectMany(p => p) // Merge Paths
+				.Append(loop ? pathCheckpoints[0] : pathCheckpoints[^1]) // Last checkpoint to close it
+				.ToArray();
 		}
 
 		public static Vector3[] ProjectSegmentToTerrain(
 			this Terrain terrain,
 			Vector3 a,
 			Vector3 b,
-			float resolution = -1
+			float resolution = -1,
+			float offset = 0
 		)
 		{
 			float distance = Vector3.Distance(a, b);
@@ -400,10 +394,9 @@ namespace DavidUtils.ExtensionMethods
 
 			// Se samplea a la resolucion del terreno
 			int numSamples = Mathf.FloorToInt(distance / resolution);
+
 			return new Vector3[numSamples]
-				.Select(
-					(_, index) => terrain.Project(Vector3.Lerp(a, b, (float)index / numSamples))
-				)
+				.FillBy(i => terrain.Project(Vector3.Lerp(a, b, (float)i / numSamples), offset))
 				.ToArray();
 		}
 
