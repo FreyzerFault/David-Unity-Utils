@@ -9,12 +9,12 @@ using UnityEngine.Serialization;
 namespace DavidUtils.Rendering
 {
 	[Serializable]
-	public abstract class DynamicRenderer<T> : MonoBehaviour
+	public abstract class DynamicRenderer<T> : MonoBehaviour where T : Component
 	{
 		protected virtual Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
 		protected virtual string DefaultChildName => "Render Object";
 
-		protected List<GameObject> renderObjs = new();
+		public List<T> renderObjs = new();
 
 		public bool Active
 		{
@@ -24,17 +24,23 @@ namespace DavidUtils.Rendering
 
 		public virtual void ToggleVisibility(bool visible) => gameObject.SetActive(visible);
 
+		protected abstract void SetCommonProperties(T renderObj);
+
 
 		#region INSTANTIATION
 
-		public void InstantiateObjs(Vector2[] localPositions, string objName = null) =>
+		public void InstantiateObjs(IEnumerable<Vector2> localPositions, string objName = null) =>
 			InstantiateObjs(localPositions.ToV3().ToArray(), objName);
 
-		public void InstantiateObjs(Vector3[] localPositions, string objName = null) =>
-			renderObjs = new List<GameObject>(localPositions.Select((p, i) => InstantiateObj(p, i, objName)));
+		public void InstantiateObjs(IEnumerable<Vector3> localPositions, string objName = null) =>
+			renderObjs = new List<T>(localPositions.Select((p, i) => InstantiateObj(p, $"{objName ?? DefaultChildName} {i}", i)));
 
-		public virtual GameObject InstantiateObj(Vector3 pos, int i = -1, string objName = null) =>
-			UnityUtils.InstantiateEmptyObject(transform, objName ?? DefaultChildName, pos);
+		public virtual T InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
+		{
+			var renderObj = UnityUtils.InstantiateObject<T>(transform, objName ?? DefaultChildName, localPos);
+			SetCommonProperties(renderObj);
+			return renderObj;
+		}
 
 		#endregion
 
@@ -42,6 +48,8 @@ namespace DavidUtils.Rendering
 		#region CRUD
 
 		public void AddObj(Vector3 pos) => renderObjs.Add(InstantiateObj(pos));
+		public void AddObjs(IEnumerable<Vector2> pos) => renderObjs.AddRange(pos.Select(p => InstantiateObj(p)));
+		public void AddObjs(IEnumerable<Vector3> pos) => renderObjs.AddRange(pos.Select(p => InstantiateObj(p)));
 
 		public void RemoveObj(int i)
 		{
@@ -50,7 +58,8 @@ namespace DavidUtils.Rendering
 		}
 
 		public void UpdateObj(int i, Vector3 pos) => renderObjs[i].transform.localPosition = pos;
-		public void UpdateAllObj(Vector3[] pos) => renderObjs.ForEach((obj, i) => obj.transform.localPosition = pos[i]);
+		public void UpdateAllObj(IEnumerable<Vector2> pos) => UpdateAllObj(pos.ToV3());
+		public void UpdateAllObj(IEnumerable<Vector3> pos) => pos.ForEach((p, i) => UpdateObj(i, p));
 
 		public virtual void Clear()
 		{
@@ -97,7 +106,7 @@ namespace DavidUtils.Rendering
 
 		[HideInInspector] public Color[] colors = Array.Empty<Color>();
 
-		protected Color GetColor(int i) => i >= 0 && i < colors.Length ? colors[i] : DefaultColor;
+		protected Color GetColor(int i = -1) => i >= 0 && i < colors.Length ? colors[i] : DefaultColor;
 
 		public Color[] SetRainbowColors(int numColors, Color? initColor = null) =>
 			colors = (initColor ?? colorPallette.initialColor)
@@ -119,7 +128,7 @@ namespace DavidUtils.Rendering
 
 		public virtual void ProjectOnTerrain(Terrain terrain)
 		{
-			foreach (GameObject pointObj in renderObjs)
+			foreach (T pointObj in renderObjs)
 				pointObj.transform.position = terrain.Project(pointObj.transform.position);
 		}
 

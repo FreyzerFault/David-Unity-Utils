@@ -121,13 +121,13 @@ namespace DavidUtils.Geometry.Generators
 			// Si colisiona con otra semilla no la movemos
 			bool collision = seeds
 				.Where((_, i) => i != index)
-				.Any(p => Vector2.Distance(p, newPos) < 0.02f);
+				.Any(p => Vector2.Distance(p, newPos) < 0.001f);
 
 			if (collision) return false;
 
 			seeds[index] = newPos;
 
-			Renderer.MovePoint(index, newPos);
+			Renderer.UpdateObj(index, newPos);
 
 			return true;
 		}
@@ -138,12 +138,10 @@ namespace DavidUtils.Geometry.Generators
 		#region RENDERER
 
 		[Space]
-		private Points2DRenderer _seedsRenderer;
-		private Points2DRenderer Renderer => _seedsRenderer ??= GetComponentInChildren<Points2DRenderer>(true);
+		private PointsRenderer _seedsRenderer;
+		private PointsRenderer Renderer => _seedsRenderer ??= GetComponentInChildren<PointsRenderer>(true);
 
 		private readonly bool projectOnTerrain = true;
-		protected static Terrain Terrain => Terrain.activeTerrain;
-		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
 
 		public bool DrawSeeds
 		{
@@ -153,22 +151,18 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void InitializeRenderer()
 		{
-			_seedsRenderer ??= Renderer
-			                   ?? UnityUtils.InstantiateEmptyObject(transform, "Seeds Renderer")
-				                   .AddComponent<Points2DRenderer>();
+			_seedsRenderer ??= Renderer ?? UnityUtils.InstantiateObject<PointsRenderer>(transform, "Seeds Renderer");
+			_seedsRenderer.ToggleShadows(false);
 			PositionRenderer();
 		}
 
 		protected virtual void InstantiateRenderer()
 		{
-			Renderer.SetGeometry(seeds.ToArray(), "Seed");
-			if (CanProjectOnTerrain && Terrain != null)
-				Renderer.ProjectOnTerrain(Terrain);
-
-			Renderer.ToggleShadows(false);
+			if (Renderer == null) return;
+			Renderer.InstantiateObjs(seeds.ToV3(), "Seed");
 		}
 
-		protected virtual void UpdateRenderer() => Renderer.UpdateGeometry(seeds.ToArray());
+		protected virtual void UpdateRenderer() => Renderer.UpdateAllObj(seeds.ToV3());
 
 		protected virtual void PositionRenderer()
 		{
@@ -290,7 +284,7 @@ namespace DavidUtils.Geometry.Generators
 			if (seeds.IsNullOrEmpty()) return;
 
 			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
-			if (CanProjectOnTerrain)
+			if (projectOnTerrain && Terrain.activeTerrain != null)
 				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, LocalToWorldMatrix, thickness, color);
 			else
 				GizmosExtensions.DrawGrid(cellRows, cellRows, LocalToWorldMatrix, thickness, color);

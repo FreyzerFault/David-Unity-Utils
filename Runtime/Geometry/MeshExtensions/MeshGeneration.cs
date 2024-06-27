@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
@@ -9,22 +10,18 @@ namespace DavidUtils.Geometry.MeshExtensions
 		#region TRIANGLE MESH
 
 		// TRIANGLEs => MESH (1 Color / Triangle)
-		public static Mesh CreateMesh(this Triangle[] tris, Color[] colors = null)
+		public static Mesh CreateMesh(this IEnumerable<Triangle> tris, Color[] colors = null)
 		{
-			int[] indices = new int[tris.Length * 3].Select((_, index) => index).ToArray();
-			var vertices = new Vector3[tris.Length * 3];
-			for (var i = 0; i < tris.Length; i++)
-			{
-				Triangle t = tris[i];
-				vertices[i * 3 + 0] = t.v3;
-				vertices[i * 3 + 1] = t.v2;
-				vertices[i * 3 + 2] = t.v1;
-			}
+			IEnumerable<Triangle> trisEnum = tris as Triangle[] ?? tris.ToArray();
+			var indices = new int[trisEnum.Count() * 3].FillBy(i => i);
+			
+			var vertices = 
+				trisEnum.SelectMany((t, i) => new Vector3[] { t.v3, t.v2, t.v1 });
 
 			var mesh = new Mesh
 			{
-				vertices = vertices,
-				triangles = indices
+				vertices = vertices.ToArray(),
+				triangles = indices.ToArray()
 			};
 
 			if (colors.NotNullOrEmpty())
@@ -32,14 +29,17 @@ namespace DavidUtils.Geometry.MeshExtensions
 
 			mesh.normals = mesh.vertices.Select(v => Vector3.back).ToArray();
 
-			mesh.bounds = tris.SelectMany(t => t.Vertices).GetBoundingBox();
+			mesh.bounds = trisEnum.SelectMany(t => t.Vertices).GetBoundingBox();
 
 			return mesh;
 		}
 
 		// TRIANGLEs => MESH (single COLOR)
-		public static Mesh CreateMesh(this Triangle[] tris, Color color = default) =>
-			tris.CreateMesh(tris.Select(_ => color).ToArray());
+		public static Mesh CreateMesh(this IEnumerable<Triangle> tris, Color color = default)
+		{
+			IEnumerable<Triangle> trisEnum = tris as Triangle[] ?? tris.ToArray();
+			return trisEnum.CreateMesh(trisEnum.Select(_ => color).ToArray());
+		}
 
 		// SINGLE TRIANGLE
 		public static Mesh CreateMesh(this Triangle triangle, Color color = default) =>

@@ -403,16 +403,16 @@ namespace Geometry.Algorithms
 					Vector3 a = localToWorldMatrix.MultiplyPoint3x4(borderEdge.Median);
 					Vector3 b = localToWorldMatrix.MultiplyPoint3x4(intersection);
 
-					if (projectOnTerrain)
+					var terrain = Terrain.activeTerrain;
+					if (projectOnTerrain && terrain != null)
 					{
-						var terrain = Terrain.activeTerrain;
 						a = terrain.Project(a);
 						b = terrain.Project(b);
 					}
 
-					if (projectOnTerrain)
+					if (projectOnTerrain && terrain != null)
 						GizmosExtensions.DrawLineThick(
-							Terrain.activeTerrain.ProjectSegmentToTerrain(a, b),
+							terrain.ProjectSegmentToTerrain(a, b),
 							6,
 							Color.red
 						);

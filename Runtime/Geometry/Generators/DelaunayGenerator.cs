@@ -1,8 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering;
 using Geometry.Algorithms;
 using UnityEngine;
+using RenderMode = DavidUtils.Rendering.DelaunayRenderer.DelaunayRenderMode;
 
 namespace DavidUtils.Geometry.Generators
 {
@@ -62,7 +65,7 @@ namespace DavidUtils.Geometry.Generators
 			delaunay ??= new Delaunay(seeds);
 			delaunay.Seeds = seeds;
 
-			Renderer.Clear();
+			Renderer?.Clear();
 		}
 
 
@@ -98,11 +101,11 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual bool AnimatedDelaunay
 		{
-			get => animatedDelaunay && Renderer.Active;
+			get => animatedDelaunay && Renderer.gameObject.activeSelf;
 			set
 			{
 				animatedDelaunay = value;
-				Renderer.Active = value;
+				Renderer.gameObject.SetActive(value);
 			}
 		}
 
@@ -144,9 +147,9 @@ namespace DavidUtils.Geometry.Generators
 			if (!moved) return false;
 
 			delaunay.Seeds = seeds;
-			List<Triangle> tris = delaunay.RunTriangulation();
+			delaunay.RunTriangulation();
 
-			Renderer.UpdateGeometry(tris.ToArray());
+			UpdateRenderer();
 
 			return true;
 		}
@@ -157,34 +160,37 @@ namespace DavidUtils.Geometry.Generators
 		#region RENDERING
 
 		[Space]
-		private Triangles2DRenderer _delaunayRenderer;
-		private Triangles2DRenderer Renderer => _delaunayRenderer ??= GetComponentInChildren<Triangles2DRenderer>(true);
+		[SerializeField]
+		private DelaunayRenderer delaunayRenderer;
+		private DelaunayRenderer Renderer => delaunayRenderer ??=
+			GetComponentInChildren<DelaunayRenderer>(true) 
+			?? UnityUtils.InstantiateObject<DelaunayRenderer>(transform, "DELAUNAY Renderer");
 
+		
+		public bool DrawDelaunay
+		{
+			get => Renderer.gameObject.activeSelf;
+			set => Renderer.gameObject.SetActive(value);
+		}
+		public bool DelaunayWire
+		{
+			get => delaunayRenderer.RenderMode == RenderMode.Wire;
+			set => delaunayRenderer.RenderMode = value ? RenderMode.Wire : RenderMode.Mesh;
+		}
+		
 		protected override void InitializeRenderer()
 		{
-			_delaunayRenderer ??= Renderer ?? UnityUtils.InstantiateEmptyObject(transform, "DELAUNAY Renderer")
-				.AddComponent<Triangles2DRenderer>();
-
-			Renderer.Initialize();
+			delaunayRenderer ??= Renderer;
+			delaunayRenderer.gameObject.ToggleShadows(false);
+			delaunayRenderer.Delaunay = delaunay;
 
 			base.InitializeRenderer();
-		}
-
-		protected override void InstantiateRenderer()
-		{
-			base.InstantiateRenderer();
-
-			Renderer.UpdateGeometry(Triangles.ToArray());
-			if (CanProjectOnTerrain && Terrain.activeTerrain != null)
-				Renderer.ProjectOnTerrain(Terrain.activeTerrain);
-
-			Renderer.ToggleShadows(false);
 		}
 
 		protected override void UpdateRenderer()
 		{
 			base.UpdateRenderer();
-			Renderer.UpdateGeometry(Triangles.ToArray());
+			delaunayRenderer.UpdateDelaunay();
 		}
 
 		protected override void PositionRenderer()
@@ -195,22 +201,10 @@ namespace DavidUtils.Geometry.Generators
 			Renderer.transform.Translate(Vector3.back * .5f);
 		}
 
+		
+		
 		#endregion
 
-		#region UI CONTROL
-
-		public bool DrawDelaunay
-		{
-			get => Renderer.Active;
-			set => Renderer.Active = value;
-		}
-		public bool DelaunayWire
-		{
-			get => Renderer.Wire;
-			set => Renderer.Wire = value;
-		}
-
-		#endregion
 
 
 		#region DEBUG

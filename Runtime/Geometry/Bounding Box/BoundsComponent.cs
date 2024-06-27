@@ -119,8 +119,8 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#endregion
 
-		public void TransformToBounds_Local(MonoBehaviour obj) => obj?.transform.ApplyLocalMatrix(LocalToBoundsMatrix);
-		public void TransformToBounds_World(MonoBehaviour obj) => obj?.transform.ApplyWorldMatrix(LocalToWorldMatrix);
+		public void TransformToBounds_Local(Component obj) => obj?.transform.ApplyLocalMatrix(LocalToBoundsMatrix);
+		public void TransformToBounds_World(Component obj) => obj?.transform.ApplyWorldMatrix(LocalToWorldMatrix);
 
 		public void AdjustToTerrain(Terrain terrain)
 		{

@@ -142,17 +142,18 @@ namespace DavidUtils.Geometry
 		public static Triangle SuperTriangle =>
 			new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
+		
 #if UNITY_EDITOR
 
 		#region DEBUG
-
+		
 		public void GizmosDrawWire(
 			Matrix4x4 localToWorldMatrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
 		)
 		{
 			Vector3[] verticesInWorld = localToWorldMatrix.MultiplyPoint3x4(Vertices).ToArray();
 
-			if (projectedOnTerrain)
+			if (projectedOnTerrain && Terrain.activeTerrain != null)
 				GizmosExtensions.DrawPolygonWire(
 					Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld),
 					thickness,
@@ -166,7 +167,7 @@ namespace DavidUtils.Geometry
 		{
 			Vector3[] verticesInWorld = matrix.MultiplyPoint3x4(Vertices).ToArray();
 
-			if (projectedOnTerrain)
+			if (projectedOnTerrain && Terrain.activeTerrain != null)
 				GizmosExtensions.DrawPolygon(
 					Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld),
 					color

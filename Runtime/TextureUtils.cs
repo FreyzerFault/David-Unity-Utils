@@ -70,5 +70,15 @@ namespace DavidUtils
 		}
 
 		#endregion
+
+
+		#region TEXTURE STATIC RESOURCES
+
+		// TODO Me da que no va a coger el Circulo como una Textura porque es un Prefab
+		public static Texture2D GetCircle() => Resources.Load<Texture2D>("Prefabs/Circle");
+		public static Texture2D GetCircumference() => Resources.Load<Texture2D>("Prefabs/Circumference");
+		public static Texture2D GetTriangle() => Resources.Load<Texture2D>("Prefabs/Triangle");
+
+		#endregion
 	}
 }

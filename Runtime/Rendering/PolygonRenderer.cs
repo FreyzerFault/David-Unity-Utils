@@ -135,13 +135,13 @@ namespace DavidUtils.Rendering
 			else
 			{
 				_lineRenderer.SetPolygon(ScaledPolygon);
-				_meshFilter.mesh.SetPolygon(ScaledPolygon);
+				_meshFilter.mesh.SetPolygon(ScaledPolygon, color);
 			}
 		}
 
 		private void UpdateColor()
 		{
-			_lineRenderer.startColor = _lineRenderer.endColor = color;
+			_lineRenderer.startColor = _lineRenderer.endColor = renderMode == PolygonRenderMode.OutlinedMesh ? color.Invert() : color;
 			_meshFilter.mesh.SetColors(color.ToFilledArray(_meshFilter.mesh.vertexCount).ToArray());
 		}
 
@@ -196,7 +196,7 @@ namespace DavidUtils.Rendering
 			float terrainHeightOffset = 0.1f
 		)
 		{
-			var polygonRenderer = UnityUtils.InstantiateEmptyObject(parent, name).AddComponent<PolygonRenderer>();
+			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
 			polygonRenderer.polygon = polygon;
 			polygonRenderer.color = color ?? DefaultColor;
 			polygonRenderer.thickness = thickness;

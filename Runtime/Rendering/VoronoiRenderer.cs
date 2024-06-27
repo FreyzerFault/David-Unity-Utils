@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using Geometry.Algorithms;
 using UnityEngine;
@@ -8,10 +10,32 @@ using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
 namespace DavidUtils.Rendering
 {
-	public class VoronoiRenderer : DynamicRenderer<Voronoi>
+	public class VoronoiRenderer : DynamicRenderer<PolygonRenderer>
 	{
-		public Voronoi voronoi;
-		private List<PolygonRenderer> _renderers = new();
+		protected override string DefaultChildName => "Region";
+		
+		private Voronoi _voronoi;
+
+		public Voronoi Voronoi
+		{
+			set
+			{
+				_voronoi = value;
+				UpdateRegionPolygons();
+			}
+		}
+		
+		
+		private void OnEnable()
+		{
+			if (_voronoi == null || _voronoi.RegionCount == 0) return;
+
+			// Update properties if they changed while disabled
+			renderObjs.ForEach(r => r.UpdateAllProperties());
+		}
+		
+
+		#region COMMON PROPERTIES
 
 		[SerializeField] private RenderMode renderMode = RenderMode.Mesh;
 		public RenderMode RenderMode
@@ -20,10 +44,12 @@ namespace DavidUtils.Rendering
 			set
 			{
 				renderMode = value;
-				_renderers.ForEach(r => r.RenderMode = value);
+				renderObjs.ForEach(r => r.RenderMode = value);
 			}
 		}
+		private bool IsMesh => renderMode == RenderMode.Mesh;
 
+		[ConditionalField("IsMesh", true)]
 		[SerializeField] private float thickness = PolygonRenderer.DEFAULT_THICKNESS;
 		public float Thickness
 		{
@@ -31,7 +57,7 @@ namespace DavidUtils.Rendering
 			set
 			{
 				thickness = value;
-				_renderers.ForEach(r => r.Thickness = value);
+				renderObjs.ForEach(r => r.Thickness = value);
 			}
 		}
 
@@ -43,72 +69,61 @@ namespace DavidUtils.Rendering
 			set
 			{
 				regionScale = value;
-				_renderers.ForEach(r => r.CenteredScale = value);
+				renderObjs.ForEach(r => r.CenteredScale = value);
 			}
 		}
-
-		protected override string DefaultChildName => "Region";
-
-		private void OnEnable()
+		
+		protected override void SetCommonProperties(PolygonRenderer polyRenderer)
 		{
-			if (voronoi == null || voronoi.RegionCount == 0) return;
-
-			_renderers.ForEach(r => r.UpdateAllProperties());
+			polyRenderer.RenderMode = renderMode;
+			polyRenderer.Thickness = thickness;
+			polyRenderer.CenteredScale = regionScale;
+			polyRenderer.Color = GetColor();
 		}
 
-		public override void SetGeometry(Voronoi inGeometry, string childName = null)
+		#endregion
+		
+
+		
+		
+		// Esto genera el renderer de 0
+		public void UpdateVoronoi()
 		{
-			voronoi = inGeometry;
 			Clear();
 
-			if (voronoi.RegionCount <= 0) return;
+			if (_voronoi.RegionCount <= 0) return;
 
-			SetRainbowColors(voronoi.RegionCount);
-			_renderers = voronoi.regions.Select((r, i) => InstantiateRegion(r, $"Region {i}", colors[i])).ToList();
+			SetRainbowColors(_voronoi.RegionCount);
+			InstantiateObjs(Vector3.zero.ToFilledArray(_voronoi.RegionCount).ToArray(), "Region");
+			UpdateRegionPolygons();
 		}
 
-		public override void UpdateGeometry(Voronoi inGeometry) => throw new NotImplementedException();
-
-		public override void Clear()
+		// Actualiza unicamente los poligonos
+		public void UpdateRegionPolygons()
 		{
-			_renderers.ForEach(UnityUtils.DestroySafe);
-			_renderers = new List<PolygonRenderer>(voronoi?.SeedCount ?? 0);
+			if (colors.Length != _voronoi.RegionCount) SetRainbowColors(_voronoi.RegionCount);
+
+			for (var i = 0; i < _voronoi.RegionCount; i++) SetRegionPolygon(i, _voronoi.regions[i]);
 		}
 
-		public void UpdateRegions()
+		// Asigna un poligono a una region
+		public void SetRegionPolygon(int i, Polygon regionPolygon)
 		{
-			if (_renderers.Count != voronoi.RegionCount)
-				SetRainbowColors(voronoi.RegionCount);
-
-			for (var i = 0; i < voronoi.RegionCount; i++)
-				SetRegion(i, voronoi.regions[i]);
-		}
-
-		public void SetRegion(int i, Polygon region)
-		{
-			if (i >= 0 && i < _renderers.Count)
+			// Instantiate if not exists
+			if (i < 0 || i >= renderObjs.Count)
 			{
-				_renderers[i].Polygon = voronoi.regions[i];
+				i = renderObjs.Count;
+				renderObjs.Add(InstantiateObj(Vector3.zero, $"Region {i}"));
+				SetRainbowColors(_voronoi.RegionCount);
+				renderObjs[i].Color = GetColor(i);
 			}
-			else
-			{
-				SetRainbowColors(voronoi.RegionCount + 1);
-				_renderers.Add(InstantiateRegion(region, $"Region {i}", colors[i]));
-			}
+			
+			// Set the region Polygon
+			renderObjs[i].Polygon = regionPolygon;
+			
+			// Project on TERRAIN
+			if (projectOnTerrain) renderObjs[i].ProjectOnTerrain(Terrain, terrainHeightOffset);
 		}
-
-		private PolygonRenderer InstantiateRegion(Polygon region, string polygonName = null, Color? color = null) =>
-			PolygonRenderer.Instantiate(
-				region,
-				transform,
-				polygonName,
-				renderMode,
-				color,
-				thickness,
-				regionScale,
-				projectOnTerrain,
-				terrainHeightOffset
-			);
 
 
 		#region TERRAIN
@@ -116,9 +131,6 @@ namespace DavidUtils.Rendering
 		private Terrain Terrain => Terrain.activeTerrain;
 		public bool projectOnTerrain;
 		public float terrainHeightOffset = 0.1f;
-
-		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f) =>
-			_renderers.ForEach(r => r.ProjectOnTerrain(terrain, offset));
 
 		#endregion
 
@@ -137,16 +149,16 @@ namespace DavidUtils.Rendering
 			float terrainHeightOffset = 0.1f
 		)
 		{
-			var renderer = UnityUtils.InstantiateEmptyObject(parent, name).AddComponent<VoronoiRenderer>();
-			renderer.voronoi = voronoi;
-			renderer.initColorPalette = color ?? PolygonRenderer.DefaultColor;
+			var renderer = UnityUtils.InstantiateObject<VoronoiRenderer>(parent, name);
+			renderer._voronoi = voronoi;
+			renderer.InitialColor = color ?? PolygonRenderer.DefaultColor;
 			renderer.renderMode = renderMode;
 			renderer.thickness = thickness;
 			renderer.regionScale = centeredScale;
 			renderer.projectOnTerrain = projectOnTerrain;
 			renderer.terrainHeightOffset = terrainHeightOffset;
 
-			renderer.UpdateRegions();
+			renderer.UpdateVoronoi();
 
 			return renderer;
 		}

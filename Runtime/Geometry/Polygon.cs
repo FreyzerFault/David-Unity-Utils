@@ -32,6 +32,15 @@ namespace DavidUtils.Geometry
 			}
 		}
 		public int VertexCount => _vertices?.Length ?? 0;
+		
+		public Vector2[] VerticesFromCentroid
+		{
+			get
+			{
+				Vector2 c = centroid;
+				return _vertices?.Select(v => v - c).ToArray();
+			}
+		}
 
 
 		#region EDGES
@@ -47,6 +56,14 @@ namespace DavidUtils.Geometry
 				_vertices = EdgesToVertices(value);
 				centroid = _vertices.Center();
 				RemoveInvalidEdges();
+			}
+		}
+		public Edge[] EdgesFromCentroid
+		{
+			get
+			{
+				Vector2 c = centroid;
+				return _edges?.Select(e => new Edge(e.begin - c, e.end - c)).ToArray();
 			}
 		}
 
@@ -130,7 +147,7 @@ namespace DavidUtils.Geometry
 		private Vector2[] VerticesScaledByCenter(float centeredScale)
 		{
 			Vector2 c = centroid;
-			return _vertices?.Select(v => c + (v - c) * centeredScale).ToArray();
+			return VerticesFromCentroid?.Select(v => c + v * centeredScale).ToArray();
 		}
 
 		/// <summary>
@@ -395,9 +412,10 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Triangle[] Triangulate()
 		{
-			if (IsEmpty) return Array.Empty<Triangle>();
 			Vector2 c = centroid;
-			return _edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
+			return IsEmpty
+				? Array.Empty<Triangle>()
+				: Edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
 		}
 
 		#endregion

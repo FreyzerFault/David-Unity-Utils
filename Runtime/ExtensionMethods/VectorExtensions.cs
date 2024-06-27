@@ -83,7 +83,7 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector2 ToV2xy(this Vector3 v) => new(v.x, v.y);
 
 		public static IEnumerable<Vector2> ToV2(this IEnumerable<Vector3> v, bool XZplane = false) =>
-			XZplane ? v.ToV2xz() : v.ToV2xy();
+			XZplane ? v?.ToV2xz() : v?.ToV2xy();
 
 		public static IEnumerable<Vector2> ToV2xz(this IEnumerable<Vector3> v) => v.Select(ToV2xz);
 		public static IEnumerable<Vector2> ToV2xy(this IEnumerable<Vector3> v) => v.Select(ToV2xy);
@@ -98,7 +98,7 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector3 ToV3xy(this Vector2 v) => new(v.x, v.y, 0);
 
 		public static IEnumerable<Vector3> ToV3(this IEnumerable<Vector2> v, bool XZplane = false) =>
-			XZplane ? v.ToV3xz() : v.ToV3xy();
+			XZplane ? v?.ToV3xz() : v?.ToV3xy();
 
 		public static IEnumerable<Vector3> ToV3xz(this IEnumerable<Vector2> v) => v.Select(ToV3xz);
 		public static IEnumerable<Vector3> ToV3xy(this IEnumerable<Vector2> v) => v.Select(ToV3xy);

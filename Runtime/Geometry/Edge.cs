@@ -187,7 +187,9 @@ namespace DavidUtils.Geometry
 		{
 			Vector3[] verticesInWorld = matrix.MultiplyPoint3x4(Vertices).ToArray();
 			GizmosExtensions.DrawLineThick(
-				projectedOnTerrain ? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) : verticesInWorld,
+				projectedOnTerrain && Terrain.activeTerrain != null
+					? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) 
+					: verticesInWorld,
 				thickness,
 				color
 			);

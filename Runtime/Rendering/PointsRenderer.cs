@@ -2,20 +2,32 @@
 using System.Linq;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
 
 namespace DavidUtils.Rendering
 {
 	[Serializable]
-	public class PointsRenderer : DynamicRenderer<float>
+	public class PointsRenderer : DynamicRenderer<Renderer>
 	{
-		protected override string DefaultChildName => "Sphere";
-		protected MeshRenderer[] MeshRenderers => renderObjs.Select(obj => obj.GetComponent<MeshRenderer>()).ToArray();
+		protected override string DefaultChildName => "Point";
+		protected override Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
 
 
-		#region RADIUS
+		#region COMMON PROPS
+		
+		public enum RenderMode { Sphere, Circle, Point }
 
+		private RenderMode _renderMode;
+		public RenderMode Mode
+		{
+			get => _renderMode;
+			set => _renderMode = value;
+		}
+
+		private bool IsCirle => _renderMode == RenderMode.Circle;
+		
 		[Range(0.1f, 1)] [SerializeField]
 		private float radius = .5f;
 		public float Radius
@@ -30,23 +42,41 @@ namespace DavidUtils.Rendering
 
 		public Vector3 Scale => Vector3.one * (radius + (IsCirle ? thickness / 2 : 0));
 
+		[ConditionalField("IsCircle")] [SerializeField]
+		private float thickness;
+		public float Thickness
+		{
+			get => thickness;
+			set
+			{
+				thickness = value;
+				UpdateThickness();
+			}
+		}
+
+		private void UpdateThickness()
+		{
+			// TODO
+		}
+
+		protected override void SetCommonProperties(Renderer pointRenderer)
+		{
+			pointRenderer.transform.SetGlobalScale(Scale);
+			pointRenderer.material = Material;
+		}
+
 		#endregion
 
-
-		#region TEXTURE
-
-		private int textureSize = 20;
-
-		private Texture2D CircleTexture =>
-			TextureUtils.GenerateCircleTexture(textureSize, Color.white, radius, thickness);
-
-		private Texture2D PointTexture => TextureUtils.GeneratePointTexture(textureSize, Color.white);
-
-		#endregion
 
 
 		#region SPRITES
 
+		// TODO A ver si puedo meterle de input el tamaño de textura para adaptarlo por temas de rendimiento
+		public int textureSize = 20;
+		private Texture2D CircleTexture => TextureUtils.GetCircle();
+		private Texture2D PointTexture => TextureUtils.GetCircumference();
+		
+		// TODO Cambiar esto por Prefabs. Va a ser mas eficiente
 		private Sprite circleSprite;
 		private Sprite CircleSprite => circleSprite ??= BuildCircleSprite();
 
@@ -67,108 +97,66 @@ namespace DavidUtils.Rendering
 		#endregion
 
 
-		#region THICKNESS
-
-		[ConditionalField("IsCircle")] [SerializeField]
-		private float thickness;
-		public float Thickness
-		{
-			get => thickness;
-			set
-			{
-				thickness = value;
-				UpdateThickness();
-			}
-		}
-
-		private float ExternalRadius => radius + thickness / 2;
-
-		private void UpdateThickness()
-		{
-			// Rebuild the Sprite
-			BuildCircleSprite();
-			renderObjs.ForEach(circle => circle.GetComponent<SpriteRenderer>().sprite = CircleSprite);
-		}
-
-		#endregion
-
-
-		#region RENDER MODE
-
-		public enum RenderMode { Sphere, Circle, Point }
-
-		private RenderMode renderMode;
-		public RenderMode Mode
-		{
-			get => renderMode;
-			set => renderMode = value;
-		}
-
-		private bool IsCirle => renderMode == RenderMode.Circle;
-
-		#endregion
-
 
 		private void Awake() => useColor = true;
 
-
-		public override GameObject InstantiateObj(Vector3 pos, int i = -1, string objName = null)
+		public override Renderer InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
 		{
-			GameObject obj = Mode switch
+			if (i >= colors.Length) SetRainbowColors(i+1);
+			Renderer renderObj = _renderMode switch
 			{
-				RenderMode.Sphere => InstantiateSphere(GetColor(i), Material),
-				RenderMode.Circle => InstantiateCircle(GetColor(i), thickness),
-				RenderMode.Point => InstantiatePoint(GetColor(i)),
-				_ => throw new ArgumentOutOfRangeException()
+				RenderMode.Sphere => InstantiateSphere(localPos, objName, GetColor(i)),
+				RenderMode.Circle => InstantiateCircle(localPos, objName, GetColor(i)),
+				RenderMode.Point => InstantiatePoint(localPos, objName, GetColor(i)),
+				_ => null
 			};
-
-			if (obj == null) return obj;
-
-			obj.name = $"{objName ?? DefaultChildName} {i}";
-
-			// Actualiza posicion y escala
-			Transform sphereTransform = obj.transform;
-			sphereTransform.localPosition = pos;
-
-			// Compensa el Scale Global para verse siempre del mismo tamaño
-			obj.transform.SetGlobalScale(Scale);
-
-			return obj;
+			SetCommonProperties(renderObj);
+			
+			return renderObj;
 		}
 
 
 		#region OBJECT CREATION
 
-		private GameObject InstantiateSphere(Color color, Material material) =>
-			MeshRendererExtensions.InstantiateSphere(
-				out MeshRenderer mr,
-				out MeshFilter mf,
-				transform,
-				color: color,
-				material: material
-			);
-
-		// TODO Mover la logica de creacion del objeto a un Generador de Objetos
-		// TODO Aplicar Thickness al circulo
-		/// <summary>
-		///     Instancia un Círculo. Si le pasas thickness sera una circunferencia
-		/// </summary>
-		private static GameObject InstantiateCircle(Color color, float thickness = -1)
+		private MeshRenderer InstantiateSphere(Vector3? localPos = null, string objName = null, Color? color = null)
 		{
-			if (thickness < 0) return InstantiatePoint(color);
-			var circle = Resources.Load<GameObject>("Prefabs/Circumference");
-			circle.GetComponent<SpriteRenderer>().color = color;
-			return circle;
+			GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			sphere.name = objName ?? DefaultChildName;
+			sphere.transform.parent = transform;
+			sphere.transform.localPosition = localPos ?? Vector3.zero;
+			sphere.GetComponent<MeshFilter>().mesh.SetColor(color ?? Color.white);
+			return sphere.GetComponent<MeshRenderer>();
+		}
+
+		// TODO Mover la logica de creacion del Circulo y Punto a un Generador de Objetos
+		// TODO Aplicar Thickness al circulo
+
+		/// <summary>
+		///     Instancia un Círculo. Si no thickness 0 o negativo, sera un punto
+		/// </summary>
+		private SpriteRenderer InstantiateCircle(Vector3? localPos = null, string objName = null, Color? color = null)
+		{
+			if (thickness < 0) return InstantiatePoint(localPos, objName);
+			SpriteRenderer sr = Resources.Load<GameObject>("Prefabs/Circumference").GetComponent<SpriteRenderer>();
+			sr.name = objName ?? DefaultChildName;
+			sr.transform.localPosition = localPos ?? Vector3.zero;
+			sr.color = color ?? Color.white;
+			
+			// TODO Modificar la mask hija para modificar el grosor con thickness
+			
+			return sr;
 		}
 
 		/// <summary>
 		///     Instancia un Circulo como un Punto
 		/// </summary>
-		private static GameObject InstantiatePoint(Color color)
+		private SpriteRenderer InstantiatePoint(Vector3? localPos = null, string objName = null, Color? color = null)
 		{
-			var circle = Resources.Load<GameObject>("Prefabs/Circle");
-			circle.GetComponent<SpriteRenderer>().color = color;
-			return circle;
+			SpriteRenderer sr = Resources.Load<GameObject>("Prefabs/Circle").GetComponent<SpriteRenderer>();
+			sr.name = objName ?? DefaultChildName;
+			sr.transform.localPosition = localPos ?? Vector3.zero;
+			sr.color = color ?? Color.white;
+			return sr;
 		}
 
 		#endregion
@@ -193,6 +181,15 @@ namespace DavidUtils.Rendering
 				Vector3 pos = transform.localToWorldMatrix.MultiplyPoint3x4(renderObjs[i].transform.position);
 				Gizmos.DrawSphere(pos, radius);
 			}
+		}
+		
+		// Dibuja lineas a todos los objetos mientras este seleccionado
+		private void OnDrawGizmosSelected()
+		{
+			if (!drawGizmos) return;
+			
+			Gizmos.color = Color.red;
+			renderObjs.ForEach(r => Gizmos.DrawLine(transform.position, r.transform.position));
 		}
 
 #endif

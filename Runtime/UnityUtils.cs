@@ -41,6 +41,31 @@ namespace DavidUtils
 			};
 			return obj;
 		}
+		
+		/// <summary>
+		/// Instancia un GameObject con un componente de tipo T 
+		/// </summary>
+		public static T InstantiateObject<T>(
+			Transform parent,
+			string name = "New Object",
+			Vector3? localPos = null,
+			Quaternion? localRot = null,
+			Vector3? localScale = null
+		) where T : Component
+		{
+			var obj = new GameObject(name)
+			{
+				transform =
+				{
+					parent = parent,
+					localPosition = localPos ?? Vector3.zero,
+					localRotation = localRot ?? Quaternion.identity,
+					localScale = localScale ?? Vector3.one
+				}
+			};
+			
+			return obj.AddComponent<T>();
+		}
 
 		#endregion
 

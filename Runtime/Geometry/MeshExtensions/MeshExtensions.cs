@@ -31,7 +31,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 		/// <summary>
 		///     Actualiza la Mesh con un Polygon sin tener que recrearlo
 		/// </summary>
-		public static void SetPolygon(this Mesh mesh, Polygon polygon)
+		public static void SetPolygon(this Mesh mesh, Polygon polygon, Color? color = null)
 		{
 			int oldVertexCount = mesh.vertexCount;
 			Triangle[] tris = polygon.Triangulate();
@@ -52,7 +52,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 
 				mesh.SetNormal(Vector3.back);
 
-				if (mesh.colors.Length > 0) mesh.SetColor(mesh.colors[0]);
+				mesh.SetColor(color ?? (mesh.colors.Length > 0 ? mesh.colors[0] : Color.white));
 			}
 
 			mesh.RecalculateBounds();
