@@ -169,7 +169,7 @@ namespace Geometry.Algorithms
 				polygon.Vertices = vertices.ToArray();
 			}
 
-			return polygon;
+			return polygon.SortCCW();
 		}
 
 		#endregion

@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DavidUtils.DevTools.Testing
@@ -21,6 +23,14 @@ namespace DavidUtils.DevTools.Testing
 			action();
 			float endTime = Time.realtimeSinceStartup;
 			return (endTime - iniTime) * 1000;
+		}
+
+		public static IEnumerator RunTimerInMs(Func<IEnumerator> action, float time)
+		{
+			float iniTime = Time.realtimeSinceStartup;
+			yield return action();
+			float endTime = Time.realtimeSinceStartup;
+			time = (endTime - iniTime) * 1000;
 		}
 	}
 }

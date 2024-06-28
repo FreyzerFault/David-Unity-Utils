@@ -236,7 +236,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 				Vector2[] intersections = Intersections_Segment(vertex, next).ToArray();
 
 				// Añadimos las intersecciones en vez del vertice si las hay
-				croppedVertices.AddRange(intersections);
+				croppedVertices.AddRange(intersections.Where(inters => croppedVertices.All(v => v != inters)));
 			}
 
 			return new Polygon(croppedVertices.SortByAngle(croppedVertices.Center()).ToArray());

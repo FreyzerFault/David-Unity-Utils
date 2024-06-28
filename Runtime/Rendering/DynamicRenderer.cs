@@ -59,7 +59,12 @@ namespace DavidUtils.Rendering
 
 		public void UpdateObj(int i, Vector3 pos) => renderObjs[i].transform.localPosition = pos;
 		public void UpdateAllObj(IEnumerable<Vector2> pos) => UpdateAllObj(pos.ToV3());
-		public void UpdateAllObj(IEnumerable<Vector3> pos) => pos.ForEach((p, i) => UpdateObj(i, p));
+		public void UpdateAllObj(IEnumerable<Vector3> pos)
+		{
+			IEnumerable<Vector3> localPositions = pos as Vector3[] ?? pos.ToArray();
+			if (localPositions.Count() != renderObjs.Count) InstantiateObjs(localPositions);
+			localPositions.ForEach((p, i) => UpdateObj(i, p));
+		}
 
 		public virtual void Clear()
 		{

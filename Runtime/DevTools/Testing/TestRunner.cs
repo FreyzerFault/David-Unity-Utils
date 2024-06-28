@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using DavidUtils.DevTools.Reflection;
+using DavidUtils.ExtensionMethods;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -37,6 +40,19 @@ namespace DavidUtils.DevTools.Testing
 		public float waitSeconds = 1;
 
 		protected int iterations;
+
+		
+		#region TIMERS
+
+		private readonly List<float> _testTimes = new();
+		
+		[ExposedField] public float LastTime => _testTimes.IsNullOrEmpty() ? 0 : _testTimes.Last(); 
+		[ExposedField] public string LastTimeStr => LastTime.ToString("F0") + " ms"; 
+		[ExposedField] public float AverageTime => _testTimes.IsNullOrEmpty() ? 0 : _testTimes.Sum() / _testTimes.Count;
+		[ExposedField] public string AverageTimeStr => AverageTime.ToString("F0") + " ms"; 
+
+		#endregion
+		
 
 		protected Action OnStartTest;
 		protected Action OnEndTest;
@@ -137,10 +153,14 @@ namespace DavidUtils.DevTools.Testing
 		{
 			foreach ((Func<IEnumerator> test, TestInfo info) in tests)
 			{
+				float iniTime = Time.realtimeSinceStartup;
 				yield return test();
+				float endTime = Time.realtimeSinceStartup;
+				float time = (endTime - iniTime) * 1000;
+				_testTimes.Add(time);
 
 				bool success = info.successCondition?.Invoke() ?? true;
-				LogTest(info.name, success);
+				LogTest(info.name, success, time);
 
 				if (success) info.onSuccess?.Invoke();
 				else info.onFailure?.Invoke();
@@ -150,14 +170,14 @@ namespace DavidUtils.DevTools.Testing
 			}
 		}
 
-		private void LogTest(string testName, bool success, string msg = null)
+		private void LogTest(string testName, bool success, float time, string msg = null)
 		{
 			string color = success ? "#00ff00" : "#ff0000";
 			string symbol = success ? "\u2714" : "\u2716";
 			string numTests = autoRun ? $"#{iterations}" : "";
 			msg ??= success ? "Success" : "Failed";
 			Action<string, Object> logFunction = success ? Debug.Log : Debug.LogError;
-			logFunction($"<color={color}><b>{symbol} {numTests} Test: {testName}</b> - {msg}</color>", this);
+			logFunction($"<color={color}><b>{symbol} {numTests} ({time:F0} ms) Test: {testName}</b> - {msg}</color>", this);
 		}
 	}
 }

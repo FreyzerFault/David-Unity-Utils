@@ -22,6 +22,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 		protected override void Start()
 		{
 			AnimatedDelaunay = false;
+			AnimatedVoronoi = false;
 
 			base.Start();
 
@@ -38,6 +39,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 		#endregion
 
+		
 		#region SEED MOVING
 
 		private void InitializeDirections() =>

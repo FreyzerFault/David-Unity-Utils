@@ -14,6 +14,7 @@ namespace DavidUtils.Geometry
 		public static Polygon Empty => new();
 
 		// Vertices in Counter-Clockwise order
+		[SerializeField]
 		private Vector2[] _vertices;
 		public Vector2 centroid;
 
@@ -415,7 +416,9 @@ namespace DavidUtils.Geometry
 			Vector2 c = centroid;
 			return IsEmpty
 				? Array.Empty<Triangle>()
-				: Edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
+				: VertexCount == 3 
+					? new Triangle(_vertices).ToSingleArray().ToArray() 
+					: Edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
 		}
 
 		#endregion

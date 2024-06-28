@@ -54,6 +54,8 @@ namespace DavidUtils.Geometry.Generators
 
 		public override void Run()
 		{
+			if (seeds.IsNullOrEmpty()) GenerateSeeds();
+			
 			ResetDelaunay();
 			ResetVoronoi();
 			if (AnimatedVoronoi)
@@ -89,9 +91,6 @@ namespace DavidUtils.Geometry.Generators
 			ResetVoronoi();
 			if (DrawVoronoi && AnimatedVoronoi)
 			{
-				bool delaunayWire = DelaunayWire;
-				DelaunayWire = true;
-
 				while (!voronoi.Ended)
 				{
 					voronoi.Run_OneIteration();
@@ -100,7 +99,6 @@ namespace DavidUtils.Geometry.Generators
 				}
 
 				OnAllRegionsCreated();
-				DelaunayWire = delaunayWire;
 			}
 			else
 			{
@@ -260,7 +258,7 @@ namespace DavidUtils.Geometry.Generators
 				"Selected Region",
 				PolygonRenderer.PolygonRenderMode.Wire,
 				Color.yellow,
-				.1f,
+				1.1f,
 				RegionScale + 0.01f,
 				true
 			);
@@ -270,7 +268,7 @@ namespace DavidUtils.Geometry.Generators
 				"Hover Region",
 				PolygonRenderer.PolygonRenderMode.Wire,
 				Color.yellow,
-				.05f,
+				1f,
 				RegionScale + 0.01f,
 				true
 			);
@@ -284,8 +282,9 @@ namespace DavidUtils.Geometry.Generators
 
 			BoundsComp.TransformToBounds_Local(selectedRenderer);
 			BoundsComp.TransformToBounds_Local(hoverRenderer);
-			selectedRenderer.transform.localPosition += Vector3.up * 1;
-			hoverRenderer.transform.localPosition += Vector3.up * 1;
+			
+			selectedRenderer.transform.localPosition += Vector3.up * 0.01f;
+			hoverRenderer.transform.localPosition += Vector3.up * 0.01f;
 		}
 
 		private void UpdateHoverRenderer() => hoverRenderer.Polygon = MouseRegion ?? Polygon.Empty;
@@ -368,16 +367,6 @@ namespace DavidUtils.Geometry.Generators
 
 		#region UI CONTROL
 
-		public string NumSeedsStr
-		{
-			get => Seeds.Count.ToString();
-			set
-			{
-				bool isDigit = int.TryParse(value, out int num);
-				if (!isDigit) num = 16;
-				numSeeds = num;
-			}
-		}
 
 		public bool DrawVoronoi
 		{

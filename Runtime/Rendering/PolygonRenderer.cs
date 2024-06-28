@@ -10,7 +10,6 @@ namespace DavidUtils.Rendering
 	[RequireComponent(typeof(LineRenderer), typeof(MeshRenderer), typeof(MeshFilter))]
 	public class PolygonRenderer : MonoBehaviour
 	{
-		public static readonly Color DefaultColor = Color.white;
 		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.Mesh;
 		public const float DEFAULT_THICKNESS = 1f;
 		public const float DEFAULT_CENTERED_SCALE = 1f;
@@ -25,7 +24,8 @@ namespace DavidUtils.Rendering
 		[SerializeField] private PolygonRenderMode renderMode = DEFAULT_RENDER_MODE;
 
 		[SerializeField] private Polygon polygon = Polygon.Empty;
-		[SerializeField] private Color color = DefaultColor;
+		[SerializeField] private Color color = Color.black;
+		[SerializeField] public Color outlineColor = Color.white;
 		[SerializeField] private float thickness = DEFAULT_THICKNESS;
 
 		// SCALE SLIDER
@@ -99,6 +99,16 @@ namespace DavidUtils.Rendering
 				UpdateColor();
 			}
 		}
+		
+		public Color OutlineColor
+		{
+			get => outlineColor;
+			set
+			{
+				outlineColor = value;
+				UpdateColor();
+			}
+		}
 
 		public float Thickness
 		{
@@ -122,8 +132,12 @@ namespace DavidUtils.Rendering
 
 		private void UpdateRenderMode()
 		{
-			_lineRenderer.enabled = renderMode is PolygonRenderMode.Wire or PolygonRenderMode.OutlinedMesh;
 			_meshRenderer.enabled = renderMode is PolygonRenderMode.Mesh or PolygonRenderMode.OutlinedMesh;
+			_lineRenderer.enabled = renderMode is PolygonRenderMode.Wire or PolygonRenderMode.OutlinedMesh;
+			
+			// Line Color
+			_lineRenderer.startColor = _lineRenderer.endColor =
+				renderMode is PolygonRenderMode.OutlinedMesh ? outlineColor : color;
 		}
 
 		private void UpdatePolygon()
@@ -141,7 +155,7 @@ namespace DavidUtils.Rendering
 
 		private void UpdateColor()
 		{
-			_lineRenderer.startColor = _lineRenderer.endColor = renderMode == PolygonRenderMode.OutlinedMesh ? color.Invert() : color;
+			_lineRenderer.startColor = _lineRenderer.endColor = renderMode == PolygonRenderMode.Wire ? color : outlineColor;
 			_meshFilter.mesh.SetColors(color.ToFilledArray(_meshFilter.mesh.vertexCount).ToArray());
 		}
 
@@ -175,8 +189,11 @@ namespace DavidUtils.Rendering
 		// If project on terrain => render as wire on world space
 		private void UpdateTerrainProjection()
 		{
-			if (projectOnTerrain) renderMode = PolygonRenderMode.Wire;
-			_lineRenderer.useWorldSpace = projectOnTerrain;
+			if (projectOnTerrain && Terrain != null)
+			{
+				renderMode = PolygonRenderMode.Wire;
+				_lineRenderer.useWorldSpace = true;
+			}
 		}
 
 		#endregion
@@ -198,7 +215,7 @@ namespace DavidUtils.Rendering
 		{
 			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
 			polygonRenderer.polygon = polygon;
-			polygonRenderer.color = color ?? DefaultColor;
+			polygonRenderer.color = color ?? Color.white;
 			polygonRenderer.thickness = thickness;
 			polygonRenderer.renderMode = renderMode;
 			polygonRenderer.centeredScale = centeredScale;

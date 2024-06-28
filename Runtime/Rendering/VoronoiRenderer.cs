@@ -6,6 +6,7 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using Geometry.Algorithms;
 using UnityEngine;
+using UnityEngine.Serialization;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
 namespace DavidUtils.Rendering
@@ -73,12 +74,25 @@ namespace DavidUtils.Rendering
 			}
 		}
 		
+		[SerializeField]
+		private Color outlineColor = Color.white;
+		public Color OutlineColor
+		{
+			get => outlineColor;
+			set
+			{
+				outlineColor = value;
+				renderObjs.ForEach(r => r.OutlineColor = value);
+			}
+		}
+		
 		protected override void SetCommonProperties(PolygonRenderer polyRenderer)
 		{
 			polyRenderer.RenderMode = renderMode;
 			polyRenderer.Thickness = thickness;
 			polyRenderer.CenteredScale = regionScale;
 			polyRenderer.Color = GetColor();
+			polyRenderer.OutlineColor = outlineColor;
 		}
 
 		#endregion
@@ -143,6 +157,7 @@ namespace DavidUtils.Rendering
 			string name = "Voronoi Renderer",
 			RenderMode renderMode = PolygonRenderer.DEFAULT_RENDER_MODE,
 			Color? color = null,
+			Color? outlineColor = null,
 			float thickness = PolygonRenderer.DEFAULT_THICKNESS,
 			float centeredScale = PolygonRenderer.DEFAULT_CENTERED_SCALE,
 			bool projectOnTerrain = false,
@@ -151,7 +166,8 @@ namespace DavidUtils.Rendering
 		{
 			var renderer = UnityUtils.InstantiateObject<VoronoiRenderer>(parent, name);
 			renderer._voronoi = voronoi;
-			renderer.InitialColor = color ?? PolygonRenderer.DefaultColor;
+			renderer.InitialColor = color ?? Color.white;
+			renderer.outlineColor = outlineColor ?? Color.black;
 			renderer.renderMode = renderMode;
 			renderer.thickness = thickness;
 			renderer.regionScale = centeredScale;

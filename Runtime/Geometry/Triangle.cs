@@ -47,7 +47,7 @@ namespace DavidUtils.Geometry
 		}
 
 		public Triangle(
-			Vector2[] vertices, Triangle t1 = null, Triangle t2 = null, Triangle t3 = null
+			Vector2[] vertices, Triangle t1, Triangle t2, Triangle t3
 		) : this(vertices, new[] { t1, t2, t3 })
 		{
 		}
@@ -180,7 +180,7 @@ namespace DavidUtils.Geometry
 		{
 			Vector2 c = GetCircumcenter();
 			Gizmos.color = c.IsIn01() ? Color.green : Color.red;
-			Gizmos.DrawSphere(localToWorldMatrix.MultiplyPoint3x4(c), .05f);
+			Gizmos.DrawSphere(localToWorldMatrix.MultiplyPoint3x4(c), localToWorldMatrix.lossyScale.x * .005f);
 		}
 
 		#endregion

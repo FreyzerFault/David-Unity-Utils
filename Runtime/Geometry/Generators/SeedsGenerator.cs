@@ -6,6 +6,7 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry.Generators
@@ -19,8 +20,19 @@ namespace DavidUtils.Geometry.Generators
 		[ExposedField]
 		public int randSeed = 10;
 
-		[ExposedField]
-		public int numSeeds = 10;
+		[ExposedField] [SerializeField]
+		private int numSeeds = 10;
+		public int NumSeeds
+		{
+			get => numSeeds;
+			set
+			{
+				numSeeds = value;
+				GenerateSeeds();
+				OnSeedsUpdated();
+			}
+		}
+		
 		public SeedsDistribution seedsDistribution = SeedsDistribution.Random;
 
 		[HideInInspector] public List<Vector2> seeds = new();
@@ -30,12 +42,12 @@ namespace DavidUtils.Geometry.Generators
 			set
 			{
 				seeds = value;
-				numSeeds = seeds.Count;
+				NumSeeds = seeds.Count;
 				OnSeedsUpdated();
 			}
 		}
 
-		public bool SeedsAreGenerated => seeds?.Count == numSeeds;
+		public bool SeedsAreGenerated => seeds?.Count == NumSeeds;
 
 		#region BOUNDS
 
@@ -90,7 +102,7 @@ namespace DavidUtils.Geometry.Generators
 
 		public void GenerateSeeds()
 		{
-			seeds = GenerateSeeds(numSeeds, randSeed, seedsDistribution).ToList();
+			seeds = GenerateSeeds(NumSeeds, randSeed, seedsDistribution).ToList();
 			DeleteRedundant();
 		}
 
@@ -169,6 +181,23 @@ namespace DavidUtils.Geometry.Generators
 			if (Renderer == null) return;
 			BoundsComp.TransformToBounds_Local(Renderer);
 			Renderer.transform.Translate(Vector3.back * .5f);
+		}
+
+		#endregion
+
+		
+		#region UI CONTROL
+
+		[ExposedField]
+		public string NumSeedsStr
+		{
+			get => numSeeds.ToString();
+			set
+			{
+				bool isDigit = int.TryParse(value, out int num);
+				if (!isDigit) num = 16;
+				NumSeeds = num;
+			}
 		}
 
 		#endregion
@@ -283,7 +312,7 @@ namespace DavidUtils.Geometry.Generators
 		{
 			if (seeds.IsNullOrEmpty()) return;
 
-			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(numSeeds));
+			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(NumSeeds));
 			if (projectOnTerrain && Terrain.activeTerrain != null)
 				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, LocalToWorldMatrix, thickness, color);
 			else

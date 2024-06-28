@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering;
 using Geometry.Algorithms;
@@ -71,6 +72,8 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual void Run()
 		{
+			if (seeds.IsNullOrEmpty()) GenerateSeeds();
+			
 			ResetDelaunay();
 			if (animatedDelaunay)
 			{
@@ -161,7 +164,7 @@ namespace DavidUtils.Geometry.Generators
 
 		[Space]
 		[SerializeField]
-		private DelaunayRenderer delaunayRenderer;
+		protected DelaunayRenderer delaunayRenderer;
 		private DelaunayRenderer Renderer => delaunayRenderer ??=
 			GetComponentInChildren<DelaunayRenderer>(true) 
 			?? UnityUtils.InstantiateObject<DelaunayRenderer>(transform, "DELAUNAY Renderer");
@@ -175,7 +178,7 @@ namespace DavidUtils.Geometry.Generators
 		public bool DelaunayWire
 		{
 			get => delaunayRenderer.RenderMode == RenderMode.Wire;
-			set => delaunayRenderer.RenderMode = value ? RenderMode.Wire : RenderMode.Mesh;
+			set => delaunayRenderer.RenderMode = value ? RenderMode.Wire : RenderMode.OutlineMesh;
 		}
 		
 		protected override void InitializeRenderer()

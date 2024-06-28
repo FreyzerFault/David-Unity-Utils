@@ -27,7 +27,7 @@ namespace Geometry.Algorithms
 		[HideInInspector] public List<Triangle> triangles = new();
 
 		public int SeedCount => _seeds.Count;
-		public int TriangleCount => triangles.Count;
+		public int TriangleCount => triangles?.Count ?? 0;
 		public int VerticesCount => vertices.Count;
 
 		public bool NotGenerated => triangles == null || triangles.Count == 0;

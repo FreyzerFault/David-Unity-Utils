@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
@@ -40,17 +41,14 @@ namespace DavidUtils.Rendering.Extensions
 		public static Vector2[] GetPoints2D(this LineRenderer lr) =>
 			lr.GetPoints().Select(p => lr.IsInXY() ? p.ToV2() : p.ToV2xz()).ToArray();
 
-		public static void SetPoints(this LineRenderer lr, Vector3[] points)
+		public static void SetPoints(this LineRenderer lr, IEnumerable<Vector3> points)
 		{
-			if (points == null) return;
-
-			if (lr.positionCount != points.Length)
-				lr.positionCount = points.Length;
-			lr.SetPositions(points);
+			IEnumerable<Vector3> pointsEnum = points as Vector3[] ?? points?.ToArray() ?? Array.Empty<Vector3>();
+			lr.positionCount = pointsEnum.Count();
+			lr.SetPositions(pointsEnum.ToArray());
 		}
 
-
-		public static void SetPoints(this LineRenderer lr, Vector2[] points) =>
+		public static void SetPoints(this LineRenderer lr, IEnumerable<Vector2> points) =>
 			lr.SetPoints(points?.ToV3()?.ToArray());
 
 		public static void SetPolygon(this LineRenderer lr, Polygon polygon) =>
