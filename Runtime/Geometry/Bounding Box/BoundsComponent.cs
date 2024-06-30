@@ -9,6 +9,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 {
 	public class BoundsComponent : MonoBehaviour
 	{
+		[HideInInspector]
 		public bool is2D;
 
 		[ConditionalField("is2D", true)]
@@ -30,7 +31,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			{
 				bounds3D.center = value;
 				OnChanged?.Invoke();
-				Sincronize2D();
+				Sincronize3Dto2D();
 			}
 		}
 
@@ -41,7 +42,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			{
 				bounds3D.size = value;
 				OnChanged?.Invoke();
-				Sincronize2D();
+				Sincronize3Dto2D();
 			}
 		}
 
@@ -52,7 +53,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			{
 				aabb2D.Size = value;
 				OnChanged?.Invoke();
-				Sincronize3D();
+				Sincronize2Dto3D();
 			}
 		}
 
@@ -90,17 +91,16 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		private void Awake() => SincronizeBounds();
 		private void OnEnable() => SincronizeBounds();
-		private void OnValidate() => SincronizeBounds();
 
 
-		private void SincronizeBounds()
+		public void SincronizeBounds()
 		{
-			if (is2D) Sincronize3D();
-			else Sincronize2D();
+			if (is2D) Sincronize2Dto3D();
+			else Sincronize3Dto2D();
 		}
 
-		private void Sincronize2D() => aabb2D = new AABB_2D(bounds3D, XZplane);
-		private void Sincronize3D() => bounds3D = aabb2D.To3D(XZplane, XZplane ? bounds3D.size.y : bounds3D.size.z);
+		private void Sincronize3Dto2D() => aabb2D = new AABB_2D(bounds3D, XZplane);
+		private void Sincronize2Dto3D() => bounds3D = aabb2D.To3D(XZplane, XZplane ? bounds3D.size.y : bounds3D.size.z);
 
 		#region DEBUG
 
@@ -112,7 +112,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			if (is2D)
 				GizmosExtensions.DrawQuadWire(LocalToWorldMatrix, 5, Color.green);
 			else
-				GizmosExtensions.DrawCubeWire(LocalToWorldMatrix, 5, Color.green, false);
+				GizmosExtensions.DrawCubeWire(bounds3D.LocalToBoundsMatrix(), 5, Color.green);
 		}
 
 #endif
@@ -122,10 +122,12 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public void TransformToBounds_Local(Component obj) => obj?.transform.ApplyLocalMatrix(LocalToBoundsMatrix);
 		public void TransformToBounds_World(Component obj) => obj?.transform.ApplyWorldMatrix(LocalToWorldMatrix);
 
+		// Ajusta el tamaño del AABB al terreno
 		public void AdjustToTerrain(Terrain terrain)
 		{
 			bounds3D = terrain.terrainData.bounds;
-			Sincronize2D();
+			is2D = false;
+			Sincronize3Dto2D();
 			OnChanged?.Invoke();
 		}
 	}

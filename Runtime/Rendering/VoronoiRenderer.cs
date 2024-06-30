@@ -145,6 +145,7 @@ namespace DavidUtils.Rendering
 		private Terrain Terrain => Terrain.activeTerrain;
 		public bool projectOnTerrain;
 		public float terrainHeightOffset = 0.1f;
+		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
 
 		#endregion
 

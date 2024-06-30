@@ -71,7 +71,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		public Bounds To3D(bool XZplane = true, float missingCoord = 1f) => new(
 			Center.ToV3(XZplane),
-			Size.ToV3(XZplane) + (XZplane ? Vector3.up : Vector3.forward) * missingCoord
+			(Size).ToV3(XZplane) + (XZplane ? Vector3.up : Vector3.forward) * missingCoord
 		);
 
 		#endregion

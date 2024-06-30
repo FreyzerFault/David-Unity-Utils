@@ -176,6 +176,9 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void UpdateRenderer() => Renderer.UpdateAllObj(seeds.ToV3());
 
+		/// <summary>
+		/// Posiciona el Renderer de las Seeds ajustado al AABB
+		/// </summary>
 		protected virtual void PositionRenderer()
 		{
 			if (Renderer == null) return;

@@ -160,7 +160,7 @@ namespace DavidUtils.Rendering
 		}
 
 		private void UpdateThickness() => _lineRenderer.startWidth =
-			_lineRenderer.endWidth = thickness * 0.01f * transform.lossyScale.x;
+			_lineRenderer.widthMultiplier = thickness * 0.01f * transform.lossyScale.x;
 
 		#endregion
 
@@ -170,6 +170,7 @@ namespace DavidUtils.Rendering
 		private Terrain Terrain => Terrain.activeTerrain;
 		public bool projectOnTerrain;
 		public float terrainHeightOffset = 0.1f;
+		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
 
 		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f, bool scaleToTerrainBounds = true)
 		{
@@ -180,7 +181,7 @@ namespace DavidUtils.Rendering
 						: ScaledPolygon.Vertices.ToV3xz().ToArray(),
 					true,
 					terrainHeightOffset
-				)
+				).Select(Terrain.GetNormalizedPosition)				
 			);
 			UpdateTerrainProjection();
 		}
@@ -189,7 +190,7 @@ namespace DavidUtils.Rendering
 		// If project on terrain => render as wire on world space
 		private void UpdateTerrainProjection()
 		{
-			if (projectOnTerrain && Terrain != null)
+			if (CanProjectOnTerrain)
 			{
 				renderMode = PolygonRenderMode.Wire;
 				_lineRenderer.useWorldSpace = true;

@@ -10,6 +10,28 @@ namespace GENES.Editor.Geometry.Bounding_Box
 		private void OnEnable() =>
 			Selection.selectionChanged += () => Tools.hidden = false;
 
+		public override void OnInspectorGUI()
+		{
+			SwitchButton();
+			base.OnInspectorGUI();
+		}
+
+		private void SwitchButton()
+		{
+			var boundsComp = (BoundsComponent) target;
+			
+			if (boundsComp.is2D && GUILayout.Button("Switch to 3D"))
+			{
+				boundsComp.SincronizeBounds();
+				boundsComp.is2D = false;
+			}
+			else if (!boundsComp.is2D && GUILayout.Button("Switch to 2D"))
+			{
+				boundsComp.SincronizeBounds();
+				boundsComp.is2D = true;
+			}
+		}
+
 		protected virtual void OnSceneGUI()
 		{
 			var boundsComp = (BoundsComponent)target;

@@ -2,6 +2,7 @@
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -12,17 +13,17 @@ namespace DavidUtils.Rendering
 
 		#region COMMON PROPS
 
-		private Sprite _sprite;
+		[SerializeField] private Sprite sprite;
 		public Sprite Sprite
 		{
-			get => _sprite;
+			get => sprite;
 			set
 			{
-				_sprite = value;
+				sprite = value;
 				UpdateTextures();
 			}
 		}
-		private void UpdateTextures() => renderObjs.ForEach(sr => sr.sprite = _sprite);
+		private void UpdateTextures() => renderObjs.ForEach(sr => sr.sprite = sprite);
 
 		private float _size;
 		public float Size
@@ -38,7 +39,7 @@ namespace DavidUtils.Rendering
 
 		protected override void SetCommonProperties(SpriteRenderer sr)
 		{
-			sr.sprite = _sprite;
+			sr.sprite = sprite;
 			sr.transform.SetGlobalScale(Vector3.one * Size);
 			sr.drawMode = SpriteDrawMode.Sliced;
 			sr.size = Vector2.one;

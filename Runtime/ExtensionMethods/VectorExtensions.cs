@@ -303,6 +303,9 @@ namespace DavidUtils.ExtensionMethods
 			return pointsEnumerable.Aggregate(Vector3.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
 		}
 
+		public static Matrix4x4 LocalToBoundsMatrix(this Bounds bounds) => 
+			Matrix4x4.TRS(bounds.min, Quaternion.identity, bounds.size);
+
 		#endregion
 	}
 }

@@ -196,6 +196,9 @@ namespace DavidUtils.Geometry.Generators
 			delaunayRenderer.UpdateDelaunay();
 		}
 
+		/// <summary>
+		/// Posiciona el Renderer del Delaunay ajustado al AABB
+		/// </summary>
 		protected override void PositionRenderer()
 		{
 			base.PositionRenderer();

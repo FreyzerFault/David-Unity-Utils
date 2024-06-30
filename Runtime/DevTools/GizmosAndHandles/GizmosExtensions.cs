@@ -249,9 +249,9 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		)
 		{
 			if (color.HasValue) Handles.color = color.Value;
-			Vector3 pos = matrix.MultiplyPoint3x4(centered ? Vector3.zero : Vector3.one / 2),
-				extent = matrix.MultiplyPoint3x4(Vector3.one) * 2;
-			Gizmos.DrawWireCube(pos, extent);
+			Vector3 pos = matrix.MultiplyPoint3x4(Vector3.zero),
+				extent = matrix.MultiplyPoint3x4(Vector3.one / 2);
+			Gizmos.DrawWireCube(centered ? pos + extent : pos, extent * 2);
 		}
 
 		#endregion
