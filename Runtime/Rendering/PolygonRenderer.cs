@@ -101,7 +101,7 @@ namespace DavidUtils.Rendering
 				UpdateColor();
 			}
 		}
-		
+
 		public Color OutlineColor
 		{
 			get => outlineColor;
@@ -137,7 +137,7 @@ namespace DavidUtils.Rendering
 			if (_meshRenderer == null || _lineRenderer == null) return;
 			_meshRenderer.enabled = renderMode is PolygonRenderMode.Mesh or PolygonRenderMode.OutlinedMesh;
 			_lineRenderer.enabled = renderMode is PolygonRenderMode.Wire or PolygonRenderMode.OutlinedMesh;
-			
+
 			// Line Color
 			_lineRenderer.startColor = _lineRenderer.endColor =
 				renderMode is PolygonRenderMode.OutlinedMesh ? outlineColor : color;
@@ -161,7 +161,8 @@ namespace DavidUtils.Rendering
 		private void UpdateColor()
 		{
 			if (_meshFilter == null || _lineRenderer == null) return;
-			_lineRenderer.startColor = _lineRenderer.endColor = renderMode == PolygonRenderMode.Wire ? color : outlineColor;
+			_lineRenderer.startColor =
+				_lineRenderer.endColor = renderMode == PolygonRenderMode.Wire ? color : outlineColor;
 			_meshFilter.mesh.SetColors(color.ToFilledArray(_meshFilter.mesh.vertexCount).ToArray());
 		}
 
@@ -186,12 +187,13 @@ namespace DavidUtils.Rendering
 		{
 			_lineRenderer.SetPoints(
 				Terrain.ProjectPathToTerrain(
-					scaleToTerrainBounds
-						? ScaledPolygon.Vertices.Select(terrain.GetWorldPosition).ToArray()
-						: ScaledPolygon.Vertices.ToV3xz().ToArray(),
-					true,
-					terrainHeightOffset
-				)				
+						scaleToTerrainBounds
+							? ScaledPolygon.Vertices.Select(terrain.GetWorldPosition).ToArray()
+							: ScaledPolygon.Vertices.ToV3xz().ToArray(),
+						true,
+						terrainHeightOffset
+					)
+					.Select(p => p.WithY(p.y + offset))
 			);
 			_lineRenderer.useWorldSpace = true;
 			UpdateTerrainProjection();
