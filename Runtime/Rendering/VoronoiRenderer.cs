@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using Geometry.Algorithms;
 using UnityEngine;
-using UnityEngine.Serialization;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
 namespace DavidUtils.Rendering
@@ -93,6 +90,7 @@ namespace DavidUtils.Rendering
 			polyRenderer.CenteredScale = regionScale;
 			polyRenderer.Color = GetColor();
 			polyRenderer.OutlineColor = outlineColor;
+			polyRenderer.projectOnTerrain = projectOnTerrain;
 		}
 
 		#endregion
@@ -136,7 +134,7 @@ namespace DavidUtils.Rendering
 			renderObjs[i].Polygon = regionPolygon;
 			
 			// Project on TERRAIN
-			if (projectOnTerrain) renderObjs[i].ProjectOnTerrain(Terrain, terrainHeightOffset);
+			if (CanProjectOnTerrain) renderObjs[i].ProjectOnTerrain(Terrain, terrainHeightOffset);
 		}
 
 

@@ -6,6 +6,7 @@ using DavidUtils.DevTools.Reflection;
 using DavidUtils.DevTools.Testing;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
+using DavidUtils.Rendering;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -55,6 +56,7 @@ namespace DavidUtils.Geometry.Testing
 
 		protected override void Awake()
 		{
+			InitializeRenderer();
 			Random.InitState(seed);
 			GenerateVertices();
 			base.Awake();
@@ -83,6 +85,7 @@ namespace DavidUtils.Geometry.Testing
 			for (var i = 0; i < numVertices; i++) vertices.Add(Random.insideUnitCircle * 10);
 
 			polygon = new Polygon(vertices.SortByAngle(vertices.Center()));
+			Renderer.Polygon = polygon;
 		}
 
 		public void Reset()
@@ -98,6 +101,8 @@ namespace DavidUtils.Geometry.Testing
 
 		protected override void InitializeTests()
 		{
+			AddTest(GenerateVertices, new TestInfo("Generate Random Vertices"));
+			
 			// ACTION, CONDITION
 			AddTest(
 				BuildInteriorPolygon,
@@ -108,6 +113,7 @@ namespace DavidUtils.Geometry.Testing
 			);
 			if (stepByStep)
 			{
+				
 				AddTest(
 					AddAutoIntersectionsTest,
 					new TestInfo(
@@ -142,6 +148,7 @@ namespace DavidUtils.Geometry.Testing
 				{
 					Reset();
 					RandomizeSeed();
+					Renderer.Clear();
 				};
 			}
 			else
@@ -151,23 +158,38 @@ namespace DavidUtils.Geometry.Testing
 		}
 
 		// Construye el poligono interior con un margen
-		public void BuildInteriorPolygon() =>
+		public void BuildInteriorPolygon()
+		{
 			interiorPolygon = polygon.InteriorPolygon(Vector2.one * interiorPolygonMargin);
+			Renderer.Polygon = interiorPolygon;
+		}
 
 		// Esto ya hace to el proceso de legalización del poligono interior
-		public void LegalizeTest() => mergedPolygon = interiorPolygon.Legalize();
+		public void LegalizeTest()
+		{
+			mergedPolygon = interiorPolygon.Legalize();
+			Renderer.Polygon = mergedPolygon;
+		}
 
 		// Las siguientes funciones son para mostrar el proceso de legalización paso a paso
-		public void AddAutoIntersectionsTest() =>
+		public void AddAutoIntersectionsTest()
+		{
 			interiorPolygon = interiorPolygon.AddAutoIntersections(out intersectionPoints);
+			Renderer.Polygon = interiorPolygon;
+		}
 
 		public void SplitPolygonsTest()
 		{
 			AddAutoIntersectionsTest();
 			splitPolygons = interiorPolygon.SplitAutoIntersectedPolygons(intersectionPoints);
+			UpdateSplitPolygonRenderers();
 		}
 
-		public void SelectCCWpolygons() => splitPolygons = splitPolygons.Where(p => p.IsCounterClockwise()).ToArray();
+		public void SelectCCWpolygons()
+		{
+			splitPolygons = splitPolygons.Where(p => p.IsCounterClockwise()).ToArray();
+			UpdateSplitPolygonRenderers();
+		}
 
 		public void MergePolygonInOne()
 		{
@@ -182,10 +204,51 @@ namespace DavidUtils.Geometry.Testing
 			}
 
 			splitPolygons.ForEach(p => mergedPolygon = mergedPolygon.Merge(p));
+			Renderer.Polygon = mergedPolygon;
+
+			Renderer.GetComponent<MeshRenderer>().enabled = true;
+			splitPolygonRenderers.ForEach(UnityUtils.DestroySafe);
+			splitPolygonRenderers = Array.Empty<PolygonRenderer>();
 		}
 
 		#endregion
 
+
+		#region RENDERING
+
+		private PolygonRenderer polygonRenderer;
+		private PolygonRenderer[] splitPolygonRenderers;
+		private PolygonRenderer Renderer => polygonRenderer;
+		private PolygonRenderer[] SplitRenderers => splitPolygonRenderers;
+
+		private void InitializeRenderer()
+		{
+			polygonRenderer = GetComponent<PolygonRenderer>() ?? gameObject.AddComponent<PolygonRenderer>();
+		}
+
+		private void UpdatePolygonRenderer() => Renderer.Polygon = polygon;
+
+		private void UpdateSplitPolygonRenderers()
+		{
+			PolygonRenderer[] children = GetComponentsInChildren<PolygonRenderer>().SkipWhile(p => p.gameObject == gameObject).ToArray();
+			if (children.NotNullOrEmpty()) children.ForEach(UnityUtils.DestroySafe);
+
+			Color[] colors = Color.green.GetRainBowColors(splitPolygons.Length);
+			splitPolygonRenderers = splitPolygons.Select((p, i) =>
+			{
+				PolygonRenderer polyRender = UnityUtils.InstantiateObject<PolygonRenderer>(transform, "Split Polygon");
+				polyRender.Polygon = p;
+				polyRender.Color = colors[i];
+				return polyRender;
+			}).ToArray();
+
+			Renderer.GetComponent<MeshRenderer>().enabled = false;
+		}
+		
+
+		#endregion
+		
+		
 
 		#region CAMERA
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.DevTools.Reflection;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering;
@@ -98,6 +99,8 @@ namespace DavidUtils.Geometry.Generators
 		public bool runOnStart = true;
 
 		public bool animatedDelaunay = true;
+		
+		[ExposedField]
 		public float delayMilliseconds = 10;
 		public float DelaySeconds => delayMilliseconds / 1000;
 		protected Coroutine animationCoroutine;
@@ -223,7 +226,7 @@ namespace DavidUtils.Geometry.Generators
 
 			if (!drawGizmos || !DrawDelaunay) return;
 
-			delaunay.OnDrawGizmos(LocalToWorldMatrix, DelaunayWire);
+			delaunay.OnDrawGizmos(BoundsComp.LocalToWorldMatrix_WithXZrotation, DelaunayWire);
 		}
 
 #endif

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -25,17 +24,18 @@ namespace DavidUtils.Rendering
 		}
 		private void UpdateTextures() => renderObjs.ForEach(sr => sr.sprite = sprite);
 
-		private float _size;
+		[SerializeField]
+		private float size = 1;
 		public float Size
 		{
-			get => _size;
+			get => size;
 			set
 			{
-				_size = value;
+				size = value;
 				UpdateSize();
 			}
 		}
-		private void UpdateSize() => renderObjs.ForEach(sr => sr.transform.SetGlobalScale(Vector3.one * _size));
+		private void UpdateSize() => renderObjs.ForEach(sr => sr.transform.SetGlobalScale(Vector3.one * size));
 
 		protected override void SetCommonProperties(SpriteRenderer sr)
 		{

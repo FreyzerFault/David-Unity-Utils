@@ -37,7 +37,20 @@ namespace DavidUtils.DevTools.Testing
 		[Header("Tests")]
 		public bool runOnStart;
 		public bool autoRun;
+		
 		public float waitSeconds = 1;
+
+		public float WaitMilliseconds
+		{
+			get => waitSeconds * 1000;
+			set => waitSeconds = value / 1000;
+		}
+		[ExposedField]
+		public string WaitMillisecondsStr
+		{
+			get => WaitMilliseconds.ToString("F0") + " ms";
+			set => WaitMilliseconds = float.Parse(value.Replace(" ms", ""));
+		}
 
 		protected int iterations;
 

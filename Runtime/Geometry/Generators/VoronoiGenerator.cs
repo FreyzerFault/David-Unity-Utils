@@ -139,7 +139,7 @@ namespace DavidUtils.Geometry.Generators
 
 		#region RENDERING
 
-		[Space]
+		[Space] [SerializeField]
 		private VoronoiRenderer _voronoiRenderer;
 		private VoronoiRenderer Renderer => _voronoiRenderer ??= GetComponentInChildren<VoronoiRenderer>(true);
 
@@ -446,15 +446,15 @@ namespace DavidUtils.Geometry.Generators
 		}
 
 		public void DrawVoronoiGizmos() =>
-			voronoi.OnDrawGizmos(LocalToWorldMatrix, Renderer.RegionScale, Renderer.colors.ToArray());
+			voronoi.OnDrawGizmos(BoundsComp.LocalToWorldMatrix_WithXZrotation, Renderer.RegionScale, Renderer.colors.ToArray());
 
 		public void DrawRegionGizmos_Detailed(int index) =>
-			voronoi.DrawRegionGizmos_Detailed(index, LocalToWorldMatrix, true);
+			voronoi.DrawRegionGizmos_Detailed(index, BoundsComp.LocalToWorldMatrix_WithXZrotation, true);
 
 		public void DrawRegionGizmos_Highlighted(int index) =>
 			voronoi.DrawRegionGizmos_Highlighted(
 				index,
-				LocalToWorldMatrix,
+				BoundsComp.LocalToWorldMatrix_WithXZrotation,
 				Renderer.RegionScale,
 				true
 			);

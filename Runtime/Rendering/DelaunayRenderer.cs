@@ -180,7 +180,7 @@ namespace DavidUtils.Rendering
             return lr;
         }
 
-        private void ApplyTriToLine(LineRenderer lr, Triangle tri) => lr.SetPoints(tri.Vertices.Append(tri.v1));
+        private void ApplyTriToLine(LineRenderer lr, Triangle tri) => lr.SetPoints(tri.Vertices.Append(tri.v1).Select(v => v.ToV3().WithZ(-0.1f)));
         
         #endregion
     }

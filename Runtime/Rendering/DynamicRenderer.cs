@@ -70,6 +70,11 @@ namespace DavidUtils.Rendering
 		{
 			renderObjs.ForEach(UnityUtils.DestroySafe);
 			renderObjs.Clear();
+			
+			// Por si acaso eliminamos todos los hijos
+			Renderer[] notDeletedRenderers = GetComponentsInChildren<Renderer>();
+			if (notDeletedRenderers.NotNullOrEmpty())
+				notDeletedRenderers.ForEach(UnityUtils.DestroySafe);
 		}
 
 		#endregion

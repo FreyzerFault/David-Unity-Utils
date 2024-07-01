@@ -36,6 +36,11 @@ namespace DavidUtils.Billboard
 			transform.Billboard(Camera.transform, verticalLock);
 		}
 
+		
+		#region DEBUG
+
+		#if UNITY_EDITOR
+		
 		private void OnDrawGizmos()
 		{
 			if (!showColliderNearPlayer) return;
@@ -52,5 +57,9 @@ namespace DavidUtils.Billboard
 			// GizmosExtensions.DrawCilinder(pos, radius, height, transform.rotation, 2, color);
 			GizmosExtensions.DrawCilinderWire(radius, height, transform.localToWorldMatrix, 2, 2, color);
 		}
+		
+		#endif
+
+		#endregion
 	}
 }

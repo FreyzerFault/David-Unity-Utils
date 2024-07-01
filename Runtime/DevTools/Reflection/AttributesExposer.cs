@@ -26,7 +26,7 @@ namespace DavidUtils.DevTools.Reflection
 			? targetFieldOptions[fieldIndex]
 			: null;
 
-		public bool HasFields => targetFieldOptions.Length > 0;
+		public bool HasFields => targetFieldOptions is { Length: > 0 };
 
 		public AttributesExposer(string label = "Expose") => this.label = label;
 
@@ -119,7 +119,7 @@ namespace DavidUtils.DevTools.Reflection
 		{
 			FieldInfo field => field.GetValue(targetObj).ToString(),
 			PropertyInfo prop => prop.GetValue(targetObj).ToString(),
-			_ => "null"
+			_ => null
 		};
 
 		public int GetIntValue(MemberInfo info) => info switch

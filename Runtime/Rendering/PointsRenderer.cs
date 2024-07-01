@@ -3,7 +3,6 @@ using System.Linq;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.MeshExtensions;
-using DavidUtils.Rendering.Extensions;
 using UnityEngine;
 
 namespace DavidUtils.Rendering
@@ -41,6 +40,9 @@ namespace DavidUtils.Rendering
 		}
 
 		public Vector3 Scale => Vector3.one * (radius + (IsCirle ? thickness / 2 : 0));
+
+		public void SetRadius(int i, float pointRadius) => 
+			renderObjs.ElementAt(i).transform.SetGlobalScale(Vector3.one * (pointRadius * radius));
 
 		[ConditionalField("IsCircle")] [SerializeField]
 		private float thickness;
@@ -102,6 +104,7 @@ namespace DavidUtils.Rendering
 
 		public override Renderer InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
 		{
+			if (i == -1) i = renderObjs.Count;
 			if (i >= colors.Length) SetRainbowColors(i+1);
 			Renderer renderObj = _renderMode switch
 			{

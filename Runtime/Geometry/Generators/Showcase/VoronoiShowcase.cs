@@ -122,6 +122,8 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 
 		#region DEBUG
+		
+		#if UNITY_EDITOR
 
 		protected override void OnDrawGizmos()
 		{
@@ -141,6 +143,8 @@ namespace DavidUtils.Geometry.Generators.Showcase
 				);
 			}
 		}
+		
+		#endif
 
 		#endregion
 	}

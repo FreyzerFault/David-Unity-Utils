@@ -248,9 +248,9 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			Matrix4x4 matrix, float thickness = DEFAULT_THICKNESS, Color? color = null, bool centered = true
 		)
 		{
-			if (color.HasValue) Handles.color = color.Value;
+			if (color.HasValue) Gizmos.color = color.Value;
 			Vector3 pos = matrix.MultiplyPoint3x4(Vector3.zero),
-				extent = matrix.MultiplyPoint3x4(Vector3.one / 2);
+				extent = matrix.MultiplyVector(Vector3.one / 2);
 			Gizmos.DrawWireCube(centered ? pos + extent : pos, extent * 2);
 		}
 

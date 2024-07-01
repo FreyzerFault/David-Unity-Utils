@@ -54,11 +54,20 @@ namespace DavidUtils.Geometry.Bounding_Box
 		/// </summary>
 		public bool Contains(Vector2 point) => AABB_Rotated.Contains(point.Rotate(-Angle, min));
 
+
+		#region DEBUG
+
+		#if UNITY_EDITOR
+		
 		public void DrawGizmos(Matrix4x4 matrix, Color color, float thickness = 1f) =>
 			GizmosExtensions.DrawQuadWire(
 				matrix * Matrix4x4.TRS(min, Rotation, AABB_Rotated.Size),
 				color: color,
 				thickness: thickness
 			);
+		
+		#endif
+
+		#endregion
 	}
 }

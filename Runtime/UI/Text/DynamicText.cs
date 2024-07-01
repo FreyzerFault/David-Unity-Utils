@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 using DavidUtils.DevTools.Reflection;
 using TMPro;
@@ -11,7 +10,7 @@ namespace DavidUtils.UI.Text
 	[RequireComponent(typeof(TMP_Text))]
 	public class DynamicText : MonoBehaviour
 	{
-		[SerializeField] private AttributesExposer textExposer = new("Text");
+		[SerializeField] private AttributesExposer textExposer;
 
 		private TMP_Text textLabel;
 		private TMP_Text TextLabel => textLabel ??= GetComponent<TMP_Text>();
@@ -26,16 +25,23 @@ namespace DavidUtils.UI.Text
 			textExposer.OnFieldSelected += HandleValueChange;
 		}
 
-		private void OnDisable() => textExposer.OnFieldSelected += HandleValueChange;
+		private void OnDisable() => textExposer.OnFieldSelected -= HandleValueChange;
 
 		private void Update() => UpdateText();
 
 		public void HandleValueChange(MemberInfo info)
 		{
-			TextLabel.SetText(textExposer.StringValue ?? "null");
-			SceneView.RepaintAll();
+			UpdateText();
+			RepaintAll();
 		}
 
-		private void UpdateText() => TextLabel?.SetText($"{prefix}{textExposer.StringValue ?? "null"}{suffix}");
+		private void UpdateText() => TextLabel?.SetText(textExposer.StringValue != null ? $"{prefix}{textExposer.StringValue}{suffix}" : TextLabel.text);
+
+		private static void RepaintAll()
+		{
+#if UNITY_EDITOR
+			SceneView.RepaintAll();
+#endif
+		}
 	}
 }

@@ -57,7 +57,6 @@ namespace DavidUtils.Geometry.Generators
 
 		public Matrix4x4 WorldToLocalMatrix => BoundsComp.WorldToLocalMatrix;
 		public Matrix4x4 LocalToWorldMatrix => BoundsComp.LocalToWorldMatrix;
-		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix.MultiplyPoint3x4(pos.ToV3xz());
 
 		#endregion
 
@@ -149,11 +148,9 @@ namespace DavidUtils.Geometry.Generators
 
 		#region RENDERER
 
-		[Space]
-		private PointsRenderer _seedsRenderer;
-		private PointsRenderer Renderer => _seedsRenderer ??= GetComponentInChildren<PointsRenderer>(true);
-
-		private readonly bool projectOnTerrain = true;
+		[Space] [SerializeField]
+		private PointsRenderer seedsRenderer;
+		private PointsRenderer Renderer => seedsRenderer ??= GetComponentInChildren<PointsRenderer>(true);
 
 		public bool DrawSeeds
 		{
@@ -163,8 +160,8 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void InitializeRenderer()
 		{
-			_seedsRenderer ??= Renderer ?? UnityUtils.InstantiateObject<PointsRenderer>(transform, "Seeds Renderer");
-			_seedsRenderer.ToggleShadows(false);
+			seedsRenderer ??= Renderer ?? UnityUtils.InstantiateObject<PointsRenderer>(transform, "Seeds Renderer");
+			seedsRenderer.ToggleShadows(false);
 			PositionRenderer();
 		}
 
@@ -301,6 +298,8 @@ namespace DavidUtils.Geometry.Generators
 
 		#region DEBUG
 
+		#if UNITY_EDITOR
+		
 		public bool drawGizmos;
 		public bool drawGrid = true;
 
@@ -316,11 +315,10 @@ namespace DavidUtils.Geometry.Generators
 			if (seeds.IsNullOrEmpty()) return;
 
 			int cellRows = Mathf.FloorToInt(Mathf.Sqrt(NumSeeds));
-			if (projectOnTerrain && Terrain.activeTerrain != null)
-				GizmosExtensions.DrawGrid_OnTerrain(cellRows, cellRows, LocalToWorldMatrix, thickness, color);
-			else
-				GizmosExtensions.DrawGrid(cellRows, cellRows, LocalToWorldMatrix, thickness, color);
+			GizmosExtensions.DrawGrid(cellRows, cellRows, BoundsComp.LocalToWorldMatrix_WithXZrotation, thickness, color);
 		}
+		
+		#endif
 
 		#endregion
 	}

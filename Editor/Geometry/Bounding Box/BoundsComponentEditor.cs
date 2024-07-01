@@ -20,6 +20,8 @@ namespace GENES.Editor.Geometry.Bounding_Box
 		{
 			var boundsComp = (BoundsComponent) target;
 			
+			GUILayout.BeginHorizontal();
+			GUILayout.Label(boundsComp.is2D ? "2D" : "3D", EditorStyles.boldLabel);
 			if (boundsComp.is2D && GUILayout.Button("Switch to 3D"))
 			{
 				boundsComp.SincronizeBounds();
@@ -30,6 +32,7 @@ namespace GENES.Editor.Geometry.Bounding_Box
 				boundsComp.SincronizeBounds();
 				boundsComp.is2D = true;
 			}
+			GUILayout.EndHorizontal();
 		}
 
 		protected virtual void OnSceneGUI()

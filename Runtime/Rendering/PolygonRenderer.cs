@@ -66,6 +66,8 @@ namespace DavidUtils.Rendering
 			UpdateTerrainProjection();
 		}
 
+		public void Clear() => polygon = Polygon.Empty;
+
 
 		#region MODIFIABLE PROPERTIES
 
@@ -132,6 +134,7 @@ namespace DavidUtils.Rendering
 
 		private void UpdateRenderMode()
 		{
+			if (_meshRenderer == null || _lineRenderer == null) return;
 			_meshRenderer.enabled = renderMode is PolygonRenderMode.Mesh or PolygonRenderMode.OutlinedMesh;
 			_lineRenderer.enabled = renderMode is PolygonRenderMode.Wire or PolygonRenderMode.OutlinedMesh;
 			
@@ -142,25 +145,32 @@ namespace DavidUtils.Rendering
 
 		private void UpdatePolygon()
 		{
-			if (projectOnTerrain && Terrain != null)
+			if (_meshFilter == null && _lineRenderer == null) return;
+			if (CanProjectOnTerrain)
 			{
 				ProjectOnTerrain(Terrain, terrainHeightOffset);
 			}
 			else
 			{
-				_lineRenderer.SetPolygon(ScaledPolygon);
 				_meshFilter.mesh.SetPolygon(ScaledPolygon, color);
+				_lineRenderer.SetPolygon(ScaledPolygon);
+				_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3().WithZ(-0.01f)));
 			}
 		}
 
 		private void UpdateColor()
 		{
+			if (_meshFilter == null || _lineRenderer == null) return;
 			_lineRenderer.startColor = _lineRenderer.endColor = renderMode == PolygonRenderMode.Wire ? color : outlineColor;
 			_meshFilter.mesh.SetColors(color.ToFilledArray(_meshFilter.mesh.vertexCount).ToArray());
 		}
 
-		private void UpdateThickness() => _lineRenderer.startWidth =
-			_lineRenderer.widthMultiplier = thickness * 0.01f * transform.lossyScale.x;
+		private void UpdateThickness()
+		{
+			if (_lineRenderer == null) return;
+			_lineRenderer.startWidth =
+				_lineRenderer.widthMultiplier = thickness * 0.01f * transform.lossyScale.x;
+		}
 
 		#endregion
 
@@ -181,8 +191,9 @@ namespace DavidUtils.Rendering
 						: ScaledPolygon.Vertices.ToV3xz().ToArray(),
 					true,
 					terrainHeightOffset
-				).Select(Terrain.GetNormalizedPosition)				
+				)				
 			);
+			_lineRenderer.useWorldSpace = true;
 			UpdateTerrainProjection();
 		}
 

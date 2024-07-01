@@ -75,6 +75,13 @@ namespace DavidUtils.Geometry.Bounding_Box
 				aabb2D.max = value.ToV2(XZplane);
 			}
 		}
+		
+		
+		private void Awake() => SincronizeBounds();
+		private void OnEnable() => SincronizeBounds();
+
+
+		#region SPACE TRANSFORMATION
 
 		public Matrix4x4 BoundsToLocalMatrix =>
 			Matrix4x4.Scale(is2D ? aabb2D.Size.Inverse() : bounds3D.size.Inverse()) *
@@ -88,10 +95,20 @@ namespace DavidUtils.Geometry.Bounding_Box
 		);
 		public Matrix4x4 WorldToLocalMatrix => BoundsToLocalMatrix * transform.worldToLocalMatrix;
 		public Matrix4x4 LocalToWorldMatrix => transform.localToWorldMatrix * LocalToBoundsMatrix;
+		
+		// Using XZ coords for 2D positions
+		public Matrix4x4 LocalToWorldMatrix_WithXZrotation =>
+			LocalToWorldMatrix * Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity);
+		public Matrix4x4 WorldToLocalMatrix_WithXZrotation =>
+			Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) * WorldToLocalMatrix;
+		
+		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix_WithXZrotation.MultiplyPoint3x4(pos);
+		public Vector3 ToLocal(Vector3 worldPos) => WorldToLocalMatrix_WithXZrotation.MultiplyPoint3x4(worldPos);
 
-		private void Awake() => SincronizeBounds();
-		private void OnEnable() => SincronizeBounds();
+		#endregion
 
+
+		#region 2D - 3D SINCRONIZATION
 
 		public void SincronizeBounds()
 		{
@@ -100,8 +117,24 @@ namespace DavidUtils.Geometry.Bounding_Box
 		}
 
 		private void Sincronize3Dto2D() => aabb2D = new AABB_2D(bounds3D, XZplane);
-		private void Sincronize2Dto3D() => bounds3D = aabb2D.To3D(XZplane, XZplane ? bounds3D.size.y : bounds3D.size.z);
+		private void Sincronize2Dto3D()
+		{
+			Vector3 center = new Vector3(
+				aabb2D.Center.x,
+				XZplane ? bounds3D.center.y : aabb2D.Center.y,
+				XZplane ? aabb2D.Center.y : bounds3D.center.z
+			);
+			Vector3 size = new Vector3( 
+				aabb2D.Size.x,
+				XZplane ? bounds3D.size.y : aabb2D.Size.y,
+				XZplane ? aabb2D.Size.y : bounds3D.size.z
+			);
+			bounds3D = new Bounds(center, size);
+		}
 
+		#endregion
+
+		
 		#region DEBUG
 
 #if UNITY_EDITOR
@@ -112,14 +145,20 @@ namespace DavidUtils.Geometry.Bounding_Box
 			if (is2D)
 				GizmosExtensions.DrawQuadWire(LocalToWorldMatrix, 5, Color.green);
 			else
-				GizmosExtensions.DrawCubeWire(bounds3D.LocalToBoundsMatrix(), 5, Color.green);
+				GizmosExtensions.DrawCubeWire(LocalToWorldMatrix, 5, Color.green);
 		}
 
 #endif
 
 		#endregion
 
-		public void TransformToBounds_Local(Component obj) => obj?.transform.ApplyLocalMatrix(LocalToBoundsMatrix);
+		
+		#region TRANSFORMATION to BOUNDS SPACE
+
+		public void TransformToBounds_Local(Component obj) => 
+			obj?.transform.ApplyLocalMatrix(
+				LocalToBoundsMatrix * Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity)
+			);
 		public void TransformToBounds_World(Component obj) => obj?.transform.ApplyWorldMatrix(LocalToWorldMatrix);
 
 		// Ajusta el tamaño del AABB al terreno
@@ -130,5 +169,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			Sincronize3Dto2D();
 			OnChanged?.Invoke();
 		}
+
+		#endregion
 	}
 }

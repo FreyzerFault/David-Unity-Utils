@@ -69,10 +69,16 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#region To 3D
 
-		public Bounds To3D(bool XZplane = true, float missingCoord = 1f) => new(
-			Center.ToV3(XZplane),
-			(Size).ToV3(XZplane) + (XZplane ? Vector3.up : Vector3.forward) * missingCoord
-		);
+		public Bounds To3D(bool XZplane = true)
+		{
+			Vector3 center = Center.ToV3();
+			Vector3 size = new Vector3( 
+				Size.x,
+				XZplane ? 1 : Size.y,
+				XZplane ? Size.y : 1
+			);
+			return new Bounds(center, size);
+		}
 
 		#endregion
 
@@ -255,8 +261,11 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Vector2 NormalizeMousePosition_XY() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2xy());
 		public Vector2 NormalizeMousePosition_XZ() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2xz());
 
+		// Posicion del Mouse en el Editor de Escena
+		#if UNITY_EDITOR
 		public Vector2 NormalizeMousePosition_InScene_XY() => Normalize(MouseInputUtils.MouseWorldPosition_InScene_XY);
 		public Vector2 NormalizeMousePosition_InScene_XZ() => Normalize(MouseInputUtils.MouseWorldPosition_InScene_XZ);
+		#endif
 
 		#endregion
 
@@ -285,7 +294,9 @@ namespace DavidUtils.Geometry.Bounding_Box
 		#endregion
 
 
-		#region GIZMOS
+		#region DEBUG
+		
+		#if UNITY_EDITOR
 
 		public void DrawGizmos(Matrix4x4 matrix, float thickness = 1, Color color = default) =>
 			GizmosExtensions.DrawQuadWire(
@@ -293,6 +304,8 @@ namespace DavidUtils.Geometry.Bounding_Box
 				thickness,
 				color
 			);
+		
+		#endif
 
 		#endregion
 	}

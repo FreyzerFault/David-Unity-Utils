@@ -2,8 +2,8 @@
 using System.Reflection;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 
 namespace DavidUtils.DevTools.Reflection
 {

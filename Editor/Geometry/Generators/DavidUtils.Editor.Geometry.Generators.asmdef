@@ -6,10 +6,11 @@
         "GUID:503ddd898dfaaed448ebb74d18067b58",
         "GUID:a7adaf89cbc238348aa7047394acc30d",
         "GUID:7f7b2cf5ee3a5414cbb09596b1fee914",
-        "GUID:6013b65da9e979c438e8f1694431bb0b",
         "GUID:4de858341e222cb4a969a90ec78e5eb0"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
