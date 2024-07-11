@@ -43,8 +43,8 @@ namespace DavidUtils.Geometry.Testing
 
 		private bool VoronoiIsValid()
 		{
-			bool regionsGenerated = Generator.Regions.NotNullOrEmpty();
-			bool cornersIn4Regions = Generator.Regions.Count(
+			bool regionsGenerated = Generator.Polygons.NotNullOrEmpty();
+			bool cornersIn4Regions = Generator.Polygons.Count(
 				r =>
 					r.Vertices.Any(
 						v =>

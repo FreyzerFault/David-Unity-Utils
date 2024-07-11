@@ -39,7 +39,8 @@ namespace DavidUtils.Rendering
 			}
 		}
 
-		public Vector3 Scale => Vector3.one * (radius + (IsCirle ? thickness / 2 : 0));
+		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCirle ? thickness / 2 : 0));
+		public Vector3 Scale => RadiusToScale(radius);
 
 		public void SetRadius(int i, float pointRadius) => 
 			renderObjs.ElementAt(i).transform.SetGlobalScale(Vector3.one * (pointRadius * radius));
@@ -70,6 +71,23 @@ namespace DavidUtils.Rendering
 		#endregion
 
 
+		#region INDIVIDUAL RADIUS
+
+		private float[] _radiusByPoint;
+
+		public float[] RadiusByPoint
+		{
+			get => _radiusByPoint;
+			set
+			{
+				_radiusByPoint = value;
+				renderObjs.ForEach((obj, i) => obj.transform.SetGlobalScale(RadiusToScale(value[i])));
+			}
+		}
+
+		#endregion
+		
+		
 
 		#region SPRITES
 

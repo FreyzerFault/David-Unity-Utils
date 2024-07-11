@@ -4,6 +4,7 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using Geometry.Algorithms;
 using UnityEngine;
+using UnityEngine.Serialization;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
 namespace DavidUtils.Rendering
@@ -19,14 +20,14 @@ namespace DavidUtils.Rendering
 			set
 			{
 				_voronoi = value;
-				UpdateRegionPolygons();
+				UpdatePolygons();
 			}
 		}
 		
 		
 		private void OnEnable()
 		{
-			if (_voronoi == null || _voronoi.RegionCount == 0) return;
+			if (_voronoi == null || _voronoi.PolygonCount == 0) return;
 
 			// Update properties if they changed while disabled
 			renderObjs.ForEach(r => r.UpdateAllProperties());
@@ -59,14 +60,14 @@ namespace DavidUtils.Rendering
 			}
 		}
 
-		[Range(.2f, 1)] [SerializeField]
-		private float regionScale = 1;
-		public float RegionScale
+		[FormerlySerializedAs("regionScale")] [Range(.2f, 1)] [SerializeField]
+		private float polygonScale = 1;
+		public float PolygonScale
 		{
-			get => regionScale;
+			get => polygonScale;
 			set
 			{
-				regionScale = value;
+				polygonScale = value;
 				renderObjs.ForEach(r => r.CenteredScale = value);
 			}
 		}
@@ -87,7 +88,7 @@ namespace DavidUtils.Rendering
 		{
 			polyRenderer.RenderMode = renderMode;
 			polyRenderer.Thickness = thickness;
-			polyRenderer.CenteredScale = regionScale;
+			polyRenderer.CenteredScale = polygonScale;
 			polyRenderer.Color = GetColor();
 			polyRenderer.OutlineColor = outlineColor;
 			polyRenderer.projectOnTerrain = projectOnTerrain;
@@ -103,35 +104,35 @@ namespace DavidUtils.Rendering
 		{
 			Clear();
 
-			if (_voronoi.RegionCount <= 0) return;
+			if (_voronoi.PolygonCount <= 0) return;
 
-			SetRainbowColors(_voronoi.RegionCount);
-			InstantiateObjs(Vector3.zero.ToFilledArray(_voronoi.RegionCount).ToArray(), "Region");
-			UpdateRegionPolygons();
+			SetRainbowColors(_voronoi.PolygonCount);
+			InstantiateObjs(Vector3.zero.ToFilledArray(_voronoi.PolygonCount).ToArray(), "Region");
+			UpdatePolygons();
 		}
 
 		// Actualiza unicamente los poligonos
-		public void UpdateRegionPolygons()
+		public void UpdatePolygons()
 		{
-			if (colors.Length != _voronoi.RegionCount) SetRainbowColors(_voronoi.RegionCount);
+			if (colors.Length != _voronoi.PolygonCount) SetRainbowColors(_voronoi.PolygonCount);
 
-			for (var i = 0; i < _voronoi.RegionCount; i++) SetRegionPolygon(i, _voronoi.regions[i]);
+			for (var i = 0; i < _voronoi.PolygonCount; i++) SetPolygon(i, _voronoi.polygons[i]);
 		}
 
 		// Asigna un poligono a una region
-		public void SetRegionPolygon(int i, Polygon regionPolygon)
+		public void SetPolygon(int i, Polygon polygon)
 		{
 			// Instantiate if not exists
 			if (i < 0 || i >= renderObjs.Count)
 			{
 				i = renderObjs.Count;
 				renderObjs.Add(InstantiateObj(Vector3.zero, $"Region {i}"));
-				SetRainbowColors(_voronoi.RegionCount);
+				SetRainbowColors(_voronoi.PolygonCount);
 				renderObjs[i].Color = GetColor(i);
 			}
 			
 			// Set the region Polygon
-			renderObjs[i].Polygon = regionPolygon;
+			renderObjs[i].Polygon = polygon;
 			
 			// Project on TERRAIN
 			if (CanProjectOnTerrain) renderObjs[i].ProjectOnTerrain(Terrain, terrainHeightOffset);
@@ -169,7 +170,7 @@ namespace DavidUtils.Rendering
 			renderer.outlineColor = outlineColor ?? Color.black;
 			renderer.renderMode = renderMode;
 			renderer.thickness = thickness;
-			renderer.regionScale = centeredScale;
+			renderer.polygonScale = centeredScale;
 			renderer.projectOnTerrain = projectOnTerrain;
 			renderer.terrainHeightOffset = terrainHeightOffset;
 

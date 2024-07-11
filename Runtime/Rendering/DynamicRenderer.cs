@@ -39,6 +39,7 @@ namespace DavidUtils.Rendering
 		{
 			var renderObj = UnityUtils.InstantiateObject<T>(transform, objName ?? DefaultChildName, localPos);
 			SetCommonProperties(renderObj);
+			if (ProjectedOnTerrain) ProjectOnTerrain();
 			return renderObj;
 		}
 
@@ -89,10 +90,8 @@ namespace DavidUtils.Rendering
 		[Serializable]
 		private struct ColorData
 		{
-			[FormerlySerializedAs("initColorPalette")] public Color initialColor;
-			[FormerlySerializedAs("paletteStep")] [FormerlySerializedAs("colorPaletteStep")]
+			public Color initialColor;
 			[Min(-1)] public float palletteStep;
-			[FormerlySerializedAs("paletteRange")] [FormerlySerializedAs("colorPaletteRange")]
 			[Min(0)] public int palletteRange;
 		}
 
@@ -136,10 +135,44 @@ namespace DavidUtils.Rendering
 
 		#region TERRAIN
 
-		public virtual void ProjectOnTerrain(Terrain terrain)
+		public bool projectedOnTerrain;
+		private (Vector3, Quaternion, Vector3)[] originalTransforms; // For UNDO Projection on Terrain
+
+		public bool ProjectedOnTerrain
 		{
-			foreach (T pointObj in renderObjs)
-				pointObj.transform.position = terrain.Project(pointObj.transform.position);
+			get => projectedOnTerrain && Terrain != null;
+			set
+			{
+				projectedOnTerrain = value;
+				if (projectedOnTerrain && Terrain != null) ProjectOnTerrain();
+				else UndoProjectOnTerrain();
+			}
+		}
+		protected Terrain Terrain => Terrain.activeTerrain;
+
+		protected virtual void ProjectOnTerrain()
+		{
+			if (!ProjectedOnTerrain) return;
+			
+			// Save old original transforms
+			originalTransforms = renderObjs.Select(r => 
+				(r.transform.localPosition, r.transform.localRotation, r.transform.localScale))
+				.ToArray();
+			
+			// Project all
+			Terrain terrain = Terrain;
+			renderObjs.ForEach(r => r.transform.position = terrain.Project(r.transform.position));
+		}
+
+		protected virtual void UndoProjectOnTerrain()
+		{
+			if (originalTransforms == null) return;
+			renderObjs.ForEach((r,i) =>
+			{
+				(Vector3, Quaternion, Vector3) original = originalTransforms[i];
+				r.transform.SetLocalPositionAndRotation(original.Item1, original.Item2);
+				r.transform.localScale = original.Item3;
+			});
 		}
 
 		#endregion

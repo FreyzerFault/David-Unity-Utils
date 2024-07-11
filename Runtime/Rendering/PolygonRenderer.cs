@@ -38,7 +38,7 @@ namespace DavidUtils.Rendering
 
 		private Polygon ScaledPolygon => polygon.ScaleByCenter(centeredScale);
 
-		private void Awake()
+		protected virtual void Awake()
 		{
 			_lineRenderer = GetComponent<LineRenderer>() ?? gameObject.AddComponent<LineRenderer>();
 			_meshRenderer = GetComponent<MeshRenderer>() ?? gameObject.AddComponent<MeshRenderer>();
@@ -55,7 +55,7 @@ namespace DavidUtils.Rendering
 			if (isActiveAndEnabled) UpdateAllProperties();
 		}
 
-		private void OnEnable() => UpdateAllProperties();
+		protected virtual void OnEnable() => UpdateAllProperties();
 
 		public void UpdateAllProperties()
 		{
@@ -66,7 +66,7 @@ namespace DavidUtils.Rendering
 			UpdateTerrainProjection();
 		}
 
-		public void Clear() => polygon = Polygon.Empty;
+		public virtual void Clear() => Polygon = Polygon.Empty;
 
 
 		#region MODIFIABLE PROPERTIES
@@ -148,7 +148,7 @@ namespace DavidUtils.Rendering
 			if (_meshFilter == null && _lineRenderer == null) return;
 			if (CanProjectOnTerrain)
 			{
-				ProjectOnTerrain(Terrain, terrainHeightOffset);
+				ProjectOnTerrain(terrainHeightOffset);
 			}
 			else
 			{
@@ -183,12 +183,14 @@ namespace DavidUtils.Rendering
 		public float terrainHeightOffset = 0.1f;
 		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
 
-		public void ProjectOnTerrain(Terrain terrain, float offset = 0.1f, bool scaleToTerrainBounds = true)
+		public virtual void ProjectOnTerrain(float offset = 0.1f, bool scaleToTerrainBounds = true)
 		{
+			projectOnTerrain = true;
+			if (!CanProjectOnTerrain) return;
 			_lineRenderer.SetPoints(
 				Terrain.ProjectPathToTerrain(
 						scaleToTerrainBounds
-							? ScaledPolygon.Vertices.Select(terrain.GetWorldPosition).ToArray()
+							? ScaledPolygon.Vertices.Select(Terrain.GetWorldPosition).ToArray()
 							: ScaledPolygon.Vertices.ToV3xz().ToArray(),
 						true,
 						terrainHeightOffset

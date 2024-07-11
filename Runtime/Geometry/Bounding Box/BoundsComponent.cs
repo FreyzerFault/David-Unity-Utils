@@ -105,6 +105,13 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix_WithXZrotation.MultiplyPoint3x4(pos);
 		public Vector3 ToLocal(Vector3 worldPos) => WorldToLocalMatrix_WithXZrotation.MultiplyPoint3x4(worldPos);
 
+		
+		// Convierte un vector en el espacio de mundo a (0,1)
+		public Vector2 VectorToLocalPositive(Vector3 vector) => 
+			Vector2.Max(ToLocal(vector).Abs(), Vector2.one * 0.001f);
+		public Vector2 VectorToLocalPositive(Vector2 vector) => VectorToLocalPositive(vector.ToV3xz());
+		public Vector2 MeasureToLocalPositive(float value) => VectorToLocalPositive(Vector3.one * value);
+		
 		#endregion
 
 

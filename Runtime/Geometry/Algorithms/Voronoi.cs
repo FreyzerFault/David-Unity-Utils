@@ -7,6 +7,7 @@ using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.MouseInput;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Geometry.Algorithms
 {
@@ -18,7 +19,7 @@ namespace Geometry.Algorithms
 		private const float VERTEX_COLLISION_RADIUS = 0.01f;
 
 		[HideInInspector] public Delaunay delaunay;
-		public List<Polygon> regions = new();
+		public List<Polygon> polygons = new();
 
 		private List<Vector2> _seeds;
 		public List<Vector2> Seeds
@@ -31,22 +32,22 @@ namespace Geometry.Algorithms
 			}
 		}
 
-		public int RegionCount => regions?.Count ?? 0;
+		public int PolygonCount => polygons?.Count ?? 0;
 		public int SeedCount => _seeds?.Count ?? 0;
 
 		// Vertices sin repetir de todas las regiones
-		public Vector2[] AllRegionVertices => regions.SelectMany(r => r.Vertices).Distinct().ToArray();
+		public Vector2[] AllVertices => polygons.SelectMany(r => r.Vertices).Distinct().ToArray();
 
 		public Voronoi(IEnumerable<Vector2> seeds, Delaunay delaunay = null)
 		{
 			_seeds = seeds.ToList();
 			this.delaunay = delaunay ?? new Delaunay(_seeds);
-			regions = new List<Polygon>(SeedCount);
+			polygons = new List<Polygon>(SeedCount);
 		}
 
 		public void Reset()
 		{
-			regions = new List<Polygon>(SeedCount);
+			polygons = new List<Polygon>(SeedCount);
 			_iteration = 0;
 		}
 
@@ -59,35 +60,35 @@ namespace Geometry.Algorithms
 			// Se necesita triangular las seeds primero.
 			if (delaunay.NotGenerated) GenerateDelaunay();
 
-			foreach (Vector2 regionSeed in _seeds) regions.Add(GenerateRegionPolygon(regionSeed));
+			foreach (Vector2 seed in _seeds) polygons.Add(GeneratePolygon(seed));
 
-			return regions;
+			return polygons;
 		}
 
-		// Genera los vertices de una region a partir de la semilla y los triangulos generados con Delaunay
-		private Polygon GenerateRegionPolygon(Vector2 seed)
+		// Genera los vertices de un poligono a partir de la semilla y los triangulos generados con Delaunay
+		private Polygon GeneratePolygon(Vector2 seed)
 		{
 			var polygon = new Polygon();
-			Triangle[] regionTris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
-			Triangle[] borderTris = regionTris
+			Triangle[] tris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
+			Triangle[] borderTris = tris
 				.Where(t => t.IsBorder && t.BorderEdges.Any(e => e.Vertices.Any(v => v == seed)))
 				.ToArray();
 			bool isBorder = borderTris.NotNullOrEmpty();
 			AABB_2D aabb = AABB_2D.NormalizedAABB;
 
 			// Obtenemos cada circuncentro CCW
-			polygon.Vertices = regionTris.Select(t => t.GetCircumcenter()).ToArray();
+			polygon.Vertices = tris.Select(t => t.GetCircumcenter()).ToArray();
 
 			// if (polygon.VertexCount == 0) return polygon;
 
-			// Para que la Region este dentro de unas fronteras
-			// Aplicamos algunas modificaciones para RECORTAR o EXPANDIR la región al borde
+			// Para que el Poligono este dentro de unas fronteras
+			// Aplicamos algunas modificaciones para RECORTAR o EXPANDIR el poligono al borde
 
 			// ORDENAMOS CCW
 			polygon = polygon.SortCCW();
 
 			// RECORTE
-			// Clampeamos cada Region a la Bounding Box
+			// Clampeamos cada Poligono a la Bounding Box
 			polygon = aabb.CropPolygon(polygon);
 
 			// EXTENDER MEDIATRIZ
@@ -121,7 +122,7 @@ namespace Geometry.Algorithms
 
 			// ESQUINAS
 			// Añadimos las esquinas de la Bounding Box
-			// buscando las regiones que tengan vertices adyacentes pertenecientes a dos bordes distintos
+			// buscando los poligonos que tengan vertices adyacentes pertenecientes a dos bordes distintos
 			if (isBorder)
 			{
 				List<Vector2> vertices = polygon.Vertices.ToList();
@@ -186,7 +187,7 @@ namespace Geometry.Algorithms
 			// Se guardan en este mapa [Vértice => Centroide de las colisiones]
 			Dictionary<Vector2, Vector2> simplifications = new();
 
-			List<Vector2> allVertices = AllRegionVertices.ToList();
+			List<Vector2> allVertices = AllVertices.ToList();
 			for (var i = 0; i < allVertices.Count; i++)
 			{
 				Vector2 vertex = allVertices[i];
@@ -223,7 +224,7 @@ namespace Geometry.Algorithms
 			}
 
 			// Para cada polígono aplicamos las simplificaciones a sus vértices
-			regions = regions
+			polygons = polygons
 				.Select(
 					r =>
 						new Polygon(
@@ -244,8 +245,8 @@ namespace Geometry.Algorithms
 
 		private int _iteration;
 
-		// Habra terminado cuando para todas las semillas haya una region
-		public bool Ended => regions.NotNullOrEmpty() && regions.Count == _seeds.Count;
+		// Habra terminado cuando para todas las semillas haya un poligono
+		public bool Ended => polygons.NotNullOrEmpty() && polygons.Count == _seeds.Count;
 
 		public void Run_OneIteration()
 		{
@@ -253,7 +254,7 @@ namespace Geometry.Algorithms
 
 			if (!delaunay.ended) Debug.LogError("Delaunay no ha terminado antes de generar Voronoi");
 
-			regions.Add(GenerateRegionPolygon(_seeds[_iteration]));
+			polygons.Add(GeneratePolygon(_seeds[_iteration]));
 
 			_iteration++;
 		}
@@ -306,14 +307,14 @@ namespace Geometry.Algorithms
 		#endregion
 
 
-		#region TEST INSIDE REGION
+		#region TEST INSIDE POLYGON
 
-		public Polygon? GetRegion(Vector2 point) =>
-			regions?.Count > 0 ? regions[GetRegionIndex(point)] : null;
+		public Polygon? GetPolygon(Vector2 point) =>
+			polygons?.Count > 0 ? polygons[GetPolygonIndex(point)] : null;
 
-		public int GetRegionIndex(Vector2 point)
+		public int GetPolygonIndex(Vector2 point)
 		{
-			if (regions.Count == 0 || !point.IsIn01()) return -1;
+			if (polygons.Count == 0 || !point.IsIn01()) return -1;
 
 			// Distancias con cada centroide
 			Tuple<int, float>[] distances = _seeds
@@ -326,8 +327,8 @@ namespace Geometry.Algorithms
 			return distances[0].Item1;
 		}
 
-		public bool IsInsideRegion(Vector2 point, int regionIndex) =>
-			GetRegionIndex(point) == regionIndex;
+		public bool IsInsidePolygon(Vector2 point, int polygonIndex) =>
+			GetPolygonIndex(point) == polygonIndex;
 
 		#endregion
 
@@ -341,43 +342,43 @@ namespace Geometry.Algorithms
 			bool projectOnTerrain = false
 		)
 		{
-			if (regions is not { Count: > 0 }) return;
+			if (polygons is not { Count: > 0 }) return;
 
-			if (colors is null || colors.Length != regions.Count)
-				colors = Color.red.GetRainBowColors(regions.Count);
+			if (colors is null || colors.Length != polygons.Count)
+				colors = Color.red.GetRainBowColors(polygons.Count);
 
-			// Region Polygons
-			for (var i = 0; i < regions.Count; i++)
+			// Polygons
+			for (var i = 0; i < polygons.Count; i++)
 			{
-				Polygon scaledRegion = regions[i].ScaleByCenter(centeredScale);
-				if (wire) scaledRegion.DrawGizmosWire(matrix, 5, colors[i], projectOnTerrain);
-				else scaledRegion.DrawGizmos(matrix, colors[i], projectOnTerrain: projectOnTerrain);
+				Polygon scaledPolygon = polygons[i].ScaleByCenter(centeredScale);
+				if (wire) scaledPolygon.DrawGizmosWire(matrix, 5, colors[i], projectOnTerrain);
+				else scaledPolygon.DrawGizmos(matrix, colors[i], projectOnTerrain: projectOnTerrain);
 			}
 		}
 
-		public void DrawRegionGizmos_Highlighted(
-			int index, Matrix4x4 matrix, float regionScale = .9f, bool projectOnTerrain = false
+		public void DrawPolygonGizmos_Highlighted(
+			int index, Matrix4x4 matrix, float polygonScale = .9f, bool projectOnTerrain = false
 		)
 		{
-			if (index < 0 || index >= regions.Count) return;
-			regions[index]
-				.ScaleByCenter(regionScale + .01f)
+			if (index < 0 || index >= polygons.Count) return;
+			polygons[index]
+				.ScaleByCenter(polygonScale + .01f)
 				.DrawGizmosWire(matrix, 5, Color.yellow, projectOnTerrain);
 		}
 
-		public void DrawRegionGizmos_Detailed(int index, Matrix4x4 localToWorldMatrix, bool projectOnTerrain = false)
+		public void DrawPolygonGizmos_Detailed(int index, Matrix4x4 localToWorldMatrix, bool projectOnTerrain = false)
 		{
-			if (index < 0 || index >= regions.Count) return;
-			Polygon region = regions[index];
+			if (index < 0 || index >= polygons.Count) return;
+			Polygon polygon = polygons[index];
 			Vector2 seed = _seeds[index];
 
 			// localToWorldMatrix *= Matrix4x4.Translate(Vector3.back * 5);
 
 
 			// VERTEX in Bounding Box Edges => Draw in red
-			region.DrawGizmosVertices_CheckAABBborder(localToWorldMatrix);
+			polygon.DrawGizmosVertices_CheckAABBborder(localToWorldMatrix);
 
-			// Triangulos usados para generar la region
+			// Triangulos usados para generar el poligono
 			foreach (Triangle t in delaunay.FindTrianglesAroundVertex(seed))
 			{
 				t.GizmosDrawWire(localToWorldMatrix, 6, Color.cyan, projectOnTerrain);
@@ -422,18 +423,12 @@ namespace Geometry.Algorithms
 			}
 		}
 
-		public bool MouseInRegion(out int regionIndex, Vector3 originPos, Vector2 size)
+		public bool MouseInPolygon(out int polygonIndex, Vector3 originPos, Vector2 size)
 		{
-			regionIndex = -1;
-			MouseInputUtils.MouseInArea_CenitalView(originPos, size, out Vector2 normalizedPos);
-			for (var i = 0; i < regions.Count; i++)
-			{
-				if (!regions[i].Contains_RayCast(normalizedPos)) continue;
-				regionIndex = i;
-				return true;
-			}
-
-			return false;
+			polygonIndex = -1;
+			MouseInputUtils.MouseInArea_CenitalView(originPos, size, out Vector2 normalizedPos); 
+			polygonIndex = GetPolygonIndex(normalizedPos);
+			return polygonIndex >= 0 && polygonIndex < PolygonCount;
 		}
 
 #endif
