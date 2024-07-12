@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using UnityEditor.Graphs;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -457,6 +458,15 @@ namespace DavidUtils.ExtensionMethods
 			float reduction = (suma - 1) / enumerable.Count();
 			return enumerable.Select(p => p - reduction);
 		}
+
+		#endregion
+
+
+		#region TYPES
+
+		// Get ALL Enum Values to an Array
+		public static T[] GetEnumValues<T>(this Type enumType) => 
+			!enumType.IsEnum ? Array.Empty<T>() : Enum.GetValues(enumType).Cast<T>().ToArray();
 
 		#endregion
 	}

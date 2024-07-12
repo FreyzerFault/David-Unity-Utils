@@ -44,11 +44,13 @@ namespace DavidUtils.Rendering
 			{
 				renderMode = value;
 				renderObjs.ForEach(r => r.RenderMode = value);
+				_isMesh = value == RenderMode.Mesh;
 			}
 		}
-		private bool IsMesh => renderMode == RenderMode.Mesh;
 
-		[ConditionalField("IsMesh", true)]
+		private bool _isMesh = false;
+
+		[ConditionalField("_isMesh", true)]
 		[SerializeField] private float thickness = PolygonRenderer.DEFAULT_THICKNESS;
 		public float Thickness
 		{
@@ -135,16 +137,15 @@ namespace DavidUtils.Rendering
 			renderObjs[i].Polygon = polygon;
 			
 			// Project on TERRAIN
-			if (CanProjectOnTerrain) renderObjs[i].ProjectOnTerrain(Terrain, terrainHeightOffset);
+			if (CanProjectOnTerrain) renderObjs[i].ProjectOnTerrain(terrainHeightOffset);
 		}
 
 
 		#region TERRAIN
 
-		private Terrain Terrain => Terrain.activeTerrain;
 		public bool projectOnTerrain;
 		public float terrainHeightOffset = 0.1f;
-		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
+		public bool CanProjectOnTerrain => projectOnTerrain && Terrain.activeTerrain != null;
 
 		#endregion
 

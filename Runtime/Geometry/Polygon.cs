@@ -11,14 +11,16 @@ namespace DavidUtils.Geometry
 	[Serializable]
 	public struct Polygon : IEquatable<Polygon>
 	{
-		public static Polygon Empty => new();
+		// 1 Vertex => (0,0)
+		public static Polygon Empty => new(new[] {Vector2.zero});
 
 		// Vertices in Counter-Clockwise order
 		[SerializeField]
 		private Vector2[] _vertices;
 		public Vector2 centroid;
 
-		public bool IsEmpty => _vertices.IsNullOrEmpty();
+		// Empty or 1 single vertex
+		public bool IsEmpty => _vertices.IsNullOrEmpty() || _vertices.Length == 1;
 
 		public Vector2[] Vertices
 		{

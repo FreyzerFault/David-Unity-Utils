@@ -1,18 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.ExtensionMethods;
 
-namespace DavidUtils
+namespace DavidUtils.Collections
 {
     [Serializable]
     public class DictionarySerializable<TKey, TValue>
     {
         public List<KeyValuePairSerializable> pairElements;
+        
+        public TKey[] Keys => pairElements.Select(pair => pair.key).ToArray();
+        public TValue[] Values
+        {
+            get => pairElements.Select(pair => pair.value).ToArray();
+            set => pairElements.ForEach((p,i) => p.value = value[i]);
+        }
 
-        public DictionarySerializable(string[] dictionary) => pairElements = new List<KeyValuePairSerializable>();
-
-        public DictionarySerializable(TKey[] keyList, TValue[] values) =>
-            pairElements = keyList.Select((key, i) => new KeyValuePairSerializable { key = key, value = values[i] })
+        // Empty Dict
+        public DictionarySerializable() => pairElements = new List<KeyValuePairSerializable>();
+        
+        public DictionarySerializable(TKey[] keyList, TValue[] values = null) =>
+            pairElements = keyList.Select((key, i) =>
+                    new KeyValuePairSerializable(
+                        key,
+                        values == null 
+                            ? default 
+                            : i < values.Length ? values[i] : default))
                 .ToList();
 
         public DictionarySerializable(KeyValuePairSerializable[] elements) => pairElements = elements.ToList();
@@ -20,7 +34,7 @@ namespace DavidUtils
         // Transform Dictionary => List (Serializable Dictionary)
         public DictionarySerializable(Dictionary<TKey, TValue> dictionary) =>
             pairElements = dictionary.Select(
-                    pair => new KeyValuePairSerializable { key = pair.Key, value = pair.Value }
+                    pair => new KeyValuePairSerializable(pair.Key, pair.Value)
                 )
                 .ToList();
 
@@ -39,7 +53,7 @@ namespace DavidUtils
         {
             var element = pairElements.Find(pair => EqualityComparer<TKey>.Default.Equals(pair.key, key));
             if (element == null)
-                pairElements.Add(new KeyValuePairSerializable { key = key, value = value });
+                pairElements.Add(new KeyValuePairSerializable(key, value));
             else
                 element.value = value;
         }
@@ -49,6 +63,8 @@ namespace DavidUtils
         {
             public TKey key;
             public TValue value;
+
+            public KeyValuePairSerializable(TKey key, TValue value = default) { this.key = key; this.value = value; }
         }
     }
 }
