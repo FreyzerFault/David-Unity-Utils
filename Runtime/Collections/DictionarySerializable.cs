@@ -1,70 +1,115 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.Editor.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
+using UnityEngine;
 
 namespace DavidUtils.Collections
 {
     [Serializable]
-    public class DictionarySerializable<TKey, TValue>
+    public class KeyValuePairSerializable<TKey, TValue>: ArrayElementTitleAttribute.IArrayElementTitle
     {
-        public List<KeyValuePairSerializable> pairElements;
+        public TKey key;
+        public TValue value;
         
-        public TKey[] Keys => pairElements.Select(pair => pair.key).ToArray();
+        public string Name => key.ToString();
+
+        public KeyValuePairSerializable(TKey key, TValue value = default) { this.key = key; this.value = value; }
+        public KeyValuePairSerializable(KeyValuePair<TKey, TValue> pair) { key = pair.Key; value = pair.Value; }
+    }
+    
+    [Serializable]
+    public class DictionarySerializable<TKey, TValue> : ISerializationCallbackReceiver
+    {
+        // TODO Comprobar que cada elemento tiene la key como titulo
+        [ArrayElementTitle]
+        [SerializeField] private KeyValuePairSerializable<TKey, TValue>[] array = Array.Empty<KeyValuePairSerializable<TKey, TValue>>();
+        protected Dictionary<TKey, TValue> dictionary = new();
+        
+        public TValue this[TKey key]
+        {
+            get => dictionary[key];
+            set
+            {
+                // TODO comprobar si, al ser KeyValuePairSerializable una clase, el array
+                // con los valores de los pairs se actualiza automáticamente
+                
+                dictionary[key] = value;
+                
+                // var pair = new KeyValuePairSerializable<TKey, TValue>(key, value);
+                // if (_dictionary.TryAdd(key, value))
+                // {
+                //     array.Add(pair);
+                // }
+                // else
+                // {
+                //     _dictionary[key] = value;
+                //     int index = array.FindIndex(pair => EqualityComparer<TKey>.Default.Equals(pair.key, key));
+                //     array[index] = pair;
+                // }
+            }
+        }
+
+
+        #region SERIALIZATION
+
+        public void OnBeforeSerialize() { }
+
+        public void OnAfterDeserialize()
+        {
+            if (dictionary != null) dictionary.Clear();
+            else dictionary = new Dictionary<TKey, TValue>();
+            SincronizeDictionary();
+        }
+        
+        private void SincronizeList() =>
+            array = dictionary.Select(pair => new KeyValuePairSerializable<TKey, TValue>(pair)).ToArray();
+        private void SincronizeDictionary() =>
+            dictionary = new Dictionary<TKey, TValue>(array.Select(pair => new KeyValuePair<TKey, TValue>(pair.key, pair.value)));
+
+        #endregion
+        
+        public TKey[] Keys => dictionary.Keys.ToArray();
         public TValue[] Values
         {
-            get => pairElements.Select(pair => pair.value).ToArray();
-            set => pairElements.ForEach((p,i) => p.value = value[i]);
+            get => dictionary.Values.ToArray();
+            set
+            {
+                if (value.Length != dictionary.Count)
+                    throw new ArgumentException("Values array must have the same length as the dictionary");
+                dictionary.Keys.ForEach((key, i) => this[key] = value[i]);
+            }
         }
 
-        // Empty Dict
-        public DictionarySerializable() => pairElements = new List<KeyValuePairSerializable>();
+        public DictionarySerializable() {}
         
-        public DictionarySerializable(TKey[] keyList, TValue[] values = null) =>
-            pairElements = keyList.Select((key, i) =>
-                    new KeyValuePairSerializable(
+        public DictionarySerializable(TKey[] keyList, TValue[] values = null)
+        {
+            array = keyList.Select((key, i) =>
+                    new KeyValuePairSerializable<TKey, TValue>(
                         key,
-                        values == null 
-                            ? default 
-                            : i < values.Length ? values[i] : default))
-                .ToList();
+                        values == null
+                            ? default
+                            : i < values.Length
+                                ? values[i]
+                                : default))
+                .ToArray();
+            SincronizeDictionary();
+        }
 
-        public DictionarySerializable(KeyValuePairSerializable[] elements) => pairElements = elements.ToList();
+        public DictionarySerializable(KeyValuePairSerializable<TKey, TValue>[] elements)
+        {
+            array = elements.ToArray();
+            SincronizeDictionary();
+        }
 
         // Transform Dictionary => List (Serializable Dictionary)
-        public DictionarySerializable(Dictionary<TKey, TValue> dictionary) =>
-            pairElements = dictionary.Select(
-                    pair => new KeyValuePairSerializable(pair.Key, pair.Value)
-                )
-                .ToList();
-
-        public TValue GetValue(TKey key)
+        public DictionarySerializable(Dictionary<TKey, TValue> dictionary)
         {
-            var element = pairElements.Find(
-                pair => EqualityComparer<TKey>.Default.Equals(pair.key, key)
-            );
-
-            if (element == null) throw new KeyNotFoundException("Key not found: " + key);
-
-            return element.value;
-        }
-
-        public void SetValue(TKey key, TValue value)
-        {
-            var element = pairElements.Find(pair => EqualityComparer<TKey>.Default.Equals(pair.key, key));
-            if (element == null)
-                pairElements.Add(new KeyValuePairSerializable(key, value));
-            else
-                element.value = value;
-        }
-
-        [Serializable]
-        public class KeyValuePairSerializable
-        {
-            public TKey key;
-            public TValue value;
-
-            public KeyValuePairSerializable(TKey key, TValue value = default) { this.key = key; this.value = value; }
+            this.dictionary = dictionary;
+            SincronizeList();
         }
     }
+    
 }
