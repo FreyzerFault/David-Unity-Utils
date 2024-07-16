@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using DavidUtils;
 using DavidUtils.Settings;
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace DavidUtils.Audio
+namespace Audio
 {
     public class AudioManager : SingletonPersistent<AudioManager>
     {

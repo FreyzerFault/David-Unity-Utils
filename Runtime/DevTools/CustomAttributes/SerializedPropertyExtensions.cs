@@ -242,7 +242,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 		/// </summary>
 		public static void Repaint(this SerializedProperty property)
 		{
-			foreach (Editor item in ActiveEditorTracker.sharedTracker.activeEditors)
+			foreach (UnityEditor.Editor item in ActiveEditorTracker.sharedTracker.activeEditors)
 				if (item.serializedObject == property.serializedObject)
 				{
 					item.Repaint();

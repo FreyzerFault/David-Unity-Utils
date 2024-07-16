@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.Editor.DevTools.CustomAttributes;
+using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
@@ -10,6 +10,7 @@ namespace DavidUtils.Collections
     [Serializable]
     public class KeyValuePairSerializable<TKey, TValue>: ArrayElementTitleAttribute.IArrayElementTitle
     {
+        [HideInInspector]
         public TKey key;
         public TValue value;
         
@@ -23,7 +24,7 @@ namespace DavidUtils.Collections
     public class DictionarySerializable<TKey, TValue> : ISerializationCallbackReceiver
     {
         // TODO Comprobar que cada elemento tiene la key como titulo
-        [ArrayElementTitle]
+        [ArrayElementTitle("key")]
         [SerializeField] private KeyValuePairSerializable<TKey, TValue>[] array = Array.Empty<KeyValuePairSerializable<TKey, TValue>>();
         protected Dictionary<TKey, TValue> dictionary = new();
         

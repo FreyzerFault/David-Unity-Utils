@@ -454,9 +454,20 @@ namespace DavidUtils.ExtensionMethods
 		{
 			IEnumerable<float> enumerable = probs as float[] ?? probs.ToArray();
 			float suma = enumerable.Sum();
-			if (suma <= 1) return enumerable;
-			float reduction = (suma - 1) / enumerable.Count();
-			return enumerable.Select(p => p - reduction);
+			
+			// Suma == 1 => Ya esta normalizado
+			if (Mathf.Approximately(suma, 1)) return enumerable;
+			
+			// Suma > 1 => Reducir los demas
+			float fixOffset = (suma - 1) / enumerable.Count();
+			return enumerable.Select(p =>
+			{
+				if (p - fixOffset < 0)
+					fixOffset -= p - fixOffset;
+				// else if (p - fixOffset > 1)
+				// 	fixOffset -= p - fixOffset - 1;
+				return Mathf.Clamp01(p - fixOffset);
+			});
 		}
 
 		#endregion

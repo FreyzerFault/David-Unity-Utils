@@ -1,8 +1,8 @@
-﻿using DavidUtils.Editor.DevTools.CustomAttributes;
+﻿using DavidUtils.DevTools.CustomAttributes;
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.Collections
+namespace DavidUtils.Editor.DevTools.CustomAttributes
 {
     [CustomPropertyDrawer(typeof(ArrayElementTitleAttribute))]
     public class ArrayElementTitleDrawer : PropertyDrawer
@@ -19,11 +19,23 @@ namespace DavidUtils.Editor.Collections
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (property.boxedValue is ArrayElementTitleAttribute.IArrayElementTitle titled)
+            try
             {
-                label = new GUIContent(label) { text = titled.Name };
+                if (property?.boxedValue is ArrayElementTitleAttribute.IArrayElementTitle titled) 
+                    label = new GUIContent(label) { text = titled.Name };
+                else
+                {
+                    string fullPathName = property.propertyPath + "." + Attribute.VarName;
+                    SerializedProperty nameProp = property.serializedObject.FindProperty(fullPathName);
+                    if (nameProp != null)
+                        label = new GUIContent(label) { text = GetTitle(nameProp) };
+                    else
+                        Debug.LogWarning(
+                            $"Could not get name for property path {fullPathName}, did you define a path or inherit from IArrayElementTitle?"
+                        );
+                }
             }
-            else
+            catch
             {
                 string fullPathName = property.propertyPath + "." + Attribute.VarName;
                 SerializedProperty nameProp = property.serializedObject.FindProperty(fullPathName);

@@ -1,11 +1,12 @@
 ﻿using System.Linq;
 using System.Reflection;
 using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.DevTools.Reflection;
 using DavidUtils.ExtensionMethods;
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 
-namespace DavidUtils.DevTools.Reflection
+namespace DavidUtils.Editor.DevTools.Reflection
 {
 	[CustomPropertyDrawer(typeof(AttributesExposer))]
 	public class AttributesExposerDrawer : PropertyDrawer

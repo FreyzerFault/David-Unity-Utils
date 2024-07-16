@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace DavidUtils.Audio
+namespace Audio
 {
     [Serializable]
     public class Audio

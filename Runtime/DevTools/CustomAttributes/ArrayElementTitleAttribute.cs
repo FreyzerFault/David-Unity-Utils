@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace DavidUtils.Editor.DevTools.CustomAttributes
+namespace DavidUtils.DevTools.CustomAttributes
 {
     /// <summary>
     /// ATRIBUTO para asignar un nombre a cada elemento de un array
