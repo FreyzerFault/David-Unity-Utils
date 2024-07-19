@@ -43,6 +43,15 @@ namespace DavidUtils.Rendering
 			return renderObj;
 		}
 
+		public virtual T InstantiateObj<Tobj>(Vector3? localPos = null, string objName = null, int i = -1)
+			where Tobj : T
+		{
+			var renderObj = UnityUtils.InstantiateObject<Tobj>(transform, objName ?? DefaultChildName, localPos);
+			SetCommonProperties(renderObj);
+			if (ProjectedOnTerrain) ProjectOnTerrain();
+			return renderObj;
+		}
+
 		#endregion
 
 

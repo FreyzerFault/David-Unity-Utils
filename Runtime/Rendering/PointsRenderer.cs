@@ -81,7 +81,8 @@ namespace DavidUtils.Rendering
 			set
 			{
 				_radiusByPoint = value;
-				renderObjs.ForEach((obj, i) => obj.transform.SetGlobalScale(RadiusToScale(value[i])));
+				renderObjs.ForEach((obj, i) => 
+					obj.transform.SetGlobalScale(RadiusToScale(value.Length > i ? value[i] : value[0])));
 			}
 		}
 

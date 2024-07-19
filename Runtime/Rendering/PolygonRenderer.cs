@@ -48,6 +48,8 @@ namespace DavidUtils.Rendering
 			_lineRenderer.loop = true;
 			_lineRenderer.material = Resources.Load<Material>("UI/Materials/Line Material");
 			_meshRenderer.material = Resources.Load<Material>("Materials/Geometry Unlit");
+			
+			UpdateAllProperties();
 		}
 
 		private void OnValidate()

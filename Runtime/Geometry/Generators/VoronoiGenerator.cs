@@ -228,13 +228,14 @@ namespace DavidUtils.Geometry.Generators
 
 		#region SELECTION
 
+		[FormerlySerializedAs("_hoverPolygon")]
 		[Space]
 		[Header("Polygon Selection")]
-		[SerializeField] private bool _hoverPolygon = true;
-		[SerializeField] private bool _selectPolygon = true;
+		[SerializeField] private bool canHoverPolygon = true;
+		[FormerlySerializedAs("_selectPolygon")] [SerializeField] private bool canSelectPolygon = true;
 
 		// Polygon Hovered
-		public bool IsPolygonHovering => _hoverPolygon && mousePolygonIndex != -1;
+		public bool IsPolygonHovering => canHoverPolygon && mousePolygonIndex != -1;
 
 		// Polygon Selected when clicking
 		[HideInInspector] public int selectedPolygonIndex = -1;
@@ -243,7 +244,7 @@ namespace DavidUtils.Geometry.Generators
 			IsPolygonSelected ? voronoi.polygons[selectedPolygonIndex] : null;
 
 		public bool IsPolygonSelected =>
-			_selectPolygon && selectedPolygonIndex != -1 && selectedPolygonIndex < PolygonCount;
+			canSelectPolygon && selectedPolygonIndex != -1 && selectedPolygonIndex < PolygonCount;
 
 		private Polygon LastPolygonGenerated => voronoi.polygons[^1];
 
@@ -275,6 +276,9 @@ namespace DavidUtils.Geometry.Generators
 				PolygonScale + 0.01f,
 				true
 			);
+			
+			selectedRenderer.UpdateAllProperties();
+			hoverRenderer.UpdateAllProperties();
 
 			PositionSelectedRenderer();
 		}
@@ -289,8 +293,8 @@ namespace DavidUtils.Geometry.Generators
 			BoundsComp.TransformToBounds_Local(selectedRenderer);
 			BoundsComp.TransformToBounds_Local(hoverRenderer);
 			
-			selectedRenderer.transform.localPosition += Vector3.up * 0.01f;
-			hoverRenderer.transform.localPosition += Vector3.up * 0.01f;
+			selectedRenderer.transform.localPosition += Vector3.up * 1f;
+			hoverRenderer.transform.localPosition += Vector3.up * 1f;
 		}
 
 		private void UpdateHoverRenderer() => hoverRenderer.Polygon = MousePolygon ?? Polygon.Empty;
@@ -304,8 +308,8 @@ namespace DavidUtils.Geometry.Generators
 		/// </summary>
 		private void UpdateSelectedPolygon()
 		{
-			ToggleHover(_hoverPolygon);
-			ToggleSelected(_selectPolygon);
+			ToggleHover(canHoverPolygon);
+			ToggleSelected(canSelectPolygon);
 			UpdateHoverRenderer();
 
 			// CLICK DOWN => Select, and start dragging
@@ -313,9 +317,14 @@ namespace DavidUtils.Geometry.Generators
 			bool mouseUp = Input.GetMouseButtonUp(0);
 			bool mouse = Input.GetMouseButton(0);
 
+			// SELECTING
 			if (mouseDown) SelectPolygon(mousePolygonIndex);
-
-			if (!mouseDown && !mouseUp && mouse && IsPolygonSelected)
+			
+			selectedRenderer.UpdateAllProperties();
+			hoverRenderer.UpdateAllProperties();
+			
+			// DRAGGING
+			if (!mouseDown && !mouseUp && mouse && IsPolygonSelected && canDragPolygons)
 			{
 				// DRAGGING
 				// Hide Hover Polygon, Selected only
@@ -348,6 +357,7 @@ namespace DavidUtils.Geometry.Generators
 		#region DRAGGING
 
 		// For dragging a polygon
+		public bool canDragPolygons = false;
 		private Vector2 _draggingOffset = Vector2.zero;
 
 		public override bool MoveSeed(int index, Vector2 newPos)
