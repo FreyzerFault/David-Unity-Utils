@@ -161,6 +161,8 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Polygon InteriorPolygon(Vector2 margin2D)
 		{
+			if (IsEmpty) return Empty;
+			
 			// Genero las Aristas paralelas a la distancia dada
 			List<Edge> parallels = _edges.Select(e => e.ParallelLeft(new Vector2(margin2D.x, margin2D.y))).ToList();
 
