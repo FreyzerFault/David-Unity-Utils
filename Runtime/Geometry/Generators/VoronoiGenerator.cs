@@ -131,7 +131,7 @@ namespace DavidUtils.Geometry.Generators
 		protected void OnAllPolygonsCreated()
 		{
 			voronoi.SimplifyPolygons();
-			UpdateRenderer();
+			if (Renderer.Active) Renderer.UpdatePolygons();
 		}
 
 		#endregion
@@ -140,23 +140,23 @@ namespace DavidUtils.Geometry.Generators
 		#region RENDERING
 
 		[Space] [SerializeField]
-		private VoronoiRenderer _voronoiRenderer;
-		private VoronoiRenderer Renderer => _voronoiRenderer ??= GetComponentInChildren<VoronoiRenderer>(true);
+		private VoronoiRenderer voronoiRenderer;
+		private VoronoiRenderer Renderer => voronoiRenderer ??= GetComponentInChildren<VoronoiRenderer>(true);
 
 		[FormerlySerializedAs("voronoiRenderMode")] [SerializeField] private RenderMode voronoiVoronoiRenderMode = PolygonRenderer.PolygonRenderMode.OutlinedMesh;
 
 		protected override void InitializeRenderer()
 		{
-			_voronoiRenderer ??= Renderer
+			voronoiRenderer ??= Renderer
 			                     ?? VoronoiRenderer.Instantiate(
 				                     voronoi,
 				                     transform,
 				                     "VORONOI Renderer",
-				                     projectOnTerrain: true,
+				                     projectedOnTerrain: true,
 				                     centeredScale: PolygonScale,
 				                     renderMode: voronoiVoronoiRenderMode
 			                     );
-			_voronoiRenderer.Voronoi = voronoi;
+			voronoiRenderer.Voronoi = voronoi;
 
 			Renderer.ToggleShadows(false);
 			

@@ -89,7 +89,8 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Run_OneIteration() => delaunay.Run_OnePoint();
 
-		protected void OnTrianglesUpdated() => UpdateRenderer();
+		protected void OnTrianglesUpdated() => 
+			delaunayRenderer.UpdateDelaunay();
 
 		#endregion
 

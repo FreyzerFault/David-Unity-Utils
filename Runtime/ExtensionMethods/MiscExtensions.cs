@@ -450,7 +450,11 @@ namespace DavidUtils.ExtensionMethods
 			return enumerable.Last();
 		}
 
-		public static IEnumerable<float> NormalizeProbabilities(this IEnumerable<float> probs)
+		/// <summary>
+		/// Normaliza las Probabilidades de un array para que la suma sea == 1
+		/// Si se conoce el Index del valor incorrecto, se ignora y se normalizan los demas solamente
+		/// </summary>
+		public static IEnumerable<float> NormalizeProbabilities(this IEnumerable<float> probs, int badIndex = -1)
 		{
 			IEnumerable<float> enumerable = probs as float[] ?? probs.ToArray();
 			float suma = enumerable.Sum();
@@ -458,14 +462,18 @@ namespace DavidUtils.ExtensionMethods
 			// Suma == 1 => Ya esta normalizado
 			if (Mathf.Approximately(suma, 1)) return enumerable;
 			
-			// Suma > 1 => Reducir los demas
-			float fixOffset = (suma - 1) / enumerable.Count();
-			return enumerable.Select(p =>
+			float fixOffset = (suma - 1)
+			                  // Si conocemos el Index del valor incorrecto => Count - 1
+			                  // Si no lo conocemos => Count
+			                  / (enumerable.Count() - (badIndex == -1 ? 0 : 1));
+			
+			return enumerable.Select((p, i) =>
 			{
+				// Si conocemos el Index del valor incorrecto => Lo ignoramos
+				if (i == badIndex) return p;
+				
 				if (p - fixOffset < 0)
 					fixOffset -= p - fixOffset;
-				// else if (p - fixOffset > 1)
-				// 	fixOffset -= p - fixOffset - 1;
 				return Mathf.Clamp01(p - fixOffset);
 			});
 		}

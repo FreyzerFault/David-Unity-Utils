@@ -4,6 +4,7 @@ using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -148,7 +149,7 @@ namespace DavidUtils.Rendering
 		private void UpdatePolygon()
 		{
 			if (_meshFilter == null && _lineRenderer == null) return;
-			if (CanProjectOnTerrain)
+			if (ProjectedOnTerrain)
 			{
 				ProjectOnTerrain(terrainHeightOffset);
 			}
@@ -181,14 +182,33 @@ namespace DavidUtils.Rendering
 		#region TERRAIN
 
 		private Terrain Terrain => Terrain.activeTerrain;
-		public bool projectOnTerrain;
+		[SerializeField] private bool projectedOnTerrain;
+		
 		public float terrainHeightOffset = 0.1f;
-		public bool CanProjectOnTerrain => projectOnTerrain && Terrain != null;
+		public bool ProjectedOnTerrain
+		{
+			get => projectedOnTerrain && Terrain != null;
+			set
+			{
+				projectedOnTerrain = value;
+				UpdateTerrainProjection();
+			}
+		}
+		
+		private void UpdateTerrainProjection()
+		{
+			if (ProjectedOnTerrain) ProjectOnTerrain(terrainHeightOffset);
+			
+			if (_lineRenderer == null) return;
+			_lineRenderer.useWorldSpace = ProjectedOnTerrain;
+		}
 
+		/// <summary>
+		/// Proyecta el LineRenderer sobre el terreno segmentado a la resolucion del terreno
+		/// </summary>
 		public virtual void ProjectOnTerrain(float offset = 0.1f, bool scaleToTerrainBounds = true)
 		{
-			projectOnTerrain = true;
-			if (!CanProjectOnTerrain) return;
+			RenderMode = PolygonRenderMode.Wire;
 			_lineRenderer.SetPoints(
 				Terrain.ProjectPathToTerrain(
 						scaleToTerrainBounds
@@ -199,19 +219,6 @@ namespace DavidUtils.Rendering
 					)
 					.Select(p => p.WithY(p.y + offset))
 			);
-			_lineRenderer.useWorldSpace = true;
-			UpdateTerrainProjection();
-		}
-
-
-		// If project on terrain => render as wire on world space
-		private void UpdateTerrainProjection()
-		{
-			if (CanProjectOnTerrain)
-			{
-				renderMode = PolygonRenderMode.Wire;
-				_lineRenderer.useWorldSpace = true;
-			}
 		}
 
 		#endregion
@@ -237,7 +244,7 @@ namespace DavidUtils.Rendering
 			polygonRenderer.thickness = thickness;
 			polygonRenderer.renderMode = renderMode;
 			polygonRenderer.centeredScale = centeredScale;
-			polygonRenderer.projectOnTerrain = projectOnTerrain;
+			polygonRenderer.projectedOnTerrain = projectOnTerrain;
 			polygonRenderer.terrainHeightOffset = terrainHeightOffset;
 
 			polygonRenderer.UpdateAllProperties();

@@ -92,7 +92,7 @@ namespace DavidUtils.Rendering
 
 		#region COLOR
 
-		private static readonly Color DefaultColor = Color.white;
+		protected static readonly Color DefaultColor = Color.white;
 
 		public bool useColor = true;
 
@@ -124,10 +124,22 @@ namespace DavidUtils.Rendering
 
 		[HideInInspector] public Color[] colors = Array.Empty<Color>();
 
+		public Color[] Colors
+		{
+			get => colors;
+			set
+			{
+				colors = value;
+				UpdateColor();
+			}
+		}
+
+		protected abstract void UpdateColor();
+
 		protected Color GetColor(int i = -1) => i >= 0 && i < colors.Length ? colors[i] : DefaultColor;
 
 		public Color[] SetRainbowColors(int numColors, Color? initColor = null) =>
-			colors = (initColor ?? colorPallette.initialColor)
+			Colors = (initColor ?? colorPallette.initialColor)
 				.GetRainBowColors(numColors, colorPallette.palletteStep, colorPallette.palletteRange)
 				.ToArray();
 
@@ -145,6 +157,7 @@ namespace DavidUtils.Rendering
 		#region TERRAIN
 
 		public bool projectedOnTerrain;
+		public float terrainHeightOffset = 0.1f;
 		private (Vector3, Quaternion, Vector3)[] originalTransforms; // For UNDO Projection on Terrain
 
 		public bool ProjectedOnTerrain
@@ -170,7 +183,7 @@ namespace DavidUtils.Rendering
 			
 			// Project all
 			Terrain terrain = Terrain;
-			renderObjs.ForEach(r => r.transform.position = terrain.Project(r.transform.position));
+			renderObjs.ForEach(r => r.transform.position = terrain.Project(r.transform.position) + Vector3.up * terrainHeightOffset);
 		}
 
 		protected virtual void UndoProjectOnTerrain()

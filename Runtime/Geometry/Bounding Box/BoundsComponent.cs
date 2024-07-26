@@ -103,12 +103,14 @@ namespace DavidUtils.Geometry.Bounding_Box
 			Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) * WorldToLocalMatrix;
 		
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix_WithXZrotation.MultiplyPoint3x4(pos);
+		public Vector3 ToWorldVector(Vector2 worldVector) => LocalToWorldMatrix_WithXZrotation.MultiplyVector(worldVector);
 		public Vector3 ToLocal(Vector3 worldPos) => WorldToLocalMatrix_WithXZrotation.MultiplyPoint3x4(worldPos);
+		public Vector3 ToLocalVector(Vector3 worldVector) => WorldToLocalMatrix_WithXZrotation.MultiplyVector(worldVector);
 
 		
 		// Convierte un vector en el espacio de mundo a (0,1)
 		public Vector2 VectorToLocalPositive(Vector3 vector) => 
-			Vector2.Max(ToLocal(vector).Abs(), Vector2.one * 0.001f);
+			Vector2.Max(ToLocalVector(vector).Abs(), Vector2.one * 0.001f);
 		public Vector2 VectorToLocalPositive(Vector2 vector) => VectorToLocalPositive(vector.ToV3xz());
 		public Vector2 MeasureToLocalPositive(float value) => VectorToLocalPositive(Vector3.one * value);
 		

@@ -93,11 +93,17 @@ namespace DavidUtils.Rendering
 			polyRenderer.CenteredScale = polygonScale;
 			polyRenderer.Color = GetColor();
 			polyRenderer.OutlineColor = outlineColor;
-			polyRenderer.projectOnTerrain = projectOnTerrain;
+			polyRenderer.ProjectedOnTerrain = ProjectedOnTerrain;
 		}
 
 		#endregion
+
+
+		#region INDIVIDUAL PROPS
 		
+		protected override void UpdateColor() => renderObjs.ForEach((r,i) => r.Color = GetColor(i));
+
+		#endregion
 
 		
 		
@@ -137,17 +143,9 @@ namespace DavidUtils.Rendering
 			renderObjs[i].Polygon = polygon;
 			
 			// Project on TERRAIN
-			if (CanProjectOnTerrain) renderObjs[i].ProjectOnTerrain(terrainHeightOffset);
+			if (ProjectedOnTerrain) renderObjs[i].ProjectOnTerrain(terrainHeightOffset);
 		}
 
-
-		#region TERRAIN
-
-		public bool projectOnTerrain;
-		public float terrainHeightOffset = 0.1f;
-		public bool CanProjectOnTerrain => projectOnTerrain && Terrain.activeTerrain != null;
-
-		#endregion
 
 
 		#region INSTANTIATION
@@ -161,7 +159,7 @@ namespace DavidUtils.Rendering
 			Color? outlineColor = null,
 			float thickness = PolygonRenderer.DEFAULT_THICKNESS,
 			float centeredScale = PolygonRenderer.DEFAULT_CENTERED_SCALE,
-			bool projectOnTerrain = false,
+			bool projectedOnTerrain = false,
 			float terrainHeightOffset = 0.1f
 		)
 		{
@@ -172,7 +170,7 @@ namespace DavidUtils.Rendering
 			renderer.renderMode = renderMode;
 			renderer.thickness = thickness;
 			renderer.polygonScale = centeredScale;
-			renderer.projectOnTerrain = projectOnTerrain;
+			renderer.projectedOnTerrain = projectedOnTerrain;
 			renderer.terrainHeightOffset = terrainHeightOffset;
 
 			renderer.UpdateVoronoi();

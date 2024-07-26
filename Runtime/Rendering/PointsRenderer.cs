@@ -27,7 +27,7 @@ namespace DavidUtils.Rendering
 
 		private bool IsCirle => _renderMode == RenderMode.Circle;
 		
-		[Range(0.1f, 1)] [SerializeField]
+		[Range(0.1f, 20)] [SerializeField]
 		private float radius = .5f;
 		public float Radius
 		{
@@ -35,9 +35,10 @@ namespace DavidUtils.Rendering
 			set
 			{
 				radius = value;
-				renderObjs.ForEach(obj => obj.transform.SetGlobalScale(Scale));
+				UpdateRadius();
 			}
 		}
+		private void UpdateRadius() => renderObjs.ForEach(obj => obj.transform.SetGlobalScale(Scale));
 
 		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCirle ? thickness / 2 : 0));
 		public Vector3 Scale => RadiusToScale(radius);
@@ -62,6 +63,11 @@ namespace DavidUtils.Rendering
 			// TODO
 		}
 
+		private void UpdateProperties()
+		{
+			renderObjs.ForEach(SetCommonProperties);
+		}
+
 		protected override void SetCommonProperties(Renderer pointRenderer)
 		{
 			pointRenderer.transform.SetGlobalScale(Scale);
@@ -71,8 +77,24 @@ namespace DavidUtils.Rendering
 		#endregion
 
 
-		#region INDIVIDUAL RADIUS
+		#region INDIVIDUAL PROPS
 
+		protected override void UpdateColor()
+		{
+			switch (_renderMode)
+			{
+				case RenderMode.Sphere:
+					renderObjs.ForEach((obj, i) => obj.GetComponent<MeshFilter>().mesh.SetColor(GetColor(i)));
+					break;
+				case RenderMode.Circle:
+				case RenderMode.Point:
+					renderObjs.ForEach((obj, i) => obj.GetComponent<SpriteRenderer>().color = GetColor(i));
+					break;
+			}
+		}
+		
+		
+		// RADIUS
 		private float[] _radiusByPoint;
 
 		public float[] RadiusByPoint
@@ -121,6 +143,11 @@ namespace DavidUtils.Rendering
 
 		private void Awake() => useColor = true;
 
+		private void OnValidate()
+		{
+			renderObjs.ForEach(SetCommonProperties);
+		}
+
 		public override Renderer InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
 		{
 			if (i == -1) i = renderObjs.Count;
@@ -136,6 +163,7 @@ namespace DavidUtils.Rendering
 			
 			return renderObj;
 		}
+
 
 
 		#region OBJECT CREATION

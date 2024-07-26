@@ -1,7 +1,6 @@
 ﻿using System;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -49,6 +48,9 @@ namespace DavidUtils.Rendering
 
 
 		#region SINGLE PROPS
+		
+		protected override void UpdateColor() => 
+			renderObjs.ForEach((r,i) => r.color = GetColor(i));
 
 		public void SetSize(int i, float size) => renderObjs[i].transform.SetGlobalScale(Vector3.one * size);
 
