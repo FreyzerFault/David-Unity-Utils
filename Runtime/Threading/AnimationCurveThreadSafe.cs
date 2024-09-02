@@ -4,7 +4,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace DavidUtils.ThreadingUtils
+namespace DavidUtils.Threading
 {
 	// Curvas de Animación (funciones de Unity) en structs para mandar a hilos paralelos
 	// El AnimationCurve de Unity no puede usarse en paralelo

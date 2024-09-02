@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils;
 using DavidUtils.Settings;
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace Audio
+namespace DavidUtils.Audio
 {
     public class AudioManager : SingletonPersistent<AudioManager>
     {
@@ -27,11 +26,11 @@ namespace Audio
 
         #region Reserved Audios
 
-        [SerializeField] private Audio musicAudio;
+        [SerializeField] private DavidUtils.Audio.Audio musicAudio;
 
-        [SerializeField] private Audio ambientAudio;
+        [SerializeField] private DavidUtils.Audio.Audio ambientAudio;
 
-        [SerializeField] private Audio auxAudio;
+        [SerializeField] private DavidUtils.Audio.Audio auxAudio;
 
         #endregion
 
@@ -43,8 +42,8 @@ namespace Audio
         }
 
         // List needed to be editable in Inspector, and map to query by name
-        public List<Audio> sounds = new();
-        private readonly Dictionary<string, Audio> _soundMap = new();
+        public List<DavidUtils.Audio.Audio> sounds = new();
+        private readonly Dictionary<string, DavidUtils.Audio.Audio> _soundMap = new();
 
         protected override void Awake()
         {
@@ -125,7 +124,7 @@ namespace Audio
 
         #region Play/Stop/Pause Sound
 
-        public static Audio Play(string audioName, float delaySeconds = 0)
+        public static DavidUtils.Audio.Audio Play(string audioName, float delaySeconds = 0)
         {
             var audio = GetAudio(audioName);
             if (audio == null) return null;
@@ -158,7 +157,7 @@ namespace Audio
             return audio?.clip;
         }
 
-        private static Audio GetAudio(string audioName)
+        private static DavidUtils.Audio.Audio GetAudio(string audioName)
         {
             if (Instance._soundMap.TryGetValue(audioName, out var audio)) return audio;
 

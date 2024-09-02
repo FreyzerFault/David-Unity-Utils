@@ -1,6 +1,6 @@
 {
     "name": "DavidUtils.UI",
-    "rootNamespace": "DavidUtils",
+    "rootNamespace": "DavidUtils.UI",
     "references": [
         "GUID:6055be8ebefd69e48b49212b09b47b2f",
         "GUID:19e954fc4bd167841829ed4a1c787597"

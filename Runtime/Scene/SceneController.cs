@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace DavidUtils.Scene_Management
+namespace DavidUtils.Scene
 {
 	public class SceneController : SingletonPersistent<SceneController>
 	{

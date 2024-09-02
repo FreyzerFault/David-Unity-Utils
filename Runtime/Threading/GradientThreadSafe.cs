@@ -3,7 +3,7 @@ using Unity.Burst;
 using Unity.Collections;
 using UnityEngine;
 
-namespace DavidUtils.ThreadingUtils
+namespace DavidUtils.Threading
 {
 	// Gradientes de Color en structs para mandar a hilos paralelos
 	// El Gradient de Unity no puede usarse en paralelo

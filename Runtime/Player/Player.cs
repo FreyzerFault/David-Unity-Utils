@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace DavidUtils.PlayerControl
+namespace DavidUtils.Player
 {
 	public enum PlayerState
 	{

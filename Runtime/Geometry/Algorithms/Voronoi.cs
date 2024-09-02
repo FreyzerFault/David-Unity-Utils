@@ -5,7 +5,7 @@ using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
-using DavidUtils.MouseInput;
+using DavidUtils.MouseInputs;
 using UnityEngine;
 using UnityEngine.Serialization;
 

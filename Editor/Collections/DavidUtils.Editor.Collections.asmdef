@@ -3,7 +3,6 @@
     "rootNamespace": "DavidUtils",
     "references": [
         "GUID:1de54e2660c50e240a313b72af0f033d",
-        "GUID:5f1d7110dfaf7bc4895c3960f45a79f6",
         "GUID:e2da289279c1b95469360a140ad6c5ef"
     ],
     "includePlatforms": [

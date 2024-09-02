@@ -1,23 +1,24 @@
 using Cinemachine;
 using UnityEngine;
+using UnityEngine.Serialization;
 
-namespace DavidUtils.CameraUtils
+namespace DavidUtils.Camera
 {
 	public class CameraManager : Singleton<CameraManager>
 	{
-		[SerializeField] private CinemachineVirtualCameraBase[] _cams;
-		[SerializeField] private CinemachineVirtualCameraBase _activeCam;
+		[SerializeField] private CinemachineVirtualCameraBase[] cams;
+		[SerializeField] private CinemachineVirtualCameraBase activeCam;
 		
-		public static Camera MainCam => Camera.main;
-		public static CinemachineVirtualCameraBase ActiveCam => Instance._activeCam;
+		public static UnityEngine.Camera MainCam => UnityEngine.Camera.main;
+		public static CinemachineVirtualCameraBase ActiveCam => Instance.activeCam;
 		
 		private int _currentCamIndex;
 
 		protected override void Awake()
 		{
 			var brain = GetComponent<CinemachineBrain>();
-			_activeCam = brain.ActiveVirtualCamera as CinemachineVirtualCameraBase;
-			if (_cams.Length == 0) _cams = FindObjectsOfType<CinemachineVirtualCameraBase>();
+			activeCam = brain.ActiveVirtualCamera as CinemachineVirtualCameraBase;
+			if (cams.Length == 0) cams = FindObjectsOfType<CinemachineVirtualCameraBase>();
 		}
 
 		private void Start()
@@ -28,18 +29,18 @@ namespace DavidUtils.CameraUtils
 
 		private void ResetCamPriority()
 		{
-			foreach (CinemachineVirtualCameraBase cam in _cams) cam.Priority = 10;
+			foreach (CinemachineVirtualCameraBase cam in cams) cam.Priority = 10;
 		}
 
 		public void NextCam() => ChangeToCam(_currentCamIndex + 1);
 
 		public void ChangeToCam(int index)
 		{
-			if (index >= _cams.Length) return;
+			if (index >= cams.Length) return;
 
-			_cams[_currentCamIndex].Priority = 10;
+			cams[_currentCamIndex].Priority = 10;
 			_currentCamIndex = index;
-			_cams[index].Priority = 100;
+			cams[index].Priority = 100;
 		}
 
 		private void OnNextCam() => ChangeToCam(_currentCamIndex + 1);

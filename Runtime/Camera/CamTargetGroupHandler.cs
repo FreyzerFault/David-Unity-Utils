@@ -2,7 +2,7 @@
 using Cinemachine;
 using UnityEngine;
 
-namespace DavidUtils.CameraUtils
+namespace DavidUtils.Camera
 {
 	[RequireComponent(typeof(CinemachineTargetGroup))]
 	public class CamTargetGroupHandler : MonoBehaviour

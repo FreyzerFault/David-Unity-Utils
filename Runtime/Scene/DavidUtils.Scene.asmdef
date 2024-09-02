@@ -1,6 +1,6 @@
 {
-    "name": "DavidUtils.SceneManagement",
-    "rootNamespace": "DavidUtils",
+    "name": "DavidUtils.Scene",
+    "rootNamespace": "DavidUtils.Scene",
     "references": [
         "GUID:d95f62dca18902045bd3f2c6a5898a9d"
     ],

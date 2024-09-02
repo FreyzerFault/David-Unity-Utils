@@ -1,18 +1,17 @@
-using DavidUtils.CameraUtils;
+using DavidUtils.Camera;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.PlayerControl;
 using UnityEngine;
 
 namespace DavidUtils.Billboard
 {
 	public class BillboardObject : MonoBehaviour
 	{
-		private Player player;
+		private Player.Player player;
 		private Vector3 playerPos = Vector3.zero;
 
-		protected static Player Player => Player.Instance ?? FindObjectOfType<Player>();
-		protected static Camera Camera => CameraManager.MainCam;
+		protected static Player.Player Player => DavidUtils.Player.Player.Instance ?? FindObjectOfType<Player.Player>();
+		protected static UnityEngine.Camera Camera => CameraManager.MainCam;
 
 		public bool verticalLock;
 
@@ -28,11 +27,11 @@ namespace DavidUtils.Billboard
 			set => SpriteRenderer.sprite = value;
 		}
 
-		private void Awake() => player = Player.Instance ?? FindObjectOfType<Player>();
+		private void Awake() => player = DavidUtils.Player.Player.Instance ?? FindObjectOfType<Player.Player>();
 
 		private void Update()
 		{
-			playerPos = player != null ? player.Position : FindObjectOfType<Player>().transform.position;
+			playerPos = player != null ? player.Position : FindObjectOfType<Player.Player>().transform.position;
 			transform.Billboard(Camera.transform, verticalLock);
 		}
 

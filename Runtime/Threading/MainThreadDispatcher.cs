@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace DavidUtils.ThreadingUtils
+namespace DavidUtils.Threading
 {
 	// Guarda acciones para ejecutarlas en el hilo principal en cola FIFO
 	public class MainThreadDispatcher : SingletonPersistent<MainThreadDispatcher>

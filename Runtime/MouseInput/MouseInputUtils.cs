@@ -1,10 +1,8 @@
 ﻿using DavidUtils.ExtensionMethods;
-using UnityEngine;
-#if UNITY_EDITOR
 using UnityEditor;
-#endif
+using UnityEngine;
 
-namespace DavidUtils.MouseInput
+namespace DavidUtils.MouseInputs
 {
 	public static class MouseInputUtils
 	{

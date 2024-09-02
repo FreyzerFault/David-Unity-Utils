@@ -1,6 +1,6 @@
 {
     "name": "DavidUtils.MouseInputs",
-    "rootNamespace": "DavidUtils",
+    "rootNamespace": "DavidUtils.MouseInputs",
     "references": [
         "GUID:a7adaf89cbc238348aa7047394acc30d"
     ],

@@ -1,7 +1,7 @@
-﻿using DavidUtils.CameraUtils;
+﻿using DavidUtils.Camera;
 using UnityEngine;
 
-namespace DavidUtils.PlayerControl
+namespace DavidUtils.Player
 {
     // Utiliza CharacterController para moverse
     public class SimplePlayer3P : Player
