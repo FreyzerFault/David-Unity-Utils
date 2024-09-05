@@ -350,6 +350,20 @@ namespace DavidUtils.ExtensionMethods
 
 			return source;
 		}
+		
+		/// <summary>
+		/// 2D Array to 1D Array
+		/// </summary>
+		public static float[] Flatten(this float[,] source)
+		{
+			int n = source.GetLength(0);
+			int m = source.GetLength(1);
+			float[] flat = new float[n * m];
+			for (var i = 0; i < n; i++)
+			for (var j = 0; j < m; j++)
+				flat[i * m + j] = source[i, j];
+			return flat;
+		}
 
 		#endregion
 
