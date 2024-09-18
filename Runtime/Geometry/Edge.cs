@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
+	[Serializable]
 	public class Edge
 	{
 		public Vector2 begin;

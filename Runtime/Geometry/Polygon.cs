@@ -48,6 +48,7 @@ namespace DavidUtils.Geometry
 
 		#region EDGES
 
+		[SerializeField]
 		private Edge[] _edges;
 		public Edge[] Edges
 		{
@@ -120,7 +121,7 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
-		#region CLEANING
+		#region POST-PROCESS
 
 		/// <summary>
 		///     Quita las aristas invalidas (colineales que van y vuelven, generando area nula)
@@ -134,10 +135,21 @@ namespace DavidUtils.Geometry
 				.ToArray();
 		}
 
+		public void NormalizeMinMax(Vector2 min, Vector2 max)
+		{
+			Vertices = _vertices.Select(v => 
+				new Vector2(
+					Mathf.InverseLerp(min.x, max.x, v.x),
+					Mathf.InverseLerp(min.y, max.y, v.y)
+				)).ToArray();
+		}
+
 		#endregion
 
 
 		#region POLYGON CONVERSIONS
+		
+		public Polygon Revert() => new(_vertices.Reverse().ToArray());
 
 		public Polygon SortCCW() => new(_vertices.SortByAngle(centroid).ToArray());
 
@@ -342,29 +354,116 @@ namespace DavidUtils.Geometry
 			);
 		}
 
+
+		#region CONCAVE to CONVEX
+
+		/// <summary>
+		///		Algoritmo de Hertel-Mehlhorn:
+		///   Divide un poligono concavo en varios poligonos convexos
+		///   Extrae un triangulo recurrentemente, hasta que el poligono restante sea convexo
+		/// </summary>
+		/// <returns></returns>
+		public Polygon[] OptimalConvexDecomposition()
+		{
+		    if (IsEmpty) return new[] { this };
+
+		    List<Polygon> convexPolygons = new List<Polygon>();
+		    Stack<Polygon> stack = new Stack<Polygon>();
+		    stack.Push(this);
+
+		    while (stack.Count > 0)
+		    {
+		        Polygon poly = stack.Pop();
+		        if (poly.IsConvex())
+		        {
+		            convexPolygons.Add(poly);
+		        }
+		        else
+		        {
+		            (Polygon p1, Polygon p2) = poly.SplitAtEar();
+		            stack.Push(p1);
+		            stack.Push(p2);
+		        }
+		    }
+
+		    return convexPolygons.ToArray();
+		}
+
+
+		/// <summary>
+		/// Busca un "Ear" en el poligono y lo recorta
+		/// Un "Ear" es un triangulo Convexo que no contiene ningun otro vertice del poligono
+		/// </summary>
+		/// <returns>(Poligono restante, EAR)</returns>
+		/// <exception cref="InvalidOperationException">Si no existe el EAR: POLIGONO DEGENERADO</exception>
+		private (Polygon, Polygon) SplitAtEar()
+		{
+		    for (int i = 0; i < _vertices.Length; i++)
+		    {
+		        Vector2 a = _vertices[i];
+		        Vector2 b = _vertices[(i + 1) % _vertices.Length];
+		        Vector2 c = _vertices[(i + 2) % _vertices.Length];
+
+		        // El Triangulo [a,b,c] es un "Ear" si NO contiene ningun otro vertice del poligono
+		        if (!GeometryUtils.IsLeft(a, b, c) || !IsEar(i)) continue;
+		        
+		        Vector2[] poly1Vertices = _vertices.Take(i + 1).Concat(_vertices.Skip(i + 2)).ToArray();
+		        Vector2[] poly2Vertices = { a, b, c };
+
+		        return (new Polygon(poly1Vertices), new Polygon(poly2Vertices));
+		    }
+
+		    // TODO Solucionar ESTO jaja
+		    throw new InvalidOperationException("No ear found, polygon might be degenerate.");
+		}
+
+		/// <summary>
+		/// El conjunto de 3 vertices, empezando por el de indice i, generan un Triangulo
+		/// El triángulo es un "Ear" si NO contiene ningun otro vertice del poligono
+		/// </summary>
+		/// <param name="i">Indice inicial del Tri [i, i+1, i+2]</param>
+		private bool IsEar(int i)
+		{
+		    Vector2 a = _vertices[i];
+		    Vector2 b = _vertices[(i + 1) % _vertices.Length];
+		    Vector2 c = _vertices[(i + 2) % _vertices.Length];
+
+		    Polygon triangle = new Polygon(new[] { a, b, c });
+
+		    for (int j = 0; j < _vertices.Length; j++)
+		    {
+		        if (j == i || j == (i + 1) % _vertices.Length || j == (i + 2) % _vertices.Length)
+		        {
+		            continue;
+		        }
+
+		        if (triangle.Contains_RayCast(_vertices[j]))
+		        {
+		            return false;
+		        }
+		    }
+
+		    return true;
+		}
+
+		#endregion
+
 		#endregion
 
 
 		#region TESTS
 
-		/// <summary>
-		///     Indices de los vertices mas cercanos de dos poligonos que no se intersectan
-		/// </summary>
-		public (int, int) GetNearestPoints_Indices(Polygon other)
+		public bool IsConvex()
 		{
-			int i1 = -1, i2 = -1;
-			var minDist = float.MaxValue;
-			for (var i = 0; i < _vertices.Length; i++)
-			for (var j = 0; j < other._vertices.Length; j++)
+			for (int i = 0; i < _vertices.Length; i++)
 			{
-				float dist = Vector2.Distance(_vertices[i], other._vertices[j]);
-				if (minDist < dist) continue;
-				minDist = dist;
-				i1 = i;
-				i2 = j;
-			}
+				Vector2 a = _vertices[i];
+				Vector2 b = _vertices[(i + 1) % _vertices.Length];
+				Vector2 c = _vertices[(i + 2) % _vertices.Length];
 
-			return (i1, i2);
+				if (!GeometryUtils.IsLeft(a, b, c)) return false;
+			}
+			return true;
 		}
 
 		/// <summary>
@@ -407,6 +506,27 @@ namespace DavidUtils.Geometry
 			);
 			return contains;
 		}
+		
+		
+		/// <summary>
+		///     Indices de los vertices mas cercanos de dos poligonos que no se intersectan
+		/// </summary>
+		public (int, int) GetNearestPoints_Indices(Polygon other)
+		{
+			int i1 = -1, i2 = -1;
+			var minDist = float.MaxValue;
+			for (var i = 0; i < _vertices.Length; i++)
+			for (var j = 0; j < other._vertices.Length; j++)
+			{
+				float dist = Vector2.Distance(_vertices[i], other._vertices[j]);
+				if (minDist < dist) continue;
+				minDist = dist;
+				i1 = i;
+				i2 = j;
+			}
+
+			return (i1, i2);
+		}
 
 		#endregion
 
@@ -414,6 +534,7 @@ namespace DavidUtils.Geometry
 
 		/// <summary>
 		///     Triangula creando un triangulo por arista, siendo el centroide el tercer vertice
+		///		Solo funciona bien con Convex Polygons
 		/// </summary>
 		public Triangle[] Triangulate()
 		{
@@ -492,5 +613,10 @@ namespace DavidUtils.Geometry
 		public override bool Equals(object obj) => obj is Polygon other && Equals(other);
 
 		public override int GetHashCode() => HashCode.Combine(_vertices, centroid);
+
+		public override string ToString() =>
+			$"{VertexCount} vertices: {string.Join(", ", _vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
+			$"Centroid: {centroid}";
+
 	}
 }

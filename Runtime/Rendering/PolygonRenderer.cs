@@ -8,10 +8,11 @@ using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
+	[ExecuteAlways]
 	[RequireComponent(typeof(LineRenderer), typeof(MeshRenderer), typeof(MeshFilter))]
 	public class PolygonRenderer : MonoBehaviour
 	{
-		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.Mesh;
+		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.OutlinedMesh;
 		public const float DEFAULT_THICKNESS = 1f;
 		public const float DEFAULT_CENTERED_SCALE = 1f;
 
@@ -38,6 +39,8 @@ namespace DavidUtils.Rendering
 		private MeshRenderer _meshRenderer;
 
 		private Polygon ScaledPolygon => polygon.ScaleByCenter(centeredScale);
+		
+		public Mesh Mesh => _meshFilter.sharedMesh;
 
 		protected virtual void Awake()
 		{
@@ -155,7 +158,10 @@ namespace DavidUtils.Rendering
 			}
 			else
 			{
-				_meshFilter.mesh.SetPolygon(ScaledPolygon, color);
+				if (_meshFilter.sharedMesh == null)
+					_meshFilter.mesh = new Mesh();
+				
+				_meshFilter.sharedMesh.SetPolygon(ScaledPolygon, color);
 				_lineRenderer.SetPolygon(ScaledPolygon);
 				_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3().WithZ(-0.01f)));
 			}
@@ -166,7 +172,7 @@ namespace DavidUtils.Rendering
 			if (_meshFilter == null || _lineRenderer == null) return;
 			_lineRenderer.startColor =
 				_lineRenderer.endColor = renderMode == PolygonRenderMode.Wire ? color : outlineColor;
-			_meshFilter.mesh.SetColors(color.ToFilledArray(_meshFilter.mesh.vertexCount).ToArray());
+			_meshFilter.sharedMesh.SetColors(color.ToFilledArray(_meshFilter.sharedMesh.vertexCount).ToArray());
 		}
 
 		private void UpdateThickness()

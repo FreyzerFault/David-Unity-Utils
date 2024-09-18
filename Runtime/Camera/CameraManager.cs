@@ -1,6 +1,5 @@
 using Cinemachine;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Camera
 {
@@ -32,7 +31,7 @@ namespace DavidUtils.Camera
 			foreach (CinemachineVirtualCameraBase cam in cams) cam.Priority = 10;
 		}
 
-		public void NextCam() => ChangeToCam(_currentCamIndex + 1);
+		public void NextCam() => ChangeToCam((_currentCamIndex + 1) % cams.Length);
 
 		public void ChangeToCam(int index)
 		{
@@ -43,7 +42,7 @@ namespace DavidUtils.Camera
 			cams[index].Priority = 100;
 		}
 
-		private void OnNextCam() => ChangeToCam(_currentCamIndex + 1);
+		private void OnNextCamera() => NextCam();
 
 		private void OnCam1() => ChangeToCam(0);
 

@@ -66,6 +66,23 @@ namespace DavidUtils.ExtensionMethods
 		/// </summary>
 		public static T AsEnum<T>(this string source, bool ignoreCase = true) where T : Enum =>
 			(T)Enum.Parse(typeof(T), source, ignoreCase);
+		
+		/// <summary>
+		/// Convierte un string a otro truncado a un maximo de caracteres
+		/// Ejemplo con 5 caracteres:
+		///  "123456789" -> "12345..."
+		///  "1234" -> " 1234 "
+		/// </summary>
+		public static string TruncateFixedSize(this string str, int maxSize)
+		{
+			if (str.Length == maxSize) return str;
+            
+			if (str.Length > maxSize)
+				return str[..(maxSize - 3)] + "...";
+
+			int padding = Mathf.FloorToInt((maxSize - str.Length) / 2f);
+			return str.PadLeft(str.Length + padding).PadRight(maxSize);
+		}
 
 		#endregion
 

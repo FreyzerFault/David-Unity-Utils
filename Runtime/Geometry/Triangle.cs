@@ -142,7 +142,8 @@ namespace DavidUtils.Geometry
 		public static Triangle SuperTriangle =>
 			new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
-		
+		public override string ToString() => $"Tri [{v1}, {v2}, {v3}]";
+
 #if UNITY_EDITOR
 
 		#region DEBUG
