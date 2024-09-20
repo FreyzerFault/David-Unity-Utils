@@ -142,8 +142,52 @@ namespace DavidUtils.Geometry
 		public static Triangle SuperTriangle =>
 			new(new Vector2(-2, -1), new Vector2(2, -1), new Vector2(0, 3));
 
+
+		#region TEST
+
+		public bool IsCCW() => GeometryUtils.IsLeft(v1, v2, v3);
+		public bool IsCW() => GeometryUtils.IsRight(v1, v2, v3);
+
+		
+		/// <summary>
+		///		TEST Point is inside Polygon
+		///		Uses RayCasting
+		/// </summary>
+		public bool Contains_RayCast(Vector2 point)
+		{
+			var contains = false;
+			Edges.ForEach(
+				e =>
+				{
+					Vector2 a = e.begin, b = e.end;
+					if (b.y > point.y != a.y > point.y && point.x < (a.x - b.x) * (point.y - b.y) / (a.y - b.y) + b.x)
+						contains = !contains;
+				}
+			);
+			return contains;
+		}
+		
+		/// <summary>
+		///		TEST Point is inside Polygon
+		///		Using Cross Product
+		/// </summary>
+		/// <param name="point"></param>
+		/// <returns></returns>
+		public bool Contains_CrossProd(Vector2 point) =>
+			IsCCW() 
+				? Edges.All(e => GeometryUtils.IsLeft(e.begin, e.end, point))
+				: Edges.All(e => GeometryUtils.IsRight(e.begin, e.end, point));
+
+
+		public bool IsOnEdge(Vector2 point) =>
+			Edges.Any(e => GeometryUtils.IsColinear(e.begin, e.end, point));
+		
+		#endregion
+		
+		
 		public override string ToString() => $"Tri [{v1}, {v2}, {v3}]";
 
+		
 #if UNITY_EDITOR
 
 		#region DEBUG

@@ -4,7 +4,7 @@ namespace DavidUtils.Geometry
 {
 	public static class GeometryUtils
 	{
-		public const float Epsilon = 0.0001f;
+		public const float Epsilon = 0.00000001f;
 
 		public static bool Equals(float a, float b) => Mathf.Abs(a - b) < Epsilon;
 		public static bool Equals(Vector2 v1, Vector2 v2) => Mathf.Abs((v1 - v2).magnitude) < Epsilon;
@@ -18,6 +18,8 @@ namespace DavidUtils.Geometry
 
 		public static bool IsLeft(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) > Epsilon;
 		public static bool IsLeft(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) > Epsilon;
+		
+		public static bool IsColinear(Vector2 begin, Vector2 end, Vector2 p) => Equals(TriArea2(begin, end, p), 0);
 
 		/// <summary>
 		///     Area del Triangulo al Cuadrado (para clasificar puntos a la derecha o izquierda de un segmento)
@@ -298,6 +300,35 @@ namespace DavidUtils.Geometry
 
 			return (p - projection).magnitude;
 		}
+
+		#endregion
+
+		
+		#region CONVEXITY & CONCAVITY
+
+		public static bool IsConvex(Vector2 a, Vector2 b, Vector2 c) => IsLeft(a, b, c);
+		public static bool IsConcave(Vector2 a, Vector2 b, Vector2 c) => IsRight(a, b, c);
+
+		public static bool IsConvex(this Vector2[] vertices)
+		{
+			switch (vertices.Length)
+			{
+				case < 3:
+					return false;
+				case 3:
+					return IsConvex(vertices[0], vertices[1], vertices[2]);
+			}
+
+			for (var i = 0; i < vertices.Length; i++)
+			{
+				if (IsRight(vertices[i], vertices[(i + 1) % vertices.Length], vertices[(i + 2) % vertices.Length]))
+					return false;
+			}
+
+			return true;
+		}
+
+		public static bool IsConcave(this Vector2[] vertices) => !IsConvex(vertices);
 
 		#endregion
 	}

@@ -4,6 +4,7 @@ using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
+using NUnit.Framework;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
@@ -123,10 +124,24 @@ namespace DavidUtils.Geometry
 
 		#region POST-PROCESS
 
+		#region CLEANING
+
+		public void CleanDegeneratePolygon()
+		{
+			RemoveDuplicates();
+			RemoveInvalidEdges();
+		}
+		
+		/// <summary>
+		///		Elimina Vertices duplicados
+		/// </summary>
+		public void RemoveDuplicates() => 
+			Vertices = _vertices.Distinct().ToArray();
+
 		/// <summary>
 		///     Quita las aristas invalidas (colineales que van y vuelven, generando area nula)
 		/// </summary>
-		private void RemoveInvalidEdges()
+		public void RemoveInvalidEdges()
 		{
 			if (_edges is not { Length: > 2 }) return;
 			_edges = _edges.IterateByPairs_InLoop(
@@ -135,19 +150,19 @@ namespace DavidUtils.Geometry
 				.ToArray();
 		}
 
-		public void NormalizeMinMax(Vector2 min, Vector2 max)
-		{
-			Vertices = _vertices.Select(v => 
-				new Vector2(
-					Mathf.InverseLerp(min.x, max.x, v.x),
-					Mathf.InverseLerp(min.y, max.y, v.y)
-				)).ToArray();
-		}
-
 		#endregion
 
 
-		#region POLYGON CONVERSIONS
+		#region VERTEX TRANSFORMATION
+
+		public Polygon NormalizeMinMax(Vector2 min, Vector2 max)
+		{
+			return new Polygon(_vertices.Select(v =>
+				new Vector2(
+					Mathf.InverseLerp(min.x, max.x, v.x),
+					Mathf.InverseLerp(min.y, max.y, v.y)
+				)).ToArray());
+		}
 		
 		public Polygon Revert() => new(_vertices.Reverse().ToArray());
 
@@ -164,7 +179,7 @@ namespace DavidUtils.Geometry
 			Vector2 c = centroid;
 			return VerticesFromCentroid?.Select(v => c + v * centeredScale).ToArray();
 		}
-
+		
 		/// <summary>
 		///     Reduce el poligono a uno con aristas paralelas, a una distancia dada
 		///     Movemos cada arista hacia dentro (vector perpendicular) la distancia del margen (magnitud)
@@ -228,6 +243,12 @@ namespace DavidUtils.Geometry
 
 		// Overload para usar el mismo margen en ambos ejes
 		public Polygon InteriorPolygon(float margin) => InteriorPolygon(new Vector2(margin, margin));
+
+		#endregion
+
+
+
+		#region AUTO-INTERSECTIONS
 
 		/// <summary>
 		///     Busca y elimina secciones del poligonos invalidas (intersecciona con si mismo)
@@ -333,6 +354,106 @@ namespace DavidUtils.Geometry
 			return polygons.ToArray();
 		}
 
+		#endregion
+
+
+		#region CONCAVE to CONVEX
+
+		/// <summary>
+		///		Algoritmo de Hertel-Mehlhorn:
+		///   Divide un poligono concavo en varios poligonos convexos
+		///   Recorta un polígono Convexo recurrentemente, hasta que el poligono restante sea convexo
+		/// </summary>
+		public Polygon[] OptimalConvexDecomposition(int maxSubPolygons = 10)
+		{
+		    if (IsEmpty || maxSubPolygons < 2) return new[] { this };
+
+		    List<Polygon> convexPolygons = new List<Polygon>();
+		    Stack<Polygon> stack = new Stack<Polygon>();
+		    stack.Push(this);
+
+		    while (stack.Count > 0 && convexPolygons.Count < maxSubPolygons - 1)
+		    {
+		        Polygon poly = stack.Pop();
+		        if (poly.IsConvex())
+		        {
+		            convexPolygons.Add(poly);
+		        }
+		        else
+		        {
+		            (Polygon convexPolygon, Polygon croppedPolygon) = poly.SplitConvex();
+		            convexPolygons.Add(convexPolygon);
+		            stack.Push(croppedPolygon);
+		        }
+		    }
+
+		    return stack.Count > 0 ? convexPolygons.Concat(stack).ToArray() : convexPolygons.ToArray();
+		}
+
+
+		/// <summary>
+		///		Busca un Subpolígono Convexo y devuelve el subpolígono restante
+		/// </summary>
+		/// <returns>(Convexo, Restante)</returns>
+		/// <exception cref="InvalidOperationException">No hay ningún subpolígono Convexo: POLIGONO DEGENERADO</exception>
+		private (Polygon, Polygon) SplitConvex()
+		{
+			// Si el Triangulo es CCW, es CONVEXO 
+			// Podemos añadir los siguientes vertices hasta que deje de ser CONVEXO
+			// O contenga un punto del poligono restante
+			// Para buscar el maximo poligono CONVEXO a partir de el vertice i
+			for (var i = 0; i < _vertices.Length; i++)
+			{
+				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
+				var tri = new Triangle(_vertices[i], _vertices[(i + 1) % VertexCount], _vertices[(i + 2) % VertexCount]);
+				if (tri.IsCW() || _vertices.CropOutOfRange((i-1 + VertexCount) % VertexCount, (i+3) % VertexCount).Any(v => tri.Contains_CrossProd(v) || tri.IsOnEdge(v))) continue;
+		        
+				// Comprobamos si el siguiente vertice j2 hace que el poligono deje de ser CONVEXO:
+				// Deben ser CCW el Tri [j, j+1, j+2], el Tri [j+1, j+2, i] y el Tri [j+2, i, i+1]
+				// O contenga un punto del restante poligono
+				int j = i, j1, j2;
+				Polygon convexPolygon;
+				bool isConvex, hasAnyPointInside = false;
+				do
+				{
+					j++;
+					j1 = (j + 1) % VertexCount;
+					j2 = (j + 2) % VertexCount;
+					int i1 = (i + 1) % VertexCount;
+					
+					isConvex =
+						new Triangle(_vertices[j], _vertices[j1], _vertices[j2]).IsCCW()
+					&& new Triangle(_vertices[j1], _vertices[j2], _vertices[i]).IsCCW()
+					&& new Triangle(_vertices[j2], _vertices[i], _vertices[i1]).IsCCW();
+
+					if (isConvex)
+					{
+						// Checkeamos si hay puntos dentro SOLO si es Convexo
+						convexPolygon = new Polygon(_vertices.CropRange(i, j2).ToArray());
+
+						var outOfConvexVertices =
+							_vertices.CropOutOfRange((j2 + 1) % VertexCount, (i - 1 + VertexCount) % VertexCount);
+						hasAnyPointInside = outOfConvexVertices.Any(v => convexPolygon.Contains_CrossProd(v) || tri.IsOnEdge(v));
+					}
+					if (!isConvex || hasAnyPointInside) j2--;
+				} while ((j2 + 1) % VertexCount != i && isConvex && !hasAnyPointInside);
+		        
+				convexPolygon = new Polygon(_vertices.CropRange(i, j2).ToArray());
+				Polygon croppedPolygon = new Polygon(_vertices.CropOutOfRange(i, j2).ToArray());
+
+				return (convexPolygon, croppedPolygon);
+			}
+			
+		    throw new InvalidOperationException("No convex subpolygon found, polygon might be degenerate.");
+		}
+		
+		#endregion
+
+		#endregion
+
+
+		#region MERGE
+
 		/// <summary>
 		///     Merge 2 polygons into one by the nearest point
 		///     TODO Si intersectan no es viable
@@ -354,117 +475,13 @@ namespace DavidUtils.Geometry
 			);
 		}
 
-
-		#region CONCAVE to CONVEX
-
-		/// <summary>
-		///		Algoritmo de Hertel-Mehlhorn:
-		///   Divide un poligono concavo en varios poligonos convexos
-		///   Extrae un triangulo recurrentemente, hasta que el poligono restante sea convexo
-		/// </summary>
-		/// <returns></returns>
-		public Polygon[] OptimalConvexDecomposition()
-		{
-		    if (IsEmpty) return new[] { this };
-
-		    List<Polygon> convexPolygons = new List<Polygon>();
-		    Stack<Polygon> stack = new Stack<Polygon>();
-		    stack.Push(this);
-
-		    while (stack.Count > 0)
-		    {
-		        Polygon poly = stack.Pop();
-		        if (poly.IsConvex())
-		        {
-		            convexPolygons.Add(poly);
-		        }
-		        else
-		        {
-		            (Polygon p1, Polygon p2) = poly.SplitAtEar();
-		            stack.Push(p1);
-		            stack.Push(p2);
-		        }
-		    }
-
-		    return convexPolygons.ToArray();
-		}
-
-
-		/// <summary>
-		/// Busca un "Ear" en el poligono y lo recorta
-		/// Un "Ear" es un triangulo Convexo que no contiene ningun otro vertice del poligono
-		/// </summary>
-		/// <returns>(Poligono restante, EAR)</returns>
-		/// <exception cref="InvalidOperationException">Si no existe el EAR: POLIGONO DEGENERADO</exception>
-		private (Polygon, Polygon) SplitAtEar()
-		{
-		    for (int i = 0; i < _vertices.Length; i++)
-		    {
-		        Vector2 a = _vertices[i];
-		        Vector2 b = _vertices[(i + 1) % _vertices.Length];
-		        Vector2 c = _vertices[(i + 2) % _vertices.Length];
-
-		        // El Triangulo [a,b,c] es un "Ear" si NO contiene ningun otro vertice del poligono
-		        if (!GeometryUtils.IsLeft(a, b, c) || !IsEar(i)) continue;
-		        
-		        Vector2[] poly1Vertices = _vertices.Take(i + 1).Concat(_vertices.Skip(i + 2)).ToArray();
-		        Vector2[] poly2Vertices = { a, b, c };
-
-		        return (new Polygon(poly1Vertices), new Polygon(poly2Vertices));
-		    }
-
-		    // TODO Solucionar ESTO jaja
-		    throw new InvalidOperationException("No ear found, polygon might be degenerate.");
-		}
-
-		/// <summary>
-		/// El conjunto de 3 vertices, empezando por el de indice i, generan un Triangulo
-		/// El triángulo es un "Ear" si NO contiene ningun otro vertice del poligono
-		/// </summary>
-		/// <param name="i">Indice inicial del Tri [i, i+1, i+2]</param>
-		private bool IsEar(int i)
-		{
-		    Vector2 a = _vertices[i];
-		    Vector2 b = _vertices[(i + 1) % _vertices.Length];
-		    Vector2 c = _vertices[(i + 2) % _vertices.Length];
-
-		    Polygon triangle = new Polygon(new[] { a, b, c });
-
-		    for (int j = 0; j < _vertices.Length; j++)
-		    {
-		        if (j == i || j == (i + 1) % _vertices.Length || j == (i + 2) % _vertices.Length)
-		        {
-		            continue;
-		        }
-
-		        if (triangle.Contains_RayCast(_vertices[j]))
-		        {
-		            return false;
-		        }
-		    }
-
-		    return true;
-		}
-
-		#endregion
-
 		#endregion
 
 
 		#region TESTS
 
-		public bool IsConvex()
-		{
-			for (int i = 0; i < _vertices.Length; i++)
-			{
-				Vector2 a = _vertices[i];
-				Vector2 b = _vertices[(i + 1) % _vertices.Length];
-				Vector2 c = _vertices[(i + 2) % _vertices.Length];
-
-				if (!GeometryUtils.IsLeft(a, b, c)) return false;
-			}
-			return true;
-		}
+		public bool IsConvex() => _vertices.IsConvex();
+		public bool IsConcave() => _vertices.IsConcave();
 
 		/// <summary>
 		///     Puntos mas cercanos de dos poligonos que no se intersectan
@@ -530,24 +547,38 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		
 		#region MESH
+
+		public (Triangle[], Polygon[]) Triangulate(int maxSubPolygons = 10)
+		{
+			if (IsEmpty) return (Array.Empty<Triangle>(), Array.Empty<Polygon>());
+
+			Polygon[] subpolygons = OptimalConvexDecomposition(maxSubPolygons);
+			Triangle[] tris = IsConvex()
+				? TriangulateConvex()
+				: subpolygons.SelectMany(p => p.TriangulateConvex()).ToArray();
+			
+			return (tris, subpolygons);
+		}
 
 		/// <summary>
 		///     Triangula creando un triangulo por arista, siendo el centroide el tercer vertice
 		///		Solo funciona bien con Convex Polygons
 		/// </summary>
-		public Triangle[] Triangulate()
+		private Triangle[] TriangulateConvex()
 		{
 			Vector2 c = centroid;
 			return IsEmpty
 				? Array.Empty<Triangle>()
 				: VertexCount == 3 
-					? new Triangle(_vertices).ToSingleArray().ToArray() 
+					? new [] { new Triangle(_vertices) } 
 					: Edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
 		}
 
 		#endregion
 
+		
 		#region DEBUG
 
 #if UNITY_EDITOR
@@ -608,6 +639,7 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		
 		public bool Equals(Polygon other) => Equals(_vertices, other._vertices) && centroid.Equals(other.centroid);
 
 		public override bool Equals(object obj) => obj is Polygon other && Equals(other);
@@ -618,5 +650,24 @@ namespace DavidUtils.Geometry
 			$"{VertexCount} vertices: {string.Join(", ", _vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
 			$"Centroid: {centroid}";
 
+		public Texture2D ToTexture(Vector2 texSize)
+		{
+			AABB_2D	aabb = new(_vertices);
+			Vector2 aabbSize = new Vector2(aabb.Size.x, aabb.Size.y);
+			Color[] pixels = new Color[Mathf.CeilToInt(texSize.x) * Mathf.CeilToInt(texSize.y)];
+			for (var y = 0; y < Mathf.CeilToInt(texSize.y); y++)
+			for (var x = 0; x < Mathf.CeilToInt(texSize.x); x++)
+			{
+				float xt = x / texSize.y, yt = y / texSize.y;
+				Vector2 point = new Vector2(xt * aabbSize.x, yt * aabbSize.y) + aabb.min;
+				pixels[y * Mathf.CeilToInt(texSize.x) + x] = Contains_RayCast(point) ? Color.white : Color.black;
+			}
+			
+			var texture = new Texture2D(Mathf.CeilToInt(texSize.x),Mathf.CeilToInt(texSize.y));
+			texture.SetPixels(pixels);
+			texture.Apply();
+			
+			return texture;
+		}
 	}
 }

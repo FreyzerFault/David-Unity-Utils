@@ -31,18 +31,23 @@ namespace DavidUtils.Geometry.MeshExtensions
 
 		/// <summary>
 		///     Actualiza la Mesh con un Polygon sin tener que recrearlo
+		///		Si el polígono es Cóncavo, se descompone en polígonos convexos y se triangula cada uno.
 		/// </summary>
-		public static void SetPolygon(this Mesh mesh, Polygon polygon, Color? color = null)
+		/// <returns>Convex Subpolygons Segmented if Concave</returns>
+		public static Polygon[] SetPolygon(this Mesh mesh, Polygon polygon, Color? color = null, int maxSubPolygons = 10)
 		{
+			if (polygon.IsEmpty) 
+				mesh.Clear();
+			
 			int oldVertexCount = mesh.vertexCount;
-			Debug.Log($"Polygon to Triangulate: {polygon}\n" +
-			          $"Edges: {string.Join(", ", polygon.Edges.Select(e => $"{e.begin} - {e.end}"))}\n" +
-			          $"Triangulated: {string.Join(", ", polygon.Triangulate().Select(tri => tri.ToString()))}");
-			
-			// TODO Extraer todos los poligonos segmentados
-			Polygon[] convexPolys = polygon.OptimalConvexDecomposition();
-			
-			Triangle[] tris = polygon.IsConvex() ? polygon.Triangulate() : convexPolys.SelectMany(p => p.Triangulate()).ToArray();
+			// Debug.Log($"Polygon to Triangulate: {polygon}\n" +
+			//           $"Edges: {string.Join(", ", polygon.Edges.Select(e => $"{e.begin} - {e.end}"))}\n" +
+			//           $"Triangulated: {string.Join(", ", polygon.Triangulate().Select(tri => tri.ToString()))}");
+
+			// Triangula el poligono.
+			// Si es convexo se triangula con centro en el centroide.
+			// Si es cóncavo se descompone en poligonos convexos y se triangula cada uno.
+			(Triangle[] tris, Polygon[] subpolygons) = polygon.Triangulate(maxSubPolygons);
 
 			Vector3[] newVertices = tris.SelectMany(t => new[] { t.v3, t.v2, t.v1 }).ToV3().ToArray();
 
@@ -64,6 +69,8 @@ namespace DavidUtils.Geometry.MeshExtensions
 			}
 
 			mesh.RecalculateBounds();
+
+			return subpolygons;
 		}
 
 		public static void SetColor(this Mesh mesh, Color color) =>

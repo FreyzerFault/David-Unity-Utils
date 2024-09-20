@@ -308,6 +308,9 @@ namespace DavidUtils.Geometry.Bounding_Box
 		#endif
 
 		#endregion
+
+
+		public override string ToString() => $"AABB_2D: [Min {min}, Max {max}] | Size {Size}";
 	}
 
 	#region EXTENSIONS

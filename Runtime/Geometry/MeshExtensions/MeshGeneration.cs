@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Codice.Client.Common;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
@@ -46,8 +47,11 @@ namespace DavidUtils.Geometry.MeshExtensions
 			CreateMesh(new[] { triangle }, new[] { color });
 
 		// POLYGON => TRIANGLEs => MESH
-		public static Mesh CreateMesh(this Polygon polygon, Color color = default) =>
-			CreateMesh(polygon.Triangulate(), color);
+		public static Mesh CreateMesh(this Polygon polygon, Color color = default)
+		{
+			(Triangle[] tris, _) = polygon.Triangulate();
+			return CreateMesh(tris, color);
+		}
 
 		#endregion
 

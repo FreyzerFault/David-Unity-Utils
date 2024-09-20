@@ -1,10 +1,10 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -13,6 +13,7 @@ namespace DavidUtils.Rendering
 	public class PolygonRenderer : MonoBehaviour
 	{
 		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.OutlinedMesh;
+		public const int DEFAULT_MAX_SUBPOLYGONS = 10;
 		public const float DEFAULT_THICKNESS = 1f;
 		public const float DEFAULT_CENTERED_SCALE = 1f;
 
@@ -29,6 +30,11 @@ namespace DavidUtils.Rendering
 		[SerializeField] private Color color = Color.black;
 		[SerializeField] public Color outlineColor = Color.white;
 		[SerializeField] private float thickness = DEFAULT_THICKNESS;
+		
+		// SUBPOLYGONS
+		[Range(1,500)] public int maxSubPolygons = DEFAULT_MAX_SUBPOLYGONS;
+		public Polygon[] subPolygons = Array.Empty<Polygon>();
+		public int SubPolygonCount => subPolygons.Length;
 
 		// SCALE SLIDER
 		[SerializeField] [Range(.2f, 1)]
@@ -149,7 +155,7 @@ namespace DavidUtils.Rendering
 				renderMode is PolygonRenderMode.OutlinedMesh ? outlineColor : color;
 		}
 
-		private void UpdatePolygon()
+		public void UpdatePolygon()
 		{
 			if (_meshFilter == null && _lineRenderer == null) return;
 			if (ProjectedOnTerrain)
@@ -161,9 +167,8 @@ namespace DavidUtils.Rendering
 				if (_meshFilter.sharedMesh == null)
 					_meshFilter.mesh = new Mesh();
 				
-				_meshFilter.sharedMesh.SetPolygon(ScaledPolygon, color);
+				subPolygons = _meshFilter.sharedMesh.SetPolygon(ScaledPolygon, color, maxSubPolygons);
 				_lineRenderer.SetPolygon(ScaledPolygon);
-				_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3().WithZ(-0.01f)));
 			}
 		}
 

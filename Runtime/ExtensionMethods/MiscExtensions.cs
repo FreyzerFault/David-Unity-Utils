@@ -381,6 +381,43 @@ namespace DavidUtils.ExtensionMethods
 				flat[i * m + j] = source[i, j];
 			return flat;
 		}
+		public static float[] Flatten(this float[][] source)
+		{
+			int n = source.GetLength(0);
+			int m = source.GetLength(1);
+			float[] flat = new float[n * m];
+			for (var i = 0; i < n; i++)
+			for (var j = 0; j < m; j++)
+				flat[i * m + j] = source[i][j];
+			return flat;
+		}
+		
+		
+		/// <summary>
+		/// Recorta el array en un rango [i,j] (i y j INCLUIDOS)
+		/// </summary>
+		public static IEnumerable<T> CropRange<T>(this IEnumerable<T> source, int i, int j)
+		{
+			if (j < i) (i, j) = (j, i);
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			if (i < 0 || j < 0 || i >= enumerable.Count() || j >= enumerable.Count())
+				throw new Exception("Crop Caused: Index out of bounds");
+
+			return enumerable.Skip(i).Take(j - i + 1);
+		}
+		
+		/// <summary>
+		/// Recorta el array en un rango [0,i] + [j,^1] (i y j INCLUIDOS)
+		/// </summary>
+		public static IEnumerable<T> CropOutOfRange<T>(this IEnumerable<T> source, int i, int j)
+		{
+			if (j < i) (i, j) = (j, i);
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			if (i < 0 || j < 0 || i >= enumerable.Count() || j >= enumerable.Count())
+				throw new Exception("Crop Caused: Index out of bounds");
+
+			return enumerable.Take(i + 1).Concat(enumerable.Skip(j));
+		}
 
 		#endregion
 

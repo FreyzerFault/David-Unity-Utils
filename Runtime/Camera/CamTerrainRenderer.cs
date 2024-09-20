@@ -18,7 +18,10 @@ namespace DavidUtils.Camera
             _terrain = Terrain.activeTerrain;
             
             if (_terrain == null)
-                throw new Exception("No Active Terrain found for cam to render");
+            {
+                Debug.LogWarning("No Active Terrain found for cam to render");
+                return;
+            }
             
             _cam.orthographic = true;
             _cam.farClipPlane = 10000;
