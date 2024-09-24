@@ -150,7 +150,7 @@ namespace DavidUtils.Geometry
 
 		
 		/// <summary>
-		///		TEST Point is inside Polygon
+		///		TEST Point is inside Triangle
 		///		Uses RayCasting
 		/// </summary>
 		public bool Contains_RayCast(Vector2 point)
@@ -179,7 +179,7 @@ namespace DavidUtils.Geometry
 				: Edges.All(e => GeometryUtils.IsRight(e.begin, e.end, point));
 
 
-		public bool IsOnEdge(Vector2 point) =>
+		public bool IsPointOnEdge(Vector2 point) =>
 			Edges.Any(e => GeometryUtils.IsColinear(e.begin, e.end, point));
 		
 		#endregion

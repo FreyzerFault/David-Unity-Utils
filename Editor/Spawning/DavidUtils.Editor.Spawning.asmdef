@@ -1,19 +1,19 @@
 {
-  "name": "DavidUtils.Editor.Spawning",
-  "rootNamespace": "DavidUtils",
-  "references": [
-    "GUID:12e5aaf5455fd4c4395e8693cfb3da45",
-    "GUID:a7adaf89cbc238348aa7047394acc30d"
-  ],
-  "includePlatforms": [
-    "Editor"
-  ],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "name": "DavidUtils.Editor.Spawning",
+    "rootNamespace": "DavidUtils.Editor.Spawning",
+    "references": [
+        "GUID:12e5aaf5455fd4c4395e8693cfb3da45",
+        "GUID:a7adaf89cbc238348aa7047394acc30d"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

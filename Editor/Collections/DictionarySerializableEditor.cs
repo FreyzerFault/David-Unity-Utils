@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using DavidUtils.Collections;
 using UnityEditor;
-using UnityEngine;
 
 namespace DavidUtils.Editor.Collections
 {

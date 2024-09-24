@@ -1,6 +1,6 @@
 {
-    "name": "DavidUtils.Editor.Geometry.Generators",
-    "rootNamespace": "DavidUtils",
+    "name": "DavidUtils.Editor.Geometry",
+    "rootNamespace": "DavidUtils.Editor.Geometry",
     "references": [
         "GUID:ee5033d011942f74f95beabe88184d56",
         "GUID:503ddd898dfaaed448ebb74d18067b58",

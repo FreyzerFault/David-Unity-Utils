@@ -72,7 +72,7 @@ namespace DavidUtils.Geometry
 			}
 		}
 
-		private static Edge[] VerticesToEdges(Vector2[] verts) =>
+		private static Edge[] VerticesToEdges(IEnumerable<Vector2> verts) =>
 			verts.IsNullOrEmpty()
 				? Array.Empty<Edge>()
 				: verts.IterateByPairs_InLoop((a, b) => new Edge(a, b), false).ToArray();
@@ -84,23 +84,26 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
-		public Polygon(Vector2[] vertices, Edge[] edges, Vector2 centroid)
+		public Polygon(Vector2[] vertices, Edge[] edges, Vector2 centroid, bool cleanInvalidEdges = true)
 		{
 			_vertices = vertices;
 			_edges = edges;
 			this.centroid = centroid;
-			RemoveInvalidEdges();
+			if (cleanInvalidEdges)
+				RemoveInvalidEdges();
 		}
 
-		public Polygon(Vector2[] vertices) : this(vertices, VerticesToEdges(vertices), vertices.Center())
+		public Polygon(Vector2[] vertices, bool cleanInvalidEdges = true) 
+			: this(vertices, VerticesToEdges(vertices), vertices.Center(), cleanInvalidEdges)
 		{
 		}
 
-		public Polygon(Vector2[] vertices, Edge[] edges) : this(vertices, edges, vertices.Center())
+		public Polygon(Vector2[] vertices, Edge[] edges, bool cleanInvalidEdges = true) 
+			: this(vertices, edges, vertices.Center(), cleanInvalidEdges)
 		{
 		}
 
-		public Polygon(Edge[] edges) : this(EdgesToVertices(edges), edges)
+		public Polygon(Edge[] edges, bool cleanInvalidEdges = true) : this(EdgesToVertices(edges), edges, cleanInvalidEdges)
 		{
 		}
 
@@ -366,7 +369,7 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Polygon[] OptimalConvexDecomposition(int maxSubPolygons = 10)
 		{
-		    if (IsEmpty || maxSubPolygons < 2) return new[] { this };
+		    if (IsEmpty || maxSubPolygons < 2 || IsConvex()) return Array.Empty<Polygon>();
 
 		    List<Polygon> convexPolygons = new List<Polygon>();
 		    Stack<Polygon> stack = new Stack<Polygon>();
@@ -404,42 +407,82 @@ namespace DavidUtils.Geometry
 			// Para buscar el maximo poligono CONVEXO a partir de el vertice i
 			for (var i = 0; i < _vertices.Length; i++)
 			{
+				int a = i, b = (i + 1) % VertexCount, c = (i + 2) % VertexCount;
+				
 				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
-				var tri = new Triangle(_vertices[i], _vertices[(i + 1) % VertexCount], _vertices[(i + 2) % VertexCount]);
-				if (tri.IsCW() || _vertices.CropOutOfRange((i-1 + VertexCount) % VertexCount, (i+3) % VertexCount).Any(v => tri.Contains_CrossProd(v) || tri.IsOnEdge(v))) continue;
+				var tri = new Triangle(_vertices[a], _vertices[b], _vertices[c]);
+				List<Vector2> outOfConvexPolyVertices =
+					c > i
+						? _vertices.Skip(c + 1).Concat(_vertices.Take(a)).ToList()
+						: _vertices.Take(a).Skip(c + 1).ToList();
+				
+				if (tri.IsCW() || outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v) || tri.IsPointOnEdge(v)))
+					continue;
 		        
-				// Comprobamos si el siguiente vertice j2 hace que el poligono deje de ser CONVEXO:
-				// Deben ser CCW el Tri [j, j+1, j+2], el Tri [j+1, j+2, i] y el Tri [j+2, i, i+1]
+				List<Vector2> convexPolyVertices = new List<Vector2>(tri.Vertices);
+				
+				// Comprobamos si el siguiente vertice c hace que el poligono deje de ser CONVEXO:
+				// Deben ser CCW el Tri [a,b,c], el Tri [b,c,i] y el Tri [c,i,i+1]
 				// O contenga un punto del restante poligono
-				int j = i, j1, j2;
-				Polygon convexPolygon;
-				bool isConvex, hasAnyPointInside = false;
+				bool isConcave, hasAnyPointInside = false;
 				do
 				{
-					j++;
-					j1 = (j + 1) % VertexCount;
-					j2 = (j + 2) % VertexCount;
-					int i1 = (i + 1) % VertexCount;
+					a++;
+					b++;
+					c++;
+					a %= VertexCount;
+					b %= VertexCount;
+					c %= VertexCount;
 					
-					isConvex =
-						new Triangle(_vertices[j], _vertices[j1], _vertices[j2]).IsCCW()
-					&& new Triangle(_vertices[j1], _vertices[j2], _vertices[i]).IsCCW()
-					&& new Triangle(_vertices[j2], _vertices[i], _vertices[i1]).IsCCW();
+					isConcave =
+						GeometryUtils.IsRight(_vertices[a], _vertices[b], _vertices[c])
+						|| GeometryUtils.IsRight(_vertices[b], _vertices[c], _vertices[i])
+						|| GeometryUtils.IsRight(_vertices[c], _vertices[i], _vertices[(i + 1) % VertexCount]);
 
-					if (isConvex)
+					// Checkeamos si hay puntos dentro del nuevo Polygon SOLO si es Convexo
+					if (!isConcave)
 					{
-						// Checkeamos si hay puntos dentro SOLO si es Convexo
-						convexPolygon = new Polygon(_vertices.CropRange(i, j2).ToArray());
+						// Cogemos el siguiente punto de fuera del Poligono Convexo
+						convexPolyVertices.Add(outOfConvexPolyVertices[0]);
+						outOfConvexPolyVertices.RemoveAt(0);
 
-						var outOfConvexVertices =
-							_vertices.CropOutOfRange((j2 + 1) % VertexCount, (i - 1 + VertexCount) % VertexCount);
-						hasAnyPointInside = outOfConvexVertices.Any(v => convexPolygon.Contains_CrossProd(v) || tri.IsOnEdge(v));
+						// Basta con comprobar si hay punto solo en la region nueva
+						// que se añade al poligono al añadir el vertice c
+						// Esta region es el Triangulo [b,c,i]
+						var newTri = new Triangle(_vertices[b], _vertices[c], _vertices[i]);
+						
+						// Si hay algun punto dentro o colinear con un Eje, no es Válido
+						hasAnyPointInside = outOfConvexPolyVertices.Any(v =>
+							newTri.Contains_CrossProd(v) || newTri.IsPointOnEdge(v));
+						
+						if (hasAnyPointInside)
+						{
+							// Devuelve el punto al poligono original
+							outOfConvexPolyVertices.Insert(0, convexPolyVertices.Last());
+							convexPolyVertices.RemoveAt(convexPolyVertices.Count - 1);
+						}
 					}
-					if (!isConvex || hasAnyPointInside) j2--;
-				} while ((j2 + 1) % VertexCount != i && isConvex && !hasAnyPointInside);
+
+					if (isConcave || hasAnyPointInside)
+					{
+						// Si deja de ser Convexo o tiene vertices dentro, deshacemos el desplazamiento
+						a--;
+						b--;
+						c--;
+						a = a < 0 ? VertexCount - 1 : a;
+						b = b < 0 ? VertexCount - 1 : b;
+						c = c < 0 ? VertexCount - 1 : c;
+					}
+				} while ((c + 1) % VertexCount != i && !isConcave && !hasAnyPointInside);
 		        
-				convexPolygon = new Polygon(_vertices.CropRange(i, j2).ToArray());
-				Polygon croppedPolygon = new Polygon(_vertices.CropOutOfRange(i, j2).ToArray());
+				outOfConvexPolyVertices.InsertRange(0, new []{_vertices[i], _vertices[c]});
+				var croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
+				
+				var convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
+				
+				// Debug.Log($"Polygon splited from {i} to {c} => {_vertices[i]} to {_vertices[c]}\n" +
+				//           $"Convex Poly: {convexPolygon}\n" +
+				//           $"Polygon Restante: {croppedPolygon}");
 
 				return (convexPolygon, croppedPolygon);
 			}
@@ -524,6 +567,9 @@ namespace DavidUtils.Geometry
 			return contains;
 		}
 		
+		public bool IsPointOnEdge(Vector2 point) =>
+			_edges.Any(e => GeometryUtils.IsColinear(e.begin, e.end, point));
+		
 		
 		/// <summary>
 		///     Indices de los vertices mas cercanos de dos poligonos que no se intersectan
@@ -550,12 +596,12 @@ namespace DavidUtils.Geometry
 		
 		#region MESH
 
-		public (Triangle[], Polygon[]) Triangulate(int maxSubPolygons = 10)
+		public (Triangle[], Polygon[]) TriangulateConcave(int maxSubPolygons = 10)
 		{
 			if (IsEmpty) return (Array.Empty<Triangle>(), Array.Empty<Polygon>());
 
 			Polygon[] subpolygons = OptimalConvexDecomposition(maxSubPolygons);
-			Triangle[] tris = IsConvex()
+			Triangle[] tris = subpolygons.IsNullOrEmpty()
 				? TriangulateConvex()
 				: subpolygons.SelectMany(p => p.TriangulateConvex()).ToArray();
 			
@@ -566,7 +612,7 @@ namespace DavidUtils.Geometry
 		///     Triangula creando un triangulo por arista, siendo el centroide el tercer vertice
 		///		Solo funciona bien con Convex Polygons
 		/// </summary>
-		private Triangle[] TriangulateConvex()
+		public Triangle[] TriangulateConvex()
 		{
 			Vector2 c = centroid;
 			return IsEmpty

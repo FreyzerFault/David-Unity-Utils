@@ -49,7 +49,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 		// POLYGON => TRIANGLEs => MESH
 		public static Mesh CreateMesh(this Polygon polygon, Color color = default)
 		{
-			(Triangle[] tris, _) = polygon.Triangulate();
+			(Triangle[] tris, _) = polygon.TriangulateConcave();
 			return CreateMesh(tris, color);
 		}
 

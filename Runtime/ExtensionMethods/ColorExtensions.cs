@@ -78,15 +78,34 @@ namespace DavidUtils.ExtensionMethods
 
 		#endregion
 
+		#region SATURATION (HSV)
+
+		private const float DefaultSaturationOffset = 0.0625f;
+
+		public static Color Desaturate(this Color color, float? saturationAmount = null) =>
+			color.OffsetSaturation(-saturationAmount ?? DefaultSaturationOffset);
+
+		public static Color Saturate(this Color color, float? saturationAmount = null) =>
+			color.OffsetSaturation(saturationAmount ?? DefaultSaturationOffset);
+
+		private static Color OffsetSaturation(this Color color, float offset)
+		{
+			// RGB -> HSV -> RGB
+			Color.RGBToHSV(color, out float h, out float s, out float v);
+			return Color.HSVToRGB(h, Mathf.Clamp01(s + offset), v);
+		}
+
+		#endregion
+		
 		#region VALUE (HSV)
 
-		private const float DefaultLightOffset = 0.0625f;
+		private const float DefaultValueOffset = 0.0625f;
 
-		public static Color Darken(this Color color, float? darkenAmount = null) =>
-			color.OffsetValue(-darkenAmount ?? DefaultLightOffset);
+		public static Color Darken(this Color color, float? saturationAmount = null) =>
+			color.OffsetValue(-saturationAmount ?? DefaultValueOffset);
 
 		public static Color Lighten(this Color color, float? lightenAmount = null) =>
-			color.OffsetValue(lightenAmount ?? DefaultLightOffset);
+			color.OffsetValue(lightenAmount ?? DefaultValueOffset);
 
 		private static Color OffsetValue(this Color color, float offset)
 		{
@@ -96,6 +115,7 @@ namespace DavidUtils.ExtensionMethods
 		}
 
 		#endregion
+		
 
 		#region ALPHA
 

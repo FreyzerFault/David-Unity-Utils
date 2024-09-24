@@ -1,6 +1,6 @@
 {
     "name": "DavidUtils.Editor.Shaders",
-    "rootNamespace": "",
+    "rootNamespace": "DavidUtils.Editor.Shaders",
     "references": [],
     "includePlatforms": [
         "Editor"

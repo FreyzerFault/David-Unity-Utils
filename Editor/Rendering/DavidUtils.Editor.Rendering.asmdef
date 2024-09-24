@@ -1,9 +1,8 @@
 {
-    "name": "DavidUtils.Editor.Collections",
-    "rootNamespace": "DavidUtils.Editor.Collections",
+    "name": "DavidUtils.Editor.Rendering",
+    "rootNamespace": "DavidUtils.Editor.Rendering",
     "references": [
-        "GUID:1de54e2660c50e240a313b72af0f033d",
-        "GUID:e2da289279c1b95469360a140ad6c5ef"
+        "GUID:d669cf2902a8869439680399c06dfbf0"
     ],
     "includePlatforms": [
         "Editor"

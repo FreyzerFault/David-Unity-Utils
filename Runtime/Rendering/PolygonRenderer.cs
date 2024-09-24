@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -32,9 +35,9 @@ namespace DavidUtils.Rendering
 		[SerializeField] private float thickness = DEFAULT_THICKNESS;
 		
 		// SUBPOLYGONS
-		[Range(1,500)] public int maxSubPolygons = DEFAULT_MAX_SUBPOLYGONS;
-		public Polygon[] subPolygons = Array.Empty<Polygon>();
-		public int SubPolygonCount => subPolygons.Length;
+		[FormerlySerializedAs("maxSubPolygons")] [Range(1,500)] public int maxSubPolygonsPerFrame = DEFAULT_MAX_SUBPOLYGONS;
+		[HideInInspector] public List<Polygon> subPolygons = new();
+		public int SubPolygonCount => subPolygons.Count;
 
 		// SCALE SLIDER
 		[SerializeField] [Range(.2f, 1)]
@@ -59,15 +62,21 @@ namespace DavidUtils.Rendering
 			_lineRenderer.material = Resources.Load<Material>("UI/Materials/Line Material");
 			_meshRenderer.material = Resources.Load<Material>("Materials/Geometry Unlit");
 			
-			UpdateAllProperties();
 		}
 
+		private bool isOnValidate = false;
 		private void OnValidate()
 		{
-			if (isActiveAndEnabled) UpdateAllProperties();
+			if (!isActiveAndEnabled) return;
+			isOnValidate = true;
+			UpdateAllProperties();
+			isOnValidate = false;
 		}
 
-		protected virtual void OnEnable() => UpdateAllProperties();
+		protected virtual void OnEnable()
+		{
+			UpdateAllProperties();
+		}
 
 		public void UpdateAllProperties()
 		{
@@ -78,7 +87,11 @@ namespace DavidUtils.Rendering
 			UpdateTerrainProjection();
 		}
 
-		public virtual void Clear() => Polygon = Polygon.Empty;
+		public virtual void Clear()
+		{
+			Polygon = Polygon.Empty;
+			UnityUtils.DestroySafe(subPolyRenderers);
+		}
 
 
 		#region MODIFIABLE PROPERTIES
@@ -167,8 +180,30 @@ namespace DavidUtils.Rendering
 				if (_meshFilter.sharedMesh == null)
 					_meshFilter.mesh = new Mesh();
 				
-				subPolygons = _meshFilter.sharedMesh.SetPolygon(ScaledPolygon, color, maxSubPolygons);
 				_lineRenderer.SetPolygon(ScaledPolygon);
+
+				if (Application.isPlaying)
+				{
+					IEnumerator subPolygonCoroutine = _meshFilter.sharedMesh.SetPolygonConcaveCoroutine(
+						(sp) =>
+						{
+							subPolygons = sp;
+							UpdateSubPolygons();
+						},
+						() =>
+						{
+							
+						},
+						ScaledPolygon, color, maxSubPolygonsPerFrame);
+					StartCoroutine(subPolygonCoroutine);
+				}
+				else
+				{
+					subPolygons = _meshFilter.sharedMesh.SetPolygonConcave(ScaledPolygon, color, 200).ToList();
+				}
+				
+				
+				UpdateSubPolygons();
 			}
 		}
 
@@ -246,21 +281,123 @@ namespace DavidUtils.Rendering
 			float thickness = DEFAULT_THICKNESS,
 			float centeredScale = DEFAULT_CENTERED_SCALE,
 			bool projectOnTerrain = false,
-			float terrainHeightOffset = 0.1f
+			float terrainHeightOffset = 0.1f,
+			Color? outlineColor = null,
+			int maxSubPolygonsForMesh = 0
 		)
 		{
 			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
 			polygonRenderer.polygon = polygon;
 			polygonRenderer.color = color ?? Color.white;
+			polygonRenderer.outlineColor = outlineColor ?? Color.black;
 			polygonRenderer.thickness = thickness;
 			polygonRenderer.renderMode = renderMode;
 			polygonRenderer.centeredScale = centeredScale;
 			polygonRenderer.projectedOnTerrain = projectOnTerrain;
 			polygonRenderer.terrainHeightOffset = terrainHeightOffset;
+			polygonRenderer.maxSubPolygonsPerFrame = maxSubPolygonsForMesh;
 
 			polygonRenderer.UpdateAllProperties();
 
 			return polygonRenderer;
+		}
+
+		#endregion
+
+
+		#region DEBUG
+		
+		PolygonRenderer[] subPolyRenderers = Array.Empty<PolygonRenderer>();
+		private bool showSubPolygons = false;
+
+		public bool ShowSubPolygons
+		{
+			get => showSubPolygons;
+			set
+			{
+				if (showSubPolygons == value) return;
+				showSubPolygons = value;
+				UpdateSubPolygons();
+			}
+		}
+		
+		private void Update()
+		{
+			if (!Application.isPlaying) DestroyQueue();
+			if (showSubPolygons && subPolyRenderers.Length != SubPolygonCount) UpdateSubPolygons();
+		}
+
+		private void UpdateSubPolygons()
+		{
+			subPolyRenderers = GetComponentsInChildren<PolygonRenderer>().Where(pr => pr != this).ToArray();
+			
+			if (showSubPolygons)
+			{
+				if (SubPolygonCount > 0)
+				{
+					_lineRenderer.enabled = false;
+					_meshRenderer.enabled = false;
+					
+					if (subPolyRenderers.IsNullOrEmpty() || SubPolygonCount != subPolyRenderers.Length)
+						InstantiateSubPolyRenderers();
+					else
+						subPolyRenderers.ForEach((spr, i) => spr.Polygon = subPolygons[i]);
+				}
+				else
+				{
+					CleanSubPolyRenderers();
+				}
+			}
+			else
+			{
+				if (subPolyRenderers.NotNullOrEmpty())
+					CleanSubPolyRenderers();
+				
+				_lineRenderer.enabled = true;
+				_meshRenderer.enabled = true;
+				UpdateRenderMode();
+			}
+		}
+
+		private void InstantiateSubPolyRenderers()
+		{
+			if (SubPolygonCount == 0) return;
+			
+			// Clean ALL
+			if (subPolyRenderers.NotNullOrEmpty())
+				CleanSubPolyRenderers();
+
+			var colors = Color.red.GetRainBowColors(SubPolygonCount).Reverse().ToArray();
+
+			subPolyRenderers = subPolygons
+				.Select((p, i) => 
+					Instantiate(p, transform, $"SubPolygon_{i}", PolygonRenderMode.OutlinedMesh, colors[i].Desaturate(0.1f), 0.1f, 1, ProjectedOnTerrain, terrainHeightOffset, Color.black, 0))
+				.ToArray();
+		}
+
+		private void CleanSubPolyRenderers()
+		{
+			if (subPolyRenderers.IsNullOrEmpty()) return;
+			if (isOnValidate && !Application.isPlaying)
+				queuedForDestruction = subPolyRenderers.Select(spr => spr.gameObject).ToArray();
+			else
+				UnityUtils.DestroySafe(subPolyRenderers);
+			subPolyRenderers = Array.Empty<PolygonRenderer>();
+		}
+
+		#endregion
+
+
+		#region DESTRUCTION QUEUE
+
+		// Necesito encolar la destruccion en Update cuando quiera destruir algo en OnValidate y no esté en modo Play
+		private GameObject[] queuedForDestruction;
+
+
+		private void DestroyQueue()
+		{
+			queuedForDestruction?.ForEach(DestroyImmediate);
+			queuedForDestruction = Array.Empty<GameObject>();
 		}
 
 		#endregion

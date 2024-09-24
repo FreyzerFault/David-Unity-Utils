@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using DavidUtils.ExtensionMethods;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
@@ -16,6 +18,10 @@ namespace DavidUtils
 
 		public static void DestroySafe(Component comp) => DestroySafe(comp.gameObject);
 		public static void DestroySafe(GameObject obj) => Destroy(obj);
+		public static void DestroySafe(IEnumerable<GameObject> objs) => objs.ForEach(DestroySafe);
+		public static void DestroySafe(IEnumerable<Component> objs) => objs.ForEach(DestroySafe);
+		public static void DestroySafe(IEnumerable<MonoBehaviour> objs) => objs.ForEach(DestroySafe);
+		
 		private static Action<GameObject> Destroy => Application.isPlaying ? Object.Destroy : Object.DestroyImmediate;
 
 		/// <summary>
