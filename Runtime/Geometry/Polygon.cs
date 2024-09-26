@@ -4,51 +4,48 @@ using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
-using NUnit.Framework;
 using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
 	[Serializable]
-	public struct Polygon : IEquatable<Polygon>
+	public class Polygon : IEquatable<Polygon>
 	{
-		// 1 Vertex => (0,0)
-		public static Polygon Empty => new(new[] {Vector2.zero});
-
 		// Vertices in Counter-Clockwise order
 		[SerializeField]
-		private Vector2[] _vertices;
+		private Vector2[] vertices;
 		public Vector2 centroid;
 
 		// Empty or 1 single vertex
-		public bool IsEmpty => _vertices.IsNullOrEmpty() || _vertices.Length == 1;
+		public bool IsEmpty => vertices.IsNullOrEmpty();
 
 		public Vector2[] Vertices
 		{
-			get => _vertices ?? Array.Empty<Vector2>();
+			get => vertices ?? Array.Empty<Vector2>();
 			set
 			{
-				if (_vertices == value) return;
-				_vertices = value;
+				if (vertices == value) return;
+				vertices = value;
 				_edges = VerticesToEdges(value);
 				centroid = value.Center();
 				RemoveInvalidEdges();
 			}
 		}
-		public int VertexCount => _vertices?.Length ?? 0;
+		public int VertexCount => vertices?.Length ?? 0;
 		
 		public Vector2[] VerticesFromCentroid
 		{
 			get
 			{
 				Vector2 c = centroid;
-				return _vertices?.Select(v => v - c).ToArray();
+				return vertices?.Select(v => v - c).ToArray();
 			}
 		}
 
 
 		#region EDGES
 
+		[HideInInspector]
 		[SerializeField]
 		private Edge[] _edges;
 		public Edge[] Edges
@@ -58,8 +55,8 @@ namespace DavidUtils.Geometry
 			{
 				if (_edges == value) return;
 				_edges = value;
-				_vertices = EdgesToVertices(value);
-				centroid = _vertices.Center();
+				vertices = EdgesToVertices(value);
+				centroid = vertices.Center();
 				RemoveInvalidEdges();
 			}
 		}
@@ -84,9 +81,11 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		public Polygon() : this(Array.Empty<Vector2>()) { }
+
 		public Polygon(Vector2[] vertices, Edge[] edges, Vector2 centroid, bool cleanInvalidEdges = true)
 		{
-			_vertices = vertices;
+			this.vertices = vertices;
 			_edges = edges;
 			this.centroid = centroid;
 			if (cleanInvalidEdges)
@@ -95,8 +94,7 @@ namespace DavidUtils.Geometry
 
 		public Polygon(Vector2[] vertices, bool cleanInvalidEdges = true) 
 			: this(vertices, VerticesToEdges(vertices), vertices.Center(), cleanInvalidEdges)
-		{
-		}
+		{ }
 
 		public Polygon(Vector2[] vertices, Edge[] edges, bool cleanInvalidEdges = true) 
 			: this(vertices, edges, vertices.Center(), cleanInvalidEdges)
@@ -118,7 +116,7 @@ namespace DavidUtils.Geometry
 		public float Area => .5f * DoubleArea;
 
 		// No 1/2 para cuando necesito solo el signo
-		public float DoubleArea => _vertices
+		public float DoubleArea => vertices
 			.IterateByPairs_InLoop((v1, v2) => v1.x * v2.y - v2.x * v1.y)
 			.Sum();
 
@@ -139,7 +137,7 @@ namespace DavidUtils.Geometry
 		///		Elimina Vertices duplicados
 		/// </summary>
 		public void RemoveDuplicates() => 
-			Vertices = _vertices.Distinct().ToArray();
+			Vertices = vertices.Distinct().ToArray();
 
 		/// <summary>
 		///     Quita las aristas invalidas (colineales que van y vuelven, generando area nula)
@@ -160,16 +158,16 @@ namespace DavidUtils.Geometry
 
 		public Polygon NormalizeMinMax(Vector2 min, Vector2 max)
 		{
-			return new Polygon(_vertices.Select(v =>
+			return new Polygon(vertices.Select(v =>
 				new Vector2(
 					Mathf.InverseLerp(min.x, max.x, v.x),
 					Mathf.InverseLerp(min.y, max.y, v.y)
 				)).ToArray());
 		}
 		
-		public Polygon Revert() => new(_vertices.Reverse().ToArray());
+		public Polygon Revert() => new(vertices.Reverse().ToArray());
 
-		public Polygon SortCCW() => new(_vertices.SortByAngle(centroid).ToArray());
+		public Polygon SortCCW() => new(vertices.SortByAngle(centroid).ToArray());
 
 		/// <summary>
 		///     Escala el polígono con centro en su centroide
@@ -191,7 +189,7 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Polygon InteriorPolygon(Vector2 margin2D)
 		{
-			if (IsEmpty) return Empty;
+			if (IsEmpty) return this;
 			
 			// Genero las Aristas paralelas a la distancia dada
 			List<Edge> parallels = _edges.Select(e => e.ParallelLeft(new Vector2(margin2D.x, margin2D.y))).ToList();
@@ -261,7 +259,7 @@ namespace DavidUtils.Geometry
 			Polygon autoIntersectedPolygon = AddAutoIntersections(out List<Vector2> intersections);
 
 			// Si no hay intersecciones lo devolvemos tal cual
-			if (autoIntersectedPolygon._vertices.Length == _vertices.Length) return this;
+			if (autoIntersectedPolygon.vertices.Length == vertices.Length) return this;
 
 			Polygon[] polygons = autoIntersectedPolygon.SplitAutoIntersectedPolygons(intersections);
 
@@ -378,6 +376,7 @@ namespace DavidUtils.Geometry
 		    while (stack.Count > 0 && convexPolygons.Count < maxSubPolygons - 1)
 		    {
 		        Polygon poly = stack.Pop();
+		        if (poly == null) continue;
 		        if (poly.IsConvex())
 		        {
 		            convexPolygons.Add(poly);
@@ -385,8 +384,8 @@ namespace DavidUtils.Geometry
 		        else
 		        {
 		            (Polygon convexPolygon, Polygon croppedPolygon) = poly.SplitConvex();
-		            convexPolygons.Add(convexPolygon);
-		            stack.Push(croppedPolygon);
+		            if (convexPolygon != null) convexPolygons.Add(convexPolygon);
+		            if (croppedPolygon != null) stack.Push(croppedPolygon);
 		        }
 		    }
 
@@ -405,16 +404,16 @@ namespace DavidUtils.Geometry
 			// Podemos añadir los siguientes vertices hasta que deje de ser CONVEXO
 			// O contenga un punto del poligono restante
 			// Para buscar el maximo poligono CONVEXO a partir de el vertice i
-			for (var i = 0; i < _vertices.Length; i++)
+			for (var i = 0; i < vertices.Length; i++)
 			{
 				int a = i, b = (i + 1) % VertexCount, c = (i + 2) % VertexCount;
 				
 				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
-				var tri = new Triangle(_vertices[a], _vertices[b], _vertices[c]);
+				var tri = new Triangle(vertices[a], vertices[b], vertices[c]);
 				List<Vector2> outOfConvexPolyVertices =
 					c > i
-						? _vertices.Skip(c + 1).Concat(_vertices.Take(a)).ToList()
-						: _vertices.Take(a).Skip(c + 1).ToList();
+						? vertices.Skip(c + 1).Concat(vertices.Take(a)).ToList()
+						: vertices.Take(a).Skip(c + 1).ToList();
 				
 				if (tri.IsCW() || outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v) || tri.IsPointOnEdge(v)))
 					continue;
@@ -435,9 +434,9 @@ namespace DavidUtils.Geometry
 					c %= VertexCount;
 					
 					isConcave =
-						GeometryUtils.IsRight(_vertices[a], _vertices[b], _vertices[c])
-						|| GeometryUtils.IsRight(_vertices[b], _vertices[c], _vertices[i])
-						|| GeometryUtils.IsRight(_vertices[c], _vertices[i], _vertices[(i + 1) % VertexCount]);
+						GeometryUtils.IsRight(vertices[a], vertices[b], vertices[c])
+						|| GeometryUtils.IsRight(vertices[b], vertices[c], vertices[i])
+						|| GeometryUtils.IsRight(vertices[c], vertices[i], vertices[(i + 1) % VertexCount]);
 
 					// Checkeamos si hay puntos dentro del nuevo Polygon SOLO si es Convexo
 					if (!isConcave)
@@ -449,7 +448,7 @@ namespace DavidUtils.Geometry
 						// Basta con comprobar si hay punto solo en la region nueva
 						// que se añade al poligono al añadir el vertice c
 						// Esta region es el Triangulo [b,c,i]
-						var newTri = new Triangle(_vertices[b], _vertices[c], _vertices[i]);
+						var newTri = new Triangle(vertices[b], vertices[c], vertices[i]);
 						
 						// Si hay algun punto dentro o colinear con un Eje, no es Válido
 						hasAnyPointInside = outOfConvexPolyVertices.Any(v =>
@@ -475,7 +474,7 @@ namespace DavidUtils.Geometry
 					}
 				} while ((c + 1) % VertexCount != i && !isConcave && !hasAnyPointInside);
 		        
-				outOfConvexPolyVertices.InsertRange(0, new []{_vertices[i], _vertices[c]});
+				outOfConvexPolyVertices.InsertRange(0, new []{vertices[i], vertices[c]});
 				var croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
 				
 				var convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
@@ -487,7 +486,10 @@ namespace DavidUtils.Geometry
 				return (convexPolygon, croppedPolygon);
 			}
 			
-		    throw new InvalidOperationException("No convex subpolygon found, polygon might be degenerate.");
+			Debug.LogError("No convex subpolygon found, polygon might be degenerate.\n" +
+			               $"{VertexCount} vertices\n" +
+			               $"{this}");
+			return (null, this);
 		}
 		
 		#endregion
@@ -511,9 +513,9 @@ namespace DavidUtils.Geometry
 			// Al unirlos se conectan a y b y termina en b, loopeando en a
 			(int i1, int i2) = GetNearestPoints_Indices(other);
 			return new Polygon(
-				_vertices.Skip(i1)
-					.Concat(_vertices.Take(i1 + 1)) // a -> a
-					.Concat(other._vertices.Skip(i2).Concat(other._vertices.Take(i2 + 1))) // b -> b
+				vertices.Skip(i1)
+					.Concat(vertices.Take(i1 + 1)) // a -> a
+					.Concat(other.vertices.Skip(i2).Concat(other.vertices.Take(i2 + 1))) // b -> b
 					.ToArray()
 			);
 		}
@@ -523,8 +525,8 @@ namespace DavidUtils.Geometry
 
 		#region TESTS
 
-		public bool IsConvex() => _vertices.IsConvex();
-		public bool IsConcave() => _vertices.IsConcave();
+		public bool IsConvex() => vertices.IsConvex();
+		public bool IsConcave() => vertices.IsConcave();
 
 		/// <summary>
 		///     Puntos mas cercanos de dos poligonos que no se intersectan
@@ -533,7 +535,7 @@ namespace DavidUtils.Geometry
 		{
 			(int i1, int i2) = GetNearestPoints_Indices(other);
 			if (i1 == -1 || i2 == -1) return null;
-			return (_vertices[i1], other._vertices[i2]);
+			return (vertices[i1], other.vertices[i2]);
 		}
 
 		/// <summary>
@@ -578,10 +580,10 @@ namespace DavidUtils.Geometry
 		{
 			int i1 = -1, i2 = -1;
 			var minDist = float.MaxValue;
-			for (var i = 0; i < _vertices.Length; i++)
-			for (var j = 0; j < other._vertices.Length; j++)
+			for (var i = 0; i < vertices.Length; i++)
+			for (var j = 0; j < other.vertices.Length; j++)
 			{
-				float dist = Vector2.Distance(_vertices[i], other._vertices[j]);
+				float dist = Vector2.Distance(vertices[i], other.vertices[j]);
 				if (minDist < dist) continue;
 				minDist = dist;
 				i1 = i;
@@ -603,7 +605,7 @@ namespace DavidUtils.Geometry
 			Polygon[] subpolygons = OptimalConvexDecomposition(maxSubPolygons);
 			Triangle[] tris = subpolygons.IsNullOrEmpty()
 				? TriangulateConvex()
-				: subpolygons.SelectMany(p => p.TriangulateConvex()).ToArray();
+				: subpolygons.SelectMany(p => p == null ? Array.Empty<Triangle>() : p.TriangulateConvex()).ToArray();
 			
 			return (tris, subpolygons);
 		}
@@ -618,7 +620,7 @@ namespace DavidUtils.Geometry
 			return IsEmpty
 				? Array.Empty<Triangle>()
 				: VertexCount == 3 
-					? new [] { new Triangle(_vertices) } 
+					? new [] { new Triangle(vertices) } 
 					: Edges.Select(e => new Triangle(e.begin, e.end, c)).ToArray();
 		}
 
@@ -634,9 +636,9 @@ namespace DavidUtils.Geometry
 			Matrix4x4 mTRS, float thickness = 1, Color color = default, bool projectOnTerrain = false
 		)
 		{
-			if (_vertices.IsNullOrEmpty()) return;
+			if (vertices.IsNullOrEmpty()) return;
 
-			Vector3[] verticesInWorld = mTRS.MultiplyPoint3x4(_vertices).ToArray();
+			Vector3[] verticesInWorld = mTRS.MultiplyPoint3x4(vertices).ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygonWire_OnTerrain(verticesInWorld, thickness, color);
@@ -648,9 +650,9 @@ namespace DavidUtils.Geometry
 			Matrix4x4 mTRS, Color color = default, Color? outlineColor = null, bool projectOnTerrain = false
 		)
 		{
-			if (_vertices.IsNullOrEmpty()) return;
+			if (vertices.IsNullOrEmpty()) return;
 
-			Vector3[] verticesInWorld = mTRS.MultiplyPoint3x4(_vertices).ToArray();
+			Vector3[] verticesInWorld = mTRS.MultiplyPoint3x4(vertices).ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color, outlineColor ?? color);
@@ -661,7 +663,7 @@ namespace DavidUtils.Geometry
 		public void DrawGizmosVertices(Matrix4x4 localToWorldMatrix, Color color = default, float radius = .1f)
 		{
 			Gizmos.color = color;
-			_vertices.ForEach(
+			vertices.ForEach(
 				v =>
 					Gizmos.DrawSphere(
 						localToWorldMatrix.MultiplyPoint3x4(v),
@@ -671,7 +673,7 @@ namespace DavidUtils.Geometry
 		}
 
 		public void DrawGizmosVertices_CheckAABBborder(Matrix4x4 localToWorldMatrix, float radius = .1f) =>
-			_vertices.ForEach(
+			vertices.ForEach(
 				v =>
 				{
 					bool inBorder = AABB_2D.NormalizedAABB.PointOnBorder(v, out _);
@@ -686,19 +688,19 @@ namespace DavidUtils.Geometry
 		#endregion
 
 		
-		public bool Equals(Polygon other) => Equals(_vertices, other._vertices) && centroid.Equals(other.centroid);
+		public bool Equals(Polygon other) => Equals(vertices, other.vertices) && centroid.Equals(other.centroid);
 
 		public override bool Equals(object obj) => obj is Polygon other && Equals(other);
 
-		public override int GetHashCode() => HashCode.Combine(_vertices, centroid);
+		public override int GetHashCode() => HashCode.Combine(vertices, centroid);
 
 		public override string ToString() =>
-			$"{VertexCount} vertices: {string.Join(", ", _vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
+			$"{VertexCount} vertices: {string.Join(", ", vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
 			$"Centroid: {centroid}";
 
 		public Texture2D ToTexture(Vector2 texSize)
 		{
-			AABB_2D	aabb = new(_vertices);
+			AABB_2D	aabb = new(vertices);
 			Vector2 aabbSize = new Vector2(aabb.Size.x, aabb.Size.y);
 			Color[] pixels = new Color[Mathf.CeilToInt(texSize.x) * Mathf.CeilToInt(texSize.y)];
 			for (var y = 0; y < Mathf.CeilToInt(texSize.y); y++)

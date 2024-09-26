@@ -143,7 +143,7 @@ namespace DavidUtils.Rendering
 			renderObjs[i].Polygon = polygon;
 			
 			// Project on TERRAIN
-			if (ProjectedOnTerrain) renderObjs[i].ProjectOnTerrain(terrainHeightOffset);
+			if (ProjectedOnTerrain) renderObjs[i].ProjectedOnTerrain = true;
 		}
 
 

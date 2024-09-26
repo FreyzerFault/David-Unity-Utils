@@ -257,7 +257,7 @@ namespace DavidUtils.Geometry.Generators
 		private void InitializeSelectedRenderer()
 		{
 			selectedRenderer ??= PolygonRenderer.Instantiate(
-				Polygon.Empty,
+				new Polygon(),
 				transform,
 				"Selected Polygon",
 				RenderMode.Wire,
@@ -267,7 +267,7 @@ namespace DavidUtils.Geometry.Generators
 				true
 			);
 			hoverRenderer ??= PolygonRenderer.Instantiate(
-				Polygon.Empty,
+				new Polygon(),
 				transform,
 				"Hover Polygon",
 				RenderMode.Wire,
@@ -297,8 +297,8 @@ namespace DavidUtils.Geometry.Generators
 			hoverRenderer.transform.localPosition += Vector3.up * 1f;
 		}
 
-		private void UpdateHoverRenderer() => hoverRenderer.Polygon = MousePolygon ?? Polygon.Empty;
-		private void UpdateSelectedRenderer() => selectedRenderer.Polygon = SelectedPolygon ?? Polygon.Empty;
+		private void UpdateHoverRenderer() => hoverRenderer.Polygon = MousePolygon ?? new Polygon();
+		private void UpdateSelectedRenderer() => selectedRenderer.Polygon = SelectedPolygon ?? new Polygon();
 
 		#endregion
 

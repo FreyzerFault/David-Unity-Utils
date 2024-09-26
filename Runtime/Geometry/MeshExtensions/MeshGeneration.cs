@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Codice.Client.Common;
 using DavidUtils.ExtensionMethods;
@@ -17,7 +18,10 @@ namespace DavidUtils.Geometry.MeshExtensions
 			var indices = new int[trisEnum.Count() * 3].FillBy(i => i);
 			
 			var vertices = 
-				trisEnum.SelectMany((t, i) => new Vector3[] { t.v3, t.v2, t.v1 });
+				trisEnum.SelectMany((t, i) =>
+					t == null
+						? Array.Empty<Vector3>()
+						: new Vector3[] { t.v3, t.v2, t.v1 });
 
 			var mesh = new Mesh
 			{
@@ -30,7 +34,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 
 			mesh.normals = mesh.vertices.Select(v => Vector3.back).ToArray();
 
-			mesh.bounds = trisEnum.SelectMany(t => t.Vertices).GetBoundingBox();
+			mesh.bounds = trisEnum.SelectMany(t => t == null ? Array.Empty<Vector2>() : t.Vertices).GetBoundingBox();
 
 			return mesh;
 		}

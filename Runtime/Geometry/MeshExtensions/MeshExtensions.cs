@@ -20,7 +20,10 @@ namespace DavidUtils.Geometry.MeshExtensions
 				return;
 			}
 			
-			Vector3[] vertices = newTriangles.SelectMany(t => new[] { t.v3, t.v2, t.v1 }).ToV3().ToArray();
+			Vector3[] vertices = newTriangles.SelectMany(t =>
+				t == null
+				? Array.Empty<Vector2>()
+				: new[] { t.v3, t.v2, t.v1 }).ToV3().ToArray();
 			
 			// Indices, Normales y Colores no deberian cambiar si el numero de vertices no cambia
 			if (mesh.vertexCount == vertices.Length)
@@ -52,6 +55,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 		{
 			// Se descompone en poligonos convexos y se triangula cada uno.
 			(Triangle[] tris, Polygon[] subpolygons) = polygon.TriangulateConcave(maxSubPolygons);
+			subpolygons = subpolygons.Where(p => p != null).ToArray();
 			
 			mesh.SetTriangles(tris);
 			mesh.SetNormal(Vector3.back);
@@ -120,8 +124,6 @@ namespace DavidUtils.Geometry.MeshExtensions
 				mesh.SetNormal(Vector3.back);
 				mesh.SetColor(color ?? (mesh.colors.Length > 0 ? mesh.colors[0] : Color.white));
 				mesh.RecalculateBounds();
-
-				Debug.Log($"Iteration {iterations}: {subPolygons.Count} subpolygons");
 				
 				onSubPolygonsGenerated?.Invoke(subPolygons);
 				

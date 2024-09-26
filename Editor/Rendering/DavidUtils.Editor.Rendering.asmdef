@@ -2,7 +2,8 @@
     "name": "DavidUtils.Editor.Rendering",
     "rootNamespace": "DavidUtils.Editor.Rendering",
     "references": [
-        "GUID:d669cf2902a8869439680399c06dfbf0"
+        "GUID:d669cf2902a8869439680399c06dfbf0",
+        "GUID:7f7b2cf5ee3a5414cbb09596b1fee914"
     ],
     "includePlatforms": [
         "Editor"

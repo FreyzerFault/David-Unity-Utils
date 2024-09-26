@@ -20,8 +20,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Geometry Unlit
-  m_Shader: {fileID: -6465566751694194690, guid: d9bb3fd5ef7cd1b49ba26747441f94b5,
+  m_Name: Geometry Unlit Contour
+  m_Shader: {fileID: -6465566751694194690, guid: fd91f310e02face4ba88e0f5f1a5f801,
     type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -176,7 +176,7 @@ Material:
     - _smoothness: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Base_Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Base_Color: {r: 0, g: 1, b: 0.96078444, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}
