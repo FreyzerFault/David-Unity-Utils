@@ -180,7 +180,7 @@ namespace DavidUtils.Geometry
 
 
 		public bool IsPointOnEdge(Vector2 point) =>
-			Edges.Any(e => GeometryUtils.IsColinear(e.begin, e.end, point));
+			Edges.Any(e => GeometryUtils.PointOnSegment(point, e.begin, e.end));
 		
 		#endregion
 		

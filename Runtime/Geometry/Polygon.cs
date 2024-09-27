@@ -373,7 +373,10 @@ namespace DavidUtils.Geometry
 		    Stack<Polygon> stack = new Stack<Polygon>();
 		    stack.Push(this);
 
-		    while (stack.Count > 0 && convexPolygons.Count < maxSubPolygons - 1)
+		    var iterations = 0;
+		    var maxIterations = 1000;
+
+		    while (stack.Count > 0 && convexPolygons.Count < maxSubPolygons - 1 && iterations++ < maxIterations)
 		    {
 		        Polygon poly = stack.Pop();
 		        if (poly == null) continue;
@@ -384,15 +387,44 @@ namespace DavidUtils.Geometry
 		        else
 		        {
 		            (Polygon convexPolygon, Polygon croppedPolygon) = poly.SplitConvex();
-		            if (convexPolygon != null) convexPolygons.Add(convexPolygon);
-		            if (croppedPolygon != null) stack.Push(croppedPolygon);
+		            
+		            // CONVEX POLYGON = null si no se puede subdividir
+		            if (convexPolygon == null) 
+			            convexPolygons.Add(croppedPolygon);
+		            else 
+		            {
+			            // Si se subdivide guardamos el Convexo y realimentamos el bucle con el restante
+			            convexPolygons.Add(convexPolygon);
+			            stack.Push(croppedPolygon);
+		            }
 		        }
 		    }
 
 		    return stack.Count > 0 ? convexPolygons.Concat(stack).ToArray() : convexPolygons.ToArray();
 		}
 
+		struct PointTest
+		{
+			public bool onEdge;
+			public bool insideTri;
+			public bool edge1, edge2, edge3;
+			public int a, b, c;
+			public int pointIn;
 
+			
+			
+			public override string ToString()
+			{
+				string edgesTest = $"{(edge1 ? "<color=red>1</color>" : "\u2714\ufe0f")} | " +
+				                   $"{(edge2 ? "<color=red>2</color>" : "\u2714\ufe0f")} | " +
+				                   $"{(edge3 ? "<color=red>3</color>" : "\u2714\ufe0f")}";
+				return $"Vertex {pointIn} on Tri [{a}, {b}, {c}] => " +
+				       $"{(insideTri ? "<color=red>INSIDE Triangle</color>" : "\u2714\ufe0f")} | " +
+				       $"{(onEdge ? "<color=red>ON Edge</color>" : "\u2714\ufe0f")}\n" +
+				       $"{(onEdge ? edgesTest : "")}";
+			}
+		}
+		
 		/// <summary>
 		///		Busca un Subpolígono Convexo y devuelve el subpolígono restante
 		/// </summary>
@@ -410,13 +442,133 @@ namespace DavidUtils.Geometry
 				
 				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
 				var tri = new Triangle(vertices[a], vertices[b], vertices[c]);
+				
 				List<Vector2> outOfConvexPolyVertices =
 					c > i
 						? vertices.Skip(c + 1).Concat(vertices.Take(a)).ToList()
 						: vertices.Take(a).Skip(c + 1).ToList();
+
+				bool hasPointsOnTri = outOfConvexPolyVertices.Any(v => 
+					tri.Contains_CrossProd(v) || tri.IsPointOnEdge(v)
+				);
+
 				
-				if (tri.IsCW() || outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v) || tri.IsPointOnEdge(v)))
-					continue;
+				if (tri.IsCW() || hasPointsOnTri) continue;
+		        
+				List<Vector2> convexPolyVertices = new List<Vector2>(tri.Vertices);
+				
+				// Comprobamos si el siguiente vertice c hace que el poligono deje de ser CONVEXO:
+				// Deben ser CCW el Tri [a,b,c], el Tri [b,c,i] y el Tri [c,i,i+1]
+				// O contenga un punto del restante poligono
+				bool isConcave, hasAnyPointInside = false;
+				do
+				{
+					a++;
+					b++;
+					c++;
+					a %= VertexCount;
+					b %= VertexCount;
+					c %= VertexCount;
+					
+					isConcave =
+						GeometryUtils.IsRight(vertices[a], vertices[b], vertices[c])
+						|| GeometryUtils.IsRight(vertices[b], vertices[c], vertices[i])
+						|| GeometryUtils.IsRight(vertices[c], vertices[i], vertices[(i + 1) % VertexCount]);
+
+					// Checkeamos si hay puntos dentro del nuevo Polygon SOLO si es Convexo
+					if (!isConcave)
+					{
+						// Cogemos el siguiente punto de fuera del Poligono Convexo
+						convexPolyVertices.Add(outOfConvexPolyVertices.First());
+						outOfConvexPolyVertices.RemoveAt(0);
+
+						// Basta con comprobar si hay punto solo en la region nueva
+						// que se añade al poligono al añadir el vertice c
+						// Esta region es el Triangulo [b,c,i]
+						var newTri = new Triangle(vertices[b], vertices[c], vertices[i]);
+						
+						// Si hay algun punto dentro o colinear con un Eje, no es Válido
+						hasAnyPointInside = outOfConvexPolyVertices.Any(v =>
+							newTri.Contains_CrossProd(v) || newTri.IsPointOnEdge(v));
+						
+						if (hasAnyPointInside)
+						{
+							// Devuelve el punto al poligono original
+							outOfConvexPolyVertices.Insert(0, convexPolyVertices.Last());
+							convexPolyVertices.RemoveAt(convexPolyVertices.Count - 1);
+						}
+					}
+
+					if (isConcave || hasAnyPointInside)
+					{
+						// Si deja de ser Convexo o tiene vertices dentro, deshacemos el desplazamiento
+						a--;
+						b--;
+						c--;
+						a = a < 0 ? VertexCount - 1 : a;
+						b = b < 0 ? VertexCount - 1 : b;
+						c = c < 0 ? VertexCount - 1 : c;
+					}
+				} while ((c + 1) % VertexCount != i && !isConcave && !hasAnyPointInside);
+		        
+				outOfConvexPolyVertices.InsertRange(0, new []{vertices[i], vertices[c]});
+				var croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
+				
+				var convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
+				
+				return (convexPolygon, croppedPolygon);
+			}
+			
+			Debug.LogWarning("No convex subpolygon found, polygon might be degenerate.\n" +
+			               $"{VertexCount} vertices\n" +
+			               $"{this}");
+			return (null, this);
+		}
+
+		/// <summary>
+		/// DEBUG Point On Triangle Tests to search for BUGS
+		/// </summary>
+		private (Polygon, Polygon) SplitConvexDebug()
+		{
+			
+			// Si el Triangulo es CCW, es CONVEXO 
+			// Podemos añadir los siguientes vertices hasta que deje de ser CONVEXO
+			// O contenga un punto del poligono restante
+			// Para buscar el maximo poligono CONVEXO a partir de el vertice i
+			for (var i = 0; i < vertices.Length; i++)
+			{
+				int a = i, b = (i + 1) % VertexCount, c = (i + 2) % VertexCount;
+				
+				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
+				var tri = new Triangle(vertices[a], vertices[b], vertices[c]);
+				List<Vector2> outOfConvexPolyVertices =
+					c > i
+						? vertices.Skip(c + 1).Concat(vertices.Take(a)).ToList()
+						: vertices.Take(a).Skip(c + 1).ToList();
+
+				bool hasPointsOnTri = outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v) || tri.IsPointOnEdge(v));
+				bool hasPointsOnEdge = outOfConvexPolyVertices.Any(v => tri.IsPointOnEdge(v));
+				bool hasPointsInsideTri = outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v));
+				
+				PointTest[] hasPointsOnTriTests = outOfConvexPolyVertices.Select((v, i) => 
+					new PointTest
+						{
+							insideTri = tri.Contains_CrossProd(v),
+							onEdge = tri.IsPointOnEdge(v),
+							edge1 = GeometryUtils.PointOnSegment(v, tri.e1.begin, tri.e1.end),
+							edge2 = GeometryUtils.PointOnSegment(v, tri.e2.begin, tri.e2.end),
+							edge3 = GeometryUtils.PointOnSegment(v, tri.e3.begin, tri.e3.end),
+							a = a,
+							b = b,
+							c = c,
+							pointIn = i
+						}).Where(t => t.insideTri || t.onEdge).ToArray();
+				
+				if (tri.IsCCW())
+					hasPointsOnTriTests.ForEach(t => Debug.Log("CONVEX TRI: " + t));
+				
+				
+				if (tri.IsCW() || hasPointsOnTri) continue;
 		        
 				List<Vector2> convexPolyVertices = new List<Vector2>(tri.Vertices);
 				
@@ -479,14 +631,14 @@ namespace DavidUtils.Geometry
 				
 				var convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
 				
-				// Debug.Log($"Polygon splited from {i} to {c} => {_vertices[i]} to {_vertices[c]}\n" +
-				//           $"Convex Poly: {convexPolygon}\n" +
-				//           $"Polygon Restante: {croppedPolygon}");
+				Debug.Log($"Polygon splited from {i} to {c} => {vertices[i]} to {vertices[c]}\n" +
+				          $"Convex Poly: {convexPolygon}\n" +
+				          $"Polygon Restante: {croppedPolygon}");
 
 				return (convexPolygon, croppedPolygon);
 			}
 			
-			Debug.LogError("No convex subpolygon found, polygon might be degenerate.\n" +
+			Debug.LogWarning("No convex subpolygon found, polygon might be degenerate.\n" +
 			               $"{VertexCount} vertices\n" +
 			               $"{this}");
 			return (null, this);

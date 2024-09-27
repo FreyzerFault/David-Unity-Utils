@@ -111,6 +111,13 @@ namespace DavidUtils.Geometry.MeshExtensions
 					tris.RemoveRange(tris.Count - lastTris.Length, lastTris.Length);
 				
 				Polygon[] newSubPolygons = subPolygons.Last().OptimalConvexDecomposition(maxSubPolygonsPerFrame);
+				
+				if (newSubPolygons.IsNullOrEmpty() || newSubPolygons.Length == 1)
+				{
+					Debug.LogWarning("Last subpolygon can't be segmented");
+					break;
+				}
+				
 				subPolygons.RemoveAt(subPolygons.Count - 1);
 				subPolygons.AddRange(newSubPolygons);
 

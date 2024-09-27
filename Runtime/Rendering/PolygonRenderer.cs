@@ -55,6 +55,7 @@ namespace DavidUtils.Rendering
 			_meshRenderer.material = Resources.Load<Material>("Materials/Geometry Unlit");
 			
 			origHeight = transform.localPosition.y;
+			generateSubPolygons = generateSubPolygons && maxSubPolygonsPerFrame > 0;
 		}
 		
 		private void Update()
@@ -189,9 +190,7 @@ namespace DavidUtils.Rendering
 				}
 				else
 				{
-					// TODO
-					// subPolygons = _meshFilter.sharedMesh.SetPolygonConcave(ScaledPolygon, color, 500).ToList();
-					_meshFilter.sharedMesh.SetPolygonConcave(ScaledPolygon, color, 500).ToList();
+					subPolygons = _meshFilter.sharedMesh.SetPolygonConcave(ScaledPolygon, color, 500).ToList();
 				}
 			}
 			else
@@ -230,7 +229,7 @@ namespace DavidUtils.Rendering
 				_lineRenderer.SetPoints(Array.Empty<Vector3>());
 				return;
 			}
-			_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3xy().WithZ(-0.1f)));
+			_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3xy().WithZ(-0.2f)));
 		}
 
 		#endregion
@@ -302,7 +301,7 @@ namespace DavidUtils.Rendering
 			bool projectOnTerrain = false,
 			float terrainHeightOffset = 0.1f,
 			Color? outlineColor = null,
-			int maxSubPolygonsForMesh = 0
+			int maxSubPolygonsPerFrame = 0
 		)
 		{
 			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
@@ -314,7 +313,7 @@ namespace DavidUtils.Rendering
 			polygonRenderer.centeredScale = centeredScale;
 			polygonRenderer.projectedOnTerrain = projectOnTerrain;
 			polygonRenderer.terrainHeightOffset = terrainHeightOffset;
-			polygonRenderer.maxSubPolygonsPerFrame = maxSubPolygonsForMesh;
+			polygonRenderer.maxSubPolygonsPerFrame = maxSubPolygonsPerFrame;
 
 			polygonRenderer.UpdateAllProperties();
 
@@ -328,7 +327,7 @@ namespace DavidUtils.Rendering
 		
 		[Space]
 		
-		public bool generateSubPolygons = true;
+		public bool generateSubPolygons;
 		
 		[Range(1,100)] public int maxSubPolygonsPerFrame = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
 		
@@ -351,8 +350,6 @@ namespace DavidUtils.Rendering
 		
 		public void UpdateSubPolygonRenderers()
 		{
-			// TODO
-			return;
 			subPolyRenderers = GetComponentsInChildren<PolygonRenderer>().Where(pr => pr != this).ToArray();
 			
 			if (showSubPolygons)
@@ -394,7 +391,18 @@ namespace DavidUtils.Rendering
 
 			subPolyRenderers = subPolygons
 				.Select((p, i) => 
-					Instantiate(p, transform, $"SubPolygon_{i}", PolygonRenderMode.OutlinedMesh, colors[i].Desaturate(0.1f), 0.1f, 1, ProjectedOnTerrain, terrainHeightOffset, Color.black, 0))
+					Instantiate(
+						p,
+						transform,
+                    $"SubPolygon_{i}",
+						PolygonRenderMode.OutlinedMesh,
+						colors[i].Desaturate(0.1f),
+						0.1f,
+						1,
+						ProjectedOnTerrain,
+						terrainHeightOffset,
+						Color.black
+					))
 				.ToArray();
 		}
 		
