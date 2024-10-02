@@ -853,7 +853,7 @@ namespace DavidUtils.Geometry
 		public Texture2D ToTexture(Vector2 texSize)
 		{
 			AABB_2D	aabb = new(vertices);
-			Vector2 aabbSize = new Vector2(aabb.Size.x, aabb.Size.y);
+			Vector2 aabbSize = aabb.Size;
 			Color[] pixels = new Color[Mathf.CeilToInt(texSize.x) * Mathf.CeilToInt(texSize.y)];
 			for (var y = 0; y < Mathf.CeilToInt(texSize.y); y++)
 			for (var x = 0; x < Mathf.CeilToInt(texSize.x); x++)

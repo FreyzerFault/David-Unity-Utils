@@ -372,7 +372,7 @@ namespace DavidUtils.ExtensionMethods
 					false
 				)
 				.SelectMany(p => p) // Merge Paths
-				.Append(loop ? pathCheckpoints[0] : pathCheckpoints[^1]) // Last checkpoint to close it
+				.Append(terrain.Project(loop ? pathCheckpoints[0] : pathCheckpoints[^1], offset)) // Last checkpoint to close it
 				.ToArray();
 		}
 

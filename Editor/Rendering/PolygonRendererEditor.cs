@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
@@ -6,7 +8,8 @@ using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
 namespace DavidUtils.Editor.Rendering
 {
-    [CustomEditor(typeof(PolygonRenderer))]
+    [CanEditMultipleObjects]
+    [CustomEditor(typeof(PolygonRenderer), true)]
     public class PolygonRendererEditor: UnityEditor.Editor
     {
         private PolygonRenderer _polyRenderer;
@@ -16,12 +19,18 @@ namespace DavidUtils.Editor.Rendering
             _polyRenderer = (PolygonRenderer) target;
             if (_polyRenderer == null) return;
             
+            if (serializedObject.isEditingMultipleObjects)
+            {
+                MultipleGUI();
+                return;
+            }
+            
             EditorGUILayout.Separator();
             
             PropertyField(
                 "polygon",
                 $"Polygon ({_polyRenderer.VertexCount} vertices)",
-                _polyRenderer.UpdatePolygon
+                r => r.UpdatePolygon()
             );
             
             EditorGUILayout.Separator();
@@ -36,29 +45,41 @@ namespace DavidUtils.Editor.Rendering
             serializedObject.ApplyModifiedProperties();
         }
 
+        private void MultipleGUI()
+        {
+            EditorGUILayout.Separator();
+
+            RenderingPropFields();
+            
+            EditorGUILayout.Separator();
+            
+            if (serializedObject.targetObjects.Cast<PolygonRenderer>().All(pr => pr.RenderMode is RenderMode.OutlinedMesh or RenderMode.Mesh)) 
+                SubPolygonPropFields();
+        }
+
         private void RenderingPropFields()
         {
-            PropertyField("renderMode", $"Render Mode", _polyRenderer.UpdateRenderMode);
+            PropertyField("renderMode", $"Render Mode", (r) => r.UpdateRenderMode());
             
-            switch (_polyRenderer.RenderMode)
+            switch (((PolygonRenderer)serializedObject.targetObject).RenderMode)
             {
                 case RenderMode.Wire:
-                    PropertyField("outlineColor", $"Outline", _polyRenderer.UpdateColor);
-                    PropertyField("thickness", $"Line Thickness", _polyRenderer.UpdateThickness);
+                    PropertyField("outlineColor", $"Outline", (r) => r.UpdateColor());
+                    PropertyField("thickness", $"Line Thickness", (r) => r.UpdateThickness());
                     TerrainPropFields();
                     break;
                 case RenderMode.Mesh:
-                    PropertyField("color", $"Fill", _polyRenderer.UpdateColor);
+                    PropertyField("color", $"Fill", (r) => r.UpdateColor());
                     break;
                 case RenderMode.OutlinedMesh:
-                    PropertyField("color", $"Fill", _polyRenderer.UpdateColor);
-                    PropertyField("outlineColor", $"Outline", _polyRenderer.UpdateColor);
-                    PropertyField("thickness", $"Line Thickness", _polyRenderer.UpdateThickness);
+                    PropertyField("color", $"Fill",(r) => r.UpdateColor());
+                    PropertyField("outlineColor", $"Outline", (r) => r.UpdateColor());
+                    PropertyField("thickness", $"Line Thickness", (r) => r.UpdateThickness());
                     break;
             }
 
             EditorGUILayout.Separator();
-            PropertyField("centeredScale", $"Scale", _polyRenderer.UpdatePolygon);
+            PropertyField("centeredScale", $"Scale", r => r.UpdatePolygon());
         }
 
 
@@ -66,10 +87,10 @@ namespace DavidUtils.Editor.Rendering
         {
             if (Terrain.activeTerrain == null) return;
             
-            PropertyField("projectedOnTerrain", $"Project On Terrain", _polyRenderer.UpdateTerrainProjection);
+            PropertyField("projectedOnTerrain", $"Project On Terrain", r => r.UpdateTerrainProjection());
 
-            if (_polyRenderer.ProjectedOnTerrain)
-                PropertyField("terrainHeightOffset", $"Height Offset", _polyRenderer.UpdateHeightTerrainOffset);
+            if (serializedObject.targetObjects.Cast<PolygonRenderer>().All(pr => pr.ProjectedOnTerrain))
+                PropertyField("terrainHeightOffset", $"Height Offset", r => r.UpdateHeightTerrainOffset());
         }
 
 
@@ -82,23 +103,17 @@ namespace DavidUtils.Editor.Rendering
             EditorGUI.indentLevel++;
             
             PropertyField("generateSubPolygons", "Generate SubPolygons",
-                () => { _polyRenderer.UpdatePolygon(); _polyRenderer.UpdateSubPolygonRenderers(); });
-
-            if (!_polyRenderer.generateSubPolygons) return;
+                r => { r.UpdatePolygon(); r.UpdateSubPolygonRenderers(); });
+            
+            if (!serializedObject.targetObjects.Cast<PolygonRenderer>().All(pr => pr.generateSubPolygons)) return;
             
             PropertyField("maxSubPolygonsPerFrame", $"Per Frame");
             
-            EditorGUI.BeginChangeCheck();
-            _polyRenderer.ShowSubPolygons =
-                EditorGUILayout.Toggle("Show subPolygons", _polyRenderer.ShowSubPolygons);
-            if (_polyRenderer.ShowSubPolygons)
+            PropertyField("showSubPolygons", "Show SubPolygons", r => r.UpdateSubPolygonRenderers());
+            
+            if (!serializedObject.isEditingMultipleObjects && _polyRenderer.ShowSubPolygons)
                 EditorGUILayout.LabelField(
                     $"Polygon has been segmented in {_polyRenderer.SubPolygonCount} polygons");
-            if (EditorGUI.EndChangeCheck())
-            {
-                serializedObject.ApplyModifiedProperties();
-                _polyRenderer.UpdateSubPolygonRenderers();
-            }
             
             EditorGUI.indentLevel--;
         }
@@ -107,13 +122,13 @@ namespace DavidUtils.Editor.Rendering
         private void PropertyField(string propName, string label, bool includeChildren = true) =>
             EditorGUILayout.PropertyField(serializedObject.FindProperty(propName), new GUIContent(label), includeChildren);
         
-        private void PropertyField(string propName, string label, Action onChange)
+        private bool PropertyField(string propName, string label, Action<PolygonRenderer> onChange, bool includeChildren = true)
         {
-            EditorGUI.BeginChangeCheck();
-            PropertyField(propName, label);
-            if (!EditorGUI.EndChangeCheck()) return;
-            serializedObject.ApplyModifiedProperties();
-            onChange?.Invoke();
+            PropertyField(propName, label, includeChildren);
+            if (!serializedObject.ApplyModifiedProperties()) return false;
+            
+            serializedObject.targetObjects.Cast<PolygonRenderer>().ForEach(onChange);
+            return true;
         }
     }
 }

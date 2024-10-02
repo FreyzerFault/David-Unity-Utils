@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace DavidUtils
@@ -9,7 +10,7 @@ namespace DavidUtils
 	public class Singleton<T> : MonoBehaviour
 		where T : MonoBehaviour
 	{
-		public static T Instance { get; private set; }
+		public static T Instance { get; protected set; }
 
 		protected virtual void Awake()
 		{
@@ -46,5 +47,9 @@ namespace DavidUtils
 	public class SingletonExecuteAlways<T> : Singleton<T>
 		where T : MonoBehaviour
 	{
+		private void OnEnable()
+		{
+			if (Instance == null) Instance = gameObject.GetComponent<T>();
+		}
 	}
 }

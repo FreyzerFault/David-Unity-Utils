@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
+using DotSpatial.Data;
 using UnityEngine;
 
 namespace DavidUtils.ExtensionMethods
@@ -76,6 +78,22 @@ namespace DavidUtils.ExtensionMethods
 		#endregion
 
 
+		#region CONVERSION
+
+		public static Vector2Int ToVector2Int(this Vector2 v) => new((int)v.x, (int)v.y);
+		public static Vector2 ToVector2(this Vector2Int v) => new(v.x, v.y);
+		
+		public static Vector3Int ToVector3Int(this Vector3 v) => new((int)v.x, (int)v.y, (int)v.z);
+		public static Vector3 ToVector3(this Vector3Int v) => new(v.x, v.y, v.z);
+		
+		public static Point ToPoint(this Vector2 v) => new((int)v.x, (int)v.y);
+		public static Point ToPoint(this Vector2Int v) => new(v.x, v.y);
+		public static Size ToSize(this Vector2 v) => new((int)v.x, (int)v.y);
+		public static Size ToSize(this Vector2Int v) => new(v.x, v.y);
+
+		#endregion
+
+		
 		#region 3D to 2D
 
 		public static Vector2 ToV2(this Vector3 v, bool XZplane = false) => XZplane ? v.ToV2xz() : v.ToV2xy();

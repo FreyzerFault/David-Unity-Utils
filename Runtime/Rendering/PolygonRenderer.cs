@@ -7,6 +7,7 @@ using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -25,6 +26,7 @@ namespace DavidUtils.Rendering
 		public const float DEFAULT_THICKNESS = 1f;
 		public const float DEFAULT_CENTERED_SCALE = 1f;
 		public const int DEFAULT_MAX_SUBPOLYGONS_PER_FRAME = 10;
+		public const int DEFAULT_MAX_SUBPOLYGONS_COUNT = 500;
 
 		[SerializeField] private PolygonRenderMode renderMode = DEFAULT_RENDER_MODE;
 
@@ -56,6 +58,8 @@ namespace DavidUtils.Rendering
 			
 			origHeight = transform.localPosition.y;
 			generateSubPolygons = generateSubPolygons && maxSubPolygonsPerFrame > 0;
+			
+			if (_meshFilter.sharedMesh == null) _meshFilter.mesh = new Mesh();
 		}
 		
 		private void Update()
@@ -153,7 +157,7 @@ namespace DavidUtils.Rendering
 		public void UpdateRenderMode()
 		{
 			if (_meshRenderer == null || _lineRenderer == null) return;
-			_meshRenderer.enabled = renderMode is PolygonRenderMode.Mesh or PolygonRenderMode.OutlinedMesh;
+			_meshRenderer.enabled = renderMode is PolygonRenderMode.Mesh or PolygonRenderMode.OutlinedMesh && !CanShowSubPolygons;
 			_lineRenderer.enabled = renderMode is PolygonRenderMode.Wire or PolygonRenderMode.OutlinedMesh;
 
 			// Line Color
@@ -162,6 +166,12 @@ namespace DavidUtils.Rendering
 
 			if (renderMode == PolygonRenderMode.OutlinedMesh)
 				SetLinePoints();
+			
+			if (renderMode == PolygonRenderMode.Wire)
+				CleanSubPolyRenderers();
+			
+			UpdateColor();
+			UpdateThickness();
 		}
 
 		public void UpdatePolygon()
@@ -185,12 +195,12 @@ namespace DavidUtils.Rendering
 					IEnumerator subPolygonCoroutine = _meshFilter.sharedMesh.SetPolygonConcaveCoroutine(
 						(sp) => { subPolygons = sp; },
 						UpdateSubPolygonRenderers,
-						ScaledPolygon, color, maxSubPolygonsPerFrame);
+						ScaledPolygon, color, maxSubPolygonsPerFrame, maxSubPolygonCount / maxSubPolygonsPerFrame);
 					StartCoroutine(subPolygonCoroutine);
 				}
 				else
 				{
-					subPolygons = _meshFilter.sharedMesh.SetPolygonConcave(ScaledPolygon, color, 500).ToList();
+					subPolygons = _meshFilter.sharedMesh.SetPolygonConcave(ScaledPolygon, color, maxSubPolygonCount).ToList();
 				}
 			}
 			else
@@ -257,7 +267,7 @@ namespace DavidUtils.Rendering
 			if (_lineRenderer == null) return;
 
 			if (ProjectedOnTerrain)
-				ProjectOnTerrain();
+				ProjectOnTerrain(false);
 			else
 				SetLinePoints();
 			
@@ -265,8 +275,10 @@ namespace DavidUtils.Rendering
 			
 			_lineRenderer.useWorldSpace = ProjectedOnTerrain; 
 		}
-		public void UpdateHeightTerrainOffset() => 
-			transform.localPosition = Vector3.up * (origHeight + (projectedOnTerrain ? terrainHeightOffset : 0));
+		public void UpdateHeightTerrainOffset() {
+			if (ProjectedOnTerrain)
+				ProjectOnTerrain(false);
+		}
 
 		/// <summary>
 		/// Proyecta el LineRenderer sobre el terreno segmentado a la resolucion del terreno
@@ -301,7 +313,8 @@ namespace DavidUtils.Rendering
 			bool projectOnTerrain = false,
 			float terrainHeightOffset = 0.1f,
 			Color? outlineColor = null,
-			int maxSubPolygonsPerFrame = 0
+			int maxSubPolygonsPerFrame = 0,
+			int maxSubPolygonsCount = 0
 		)
 		{
 			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
@@ -314,6 +327,7 @@ namespace DavidUtils.Rendering
 			polygonRenderer.projectedOnTerrain = projectOnTerrain;
 			polygonRenderer.terrainHeightOffset = terrainHeightOffset;
 			polygonRenderer.maxSubPolygonsPerFrame = maxSubPolygonsPerFrame;
+			polygonRenderer.maxSubPolygonCount = maxSubPolygonsCount;
 
 			polygonRenderer.UpdateAllProperties();
 
@@ -330,12 +344,13 @@ namespace DavidUtils.Rendering
 		public bool generateSubPolygons;
 		
 		[Range(1,100)] public int maxSubPolygonsPerFrame = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
+		[FormerlySerializedAs("maxSubPolygonsCount")] [Range(1,1000)] public int maxSubPolygonCount = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
 		
 		[HideInInspector] public List<Polygon> subPolygons = new();
 		public int SubPolygonCount => subPolygons.Count;
 		
 		PolygonRenderer[] subPolyRenderers = Array.Empty<PolygonRenderer>();
-		private bool showSubPolygons = false;
+		[SerializeField] private bool showSubPolygons = false;
 
 		public bool ShowSubPolygons
 		{
@@ -348,15 +363,17 @@ namespace DavidUtils.Rendering
 			}
 		}
 		
+		private bool CanShowSubPolygons => 
+			generateSubPolygons && showSubPolygons && renderMode != PolygonRenderMode.Wire && subPolygons.NotNullOrEmpty();
+		
 		public void UpdateSubPolygonRenderers()
 		{
 			subPolyRenderers = GetComponentsInChildren<PolygonRenderer>().Where(pr => pr != this).ToArray();
 			
-			if (showSubPolygons)
+			if (CanShowSubPolygons)
 			{
 				if (SubPolygonCount > 0)
 				{
-					_lineRenderer.enabled = false;
 					_meshRenderer.enabled = false;
 					
 					if (subPolyRenderers.IsNullOrEmpty() || SubPolygonCount != subPolyRenderers.Length)
@@ -374,7 +391,6 @@ namespace DavidUtils.Rendering
 				if (subPolyRenderers.NotNullOrEmpty())
 					CleanSubPolyRenderers();
 				
-				_lineRenderer.enabled = true;
 				_meshRenderer.enabled = true;
 				UpdateRenderMode();
 			}
