@@ -141,9 +141,9 @@ namespace DavidUtils.Rendering
 
 
 
-		private void Awake() => useColor = true;
+		protected virtual void Awake() => useColor = true;
 
-		private void OnValidate()
+		protected void OnValidate()
 		{
 			renderObjs.ForEach(SetCommonProperties);
 		}

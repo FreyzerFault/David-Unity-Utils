@@ -80,7 +80,6 @@ namespace DavidUtils.Rendering
 			UpdatePolygon();
 			UpdateColor();
 			UpdateThickness();
-			UpdateTerrainProjection();
 		}
 
 		public void Clear()
@@ -211,6 +210,8 @@ namespace DavidUtils.Rendering
 			}
 				
 			UpdateSubPolygonRenderers();
+			
+			if (ProjectedOnTerrain) UpdateTerrainProjection();
 		}
 
 		public void UpdateColor()
