@@ -25,7 +25,7 @@ namespace DavidUtils.Rendering
 			set => _renderMode = value;
 		}
 
-		private bool IsCirle => _renderMode == RenderMode.Circle;
+		private bool IsCircle => _renderMode == RenderMode.Circle;
 		
 		[Range(0.1f, 20)] [SerializeField]
 		private float radius = .5f;
@@ -40,7 +40,7 @@ namespace DavidUtils.Rendering
 		}
 		private void UpdateRadius() => renderObjs.ForEach(obj => obj.transform.SetGlobalScale(Scale));
 
-		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCirle ? thickness / 2 : 0));
+		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCircle ? thickness / 2 : 0));
 		public Vector3 Scale => RadiusToScale(radius);
 
 		public void SetRadius(int i, float pointRadius) => 
