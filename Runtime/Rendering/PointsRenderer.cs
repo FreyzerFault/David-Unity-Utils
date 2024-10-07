@@ -25,7 +25,7 @@ namespace DavidUtils.Rendering
 			set => _renderMode = value;
 		}
 
-		private bool IsCircle => _renderMode == RenderMode.Circle;
+		public bool IsCircle => _renderMode == RenderMode.Circle;
 		
 		[Range(0.1f, 20)] [SerializeField]
 		private float radius = .5f;
@@ -84,7 +84,7 @@ namespace DavidUtils.Rendering
 			switch (_renderMode)
 			{
 				case RenderMode.Sphere:
-					renderObjs.ForEach((obj, i) => obj.GetComponent<MeshFilter>().mesh.SetColor(GetColor(i)));
+					renderObjs.ForEach((obj, i) => obj.GetComponent<MeshFilter>().sharedMesh.SetColor(GetColor(i)));
 					break;
 				case RenderMode.Circle:
 				case RenderMode.Point:
@@ -174,7 +174,7 @@ namespace DavidUtils.Rendering
 			sphere.name = objName ?? DefaultChildName;
 			sphere.transform.parent = transform;
 			sphere.transform.localPosition = localPos ?? Vector3.zero;
-			sphere.GetComponent<MeshFilter>().mesh.SetColor(color ?? Color.white);
+			sphere.GetComponent<MeshFilter>().sharedMesh.SetColor(color ?? Color.white);
 			return sphere.GetComponent<MeshRenderer>();
 		}
 
