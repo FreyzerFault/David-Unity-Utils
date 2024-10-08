@@ -46,7 +46,7 @@ namespace DavidUtils.Rendering
 		public void SetRadius(int i, float pointRadius) => 
 			renderObjs.ElementAt(i).transform.SetGlobalScale(Vector3.one * (pointRadius * radius));
 
-		[ConditionalField("IsCircle")] [SerializeField]
+		[SerializeField]
 		private float thickness;
 		public float Thickness
 		{
