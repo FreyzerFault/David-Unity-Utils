@@ -4,6 +4,7 @@ using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.MeshExtensions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -40,20 +41,32 @@ namespace DavidUtils.Rendering
 		}
 		private void UpdateRadius() => renderObjs.ForEach(obj => obj.transform.SetGlobalScale(Scale));
 
-		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCircle ? thickness / 2 : 0));
+		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCircle ? pointThickness / 2 : 0));
 		public Vector3 Scale => RadiusToScale(radius);
 
 		public void SetRadius(int i, float pointRadius) => 
 			renderObjs.ElementAt(i).transform.SetGlobalScale(Vector3.one * (pointRadius * radius));
 
-		[SerializeField]
-		private float thickness;
-		public float Thickness
+		
+		public Color PointColor
 		{
-			get => thickness;
+			get => colors[0];
 			set
 			{
-				thickness = value;
+				colors[0] = value;
+				UpdateColor();
+			}
+		}
+
+
+		[SerializeField]
+		private float pointThickness;
+		public float PointThickness
+		{
+			get => pointThickness;
+			set
+			{
+				pointThickness = value;
 				UpdateThickness();
 			}
 		}
@@ -79,7 +92,7 @@ namespace DavidUtils.Rendering
 
 		#region INDIVIDUAL PROPS
 
-		protected override void UpdateColor()
+		public override void UpdateColor()
 		{
 			switch (_renderMode)
 			{
@@ -141,8 +154,6 @@ namespace DavidUtils.Rendering
 
 
 
-		protected virtual void Awake() => useColor = true;
-
 		protected void OnValidate()
 		{
 			renderObjs.ForEach(SetCommonProperties);
@@ -186,7 +197,7 @@ namespace DavidUtils.Rendering
 		/// </summary>
 		private SpriteRenderer InstantiateCircle(Vector3? localPos = null, string objName = null, Color? color = null)
 		{
-			if (thickness < 0) return InstantiatePoint(localPos, objName);
+			if (pointThickness < 0) return InstantiatePoint(localPos, objName);
 			SpriteRenderer sr = Resources.Load<GameObject>("Prefabs/Circumference").GetComponent<SpriteRenderer>();
 			sr.name = objName ?? DefaultChildName;
 			sr.transform.localPosition = localPos ?? Vector3.zero;

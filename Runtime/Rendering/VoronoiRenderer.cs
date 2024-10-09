@@ -101,7 +101,7 @@ namespace DavidUtils.Rendering
 
 		#region INDIVIDUAL PROPS
 		
-		protected override void UpdateColor() => renderObjs.ForEach((r,i) => r.Color = GetColor(i));
+		public override void UpdateColor() => renderObjs.ForEach((r,i) => r.Color = GetColor(i));
 
 		#endregion
 
@@ -165,7 +165,7 @@ namespace DavidUtils.Rendering
 		{
 			var renderer = UnityUtils.InstantiateObject<VoronoiRenderer>(parent, name);
 			renderer._voronoi = voronoi;
-			renderer.InitialColor = color ?? Color.white;
+			renderer.BaseColor = color ?? Color.white;
 			renderer.outlineColor = outlineColor ?? Color.black;
 			renderer.renderMode = renderMode;
 			renderer.thickness = thickness;

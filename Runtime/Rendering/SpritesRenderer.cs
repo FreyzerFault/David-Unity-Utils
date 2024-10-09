@@ -49,7 +49,7 @@ namespace DavidUtils.Rendering
 
 		#region SINGLE PROPS
 		
-		protected override void UpdateColor() => 
+		public override void UpdateColor() => 
 			renderObjs.ForEach((r,i) => r.color = GetColor(i));
 
 		public void SetSize(int i, float size) => renderObjs[i].transform.SetGlobalScale(Vector3.one * size);

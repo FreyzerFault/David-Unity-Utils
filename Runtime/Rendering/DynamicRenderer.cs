@@ -94,31 +94,41 @@ namespace DavidUtils.Rendering
 
 		protected static readonly Color DefaultColor = Color.white;
 
-		public bool useColor = true;
+		public bool singleColor;
 
 		[Serializable]
-		private struct ColorData
+		public struct ColorPaletteData
 		{
-			public Color initialColor;
-			[Min(-1)] public float palletteStep;
-			[Min(0)] public int palletteRange;
+			public Color baseColor;
+			[Min(-1)] public float paletteStep;
+			[Min(0)] public int paletteRange;
 		}
-
-		[ConditionalField("useColor")]
-		[SerializeField] private ColorData colorPallette = new()
+		
+		[FormerlySerializedAs("colorPalette")] [SerializeField] private ColorPaletteData colorPaletteData = new()
 		{
-			initialColor = DefaultColor,
-			palletteStep = .05f,
-			palletteRange = 20
+			baseColor = DefaultColor,
+			paletteStep = .05f,
+			paletteRange = 20
 		};
-
-		public Color InitialColor
+		public ColorPaletteData ColorPalette
 		{
-			get => colorPallette.initialColor;
+			get => colorPaletteData;
 			set
 			{
-				colorPallette.initialColor = value;
-				SetRainbowColors(colors.Length);
+				colorPaletteData = value;
+				if (singleColor) Colors = new[] {BaseColor};
+				else SetRainbowColors(colors.Length);
+			}
+		}
+
+		public Color BaseColor
+		{
+			get => colorPaletteData.baseColor;
+			set
+			{
+				colorPaletteData.baseColor = value;
+				if (singleColor) Colors = new[] {value};
+				else SetRainbowColors(colors.Length);
 			}
 		}
 
@@ -133,15 +143,21 @@ namespace DavidUtils.Rendering
 				UpdateColor();
 			}
 		}
+		public abstract void UpdateColor();
 
-		protected abstract void UpdateColor();
+		protected Color GetColor(int i = -1) => singleColor 
+			? BaseColor
+			: i >= 0 && i < colors.Length 
+				? colors[i] 
+				: DefaultColor;
 
-		protected Color GetColor(int i = -1) => i >= 0 && i < colors.Length ? colors[i] : DefaultColor;
-
-		public Color[] SetRainbowColors(int numColors, Color? initColor = null) =>
-			Colors = (initColor ?? colorPallette.initialColor)
-				.GetRainBowColors(numColors, colorPallette.palletteStep, colorPallette.palletteRange)
+		public Color[] SetRainbowColors(int numColors, Color? baseColor = null)
+		{
+			if (baseColor.HasValue) BaseColor = baseColor.Value;
+			return Colors = BaseColor
+				.GetRainBowColors(numColors, colorPaletteData.paletteStep, colorPaletteData.paletteRange)
 				.ToArray();
+		}
 
 		#endregion
 

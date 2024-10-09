@@ -50,10 +50,12 @@ namespace DavidUtils.Rendering.Extensions
 
 		public static void SetPoints(this LineRenderer lr, IEnumerable<Vector2> points) =>
 			lr.SetPoints(points?.ToV3()?.ToArray());
-
+		
 		public static void SetPolygon(this LineRenderer lr, Polygon polygon) =>
 			lr.SetPoints(polygon.Vertices);
 
+		public static void Clear(this LineRenderer lr) => lr.positionCount = 0;
+		
 		#endregion
 
 
