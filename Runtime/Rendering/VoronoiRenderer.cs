@@ -91,7 +91,7 @@ namespace DavidUtils.Rendering
 			polyRenderer.RenderMode = renderMode;
 			polyRenderer.Thickness = thickness;
 			polyRenderer.CenteredScale = polygonScale;
-			polyRenderer.Color = GetColor();
+			if (singleColor) polyRenderer.Color = GetColor();
 			polyRenderer.OutlineColor = outlineColor;
 			polyRenderer.ProjectedOnTerrain = ProjectedOnTerrain;
 		}
@@ -101,7 +101,10 @@ namespace DavidUtils.Rendering
 
 		#region INDIVIDUAL PROPS
 		
-		public override void UpdateColor() => renderObjs.ForEach((r,i) => r.Color = GetColor(i));
+		public override void UpdateColor()
+		{
+			renderObjs.ForEach((r, i) => r.Color = GetColor(i));
+		}
 
 		#endregion
 

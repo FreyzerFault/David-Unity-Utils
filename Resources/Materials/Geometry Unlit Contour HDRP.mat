@@ -20,16 +20,17 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Geometry Unlit
-  m_Shader: {fileID: -6465566751694194690, guid: fe46e2e9f9a915a46b93b9d2da99ac52, type: 3}
+  m_Name: Geometry Unlit Contour HDRP
+  m_Shader: {fileID: -6465566751694194690, guid: fd91f310e02face4ba88e0f5f1a5f801, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 1
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2000
   stringTagMap:
     MotionVector: User
   disabledShaderPasses:

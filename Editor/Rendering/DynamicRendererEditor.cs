@@ -4,34 +4,26 @@ using UnityEngine;
 
 namespace DavidUtils.Editor.Rendering
 {
-    [CustomEditor(typeof(DynamicRenderer<>), true)]
     public class DynamicRendererEditor: UnityEditor.Editor, IUndoableEditor
     {
-        bool colorFoldout = true;
-        
-        public override void OnInspectorGUI()
+        protected bool colorFoldout = true;
+
+        protected void ColorGUI<T>(DynamicRenderer<T> renderer) where T : Component
         {
-            DynamicRenderer<Renderer> renderer = (DynamicRenderer<Renderer>) target;
-            if (renderer == null) return;
-            
             colorFoldout = EditorGUILayout.Foldout(colorFoldout, "COLOR", true, EditorStyles.foldoutHeader);
+            if (!colorFoldout) return;
             
             EditorGUILayout.Separator();
             
             EditorGUI.indentLevel++;
-            if (colorFoldout) ColorGUI(renderer);
-            EditorGUI.indentLevel--;
-        }
-
-        private void ColorGUI<T>(DynamicRenderer<T> renderer) where T : Component
-        {
+            
             EditorGUI.BeginChangeCheck();
             
             bool singleColor = EditorGUILayout.Toggle("Single Color", renderer.singleColor);
                 
             EditorGUILayout.Separator();
                 
-            Color baseColor = EditorGUILayout.ColorField("Point Color", renderer.BaseColor);
+            Color baseColor = EditorGUILayout.ColorField("Base Color", renderer.BaseColor);
             
             var colorPalette = renderer.ColorPalette;
             
@@ -47,6 +39,8 @@ namespace DavidUtils.Editor.Rendering
                     paletteRange = colorRange
                 };
             }
+            
+            EditorGUI.indentLevel--;
 
             if (!EditorGUI.EndChangeCheck()) return;
             
@@ -62,13 +56,24 @@ namespace DavidUtils.Editor.Rendering
 
         public virtual Undo.UndoRedoEventCallback UndoRedoEvent => delegate (in UndoRedoInfo info)
         {
-            Debug.Log("UNDO TRIGGERED");
-            
-            DynamicRenderer<Renderer> renderer = (DynamicRenderer<Renderer>) target;
-            if (renderer == null) return;
+            switch (target)
+            {
+                case DynamicRenderer<PolygonRenderer> polyRenderer:
+                    if (info.undoName == "Color Changed") 
+                        polyRenderer.UpdateColor(); 
+                    break;
+                case DynamicRenderer<Renderer> renderer:
+                    if (info.undoName == "Color Changed") 
+                        renderer.UpdateColor(); 
+                    break;
+                default:
+                    // SubType Custom Editor NOT IMPLEMENTED
+                    Debug.LogError($"{target.GetType()} Custom Editor is not implemented.\n" +
+                                   $"Base Type is {target.GetType().BaseType}");
+                    base.OnInspectorGUI();
+                    return;
+            }
 
-            if (info.undoName == "Color Changed") 
-                renderer.UpdateColor(); 
         };
 
         protected void OnEnable() => Undo.undoRedoEvent += UndoRedoEvent;

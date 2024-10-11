@@ -261,8 +261,8 @@ namespace DavidUtils.Geometry.Generators
 				transform,
 				"Selected Polygon",
 				RenderMode.Wire,
-				Color.yellow,
-				1.1f,
+				Color.yellow.Desaturate(0.1f),
+				voronoiRenderer.Thickness + 0.01f,
 				PolygonScale + 0.01f,
 				true
 			);
@@ -272,7 +272,7 @@ namespace DavidUtils.Geometry.Generators
 				"Hover Polygon",
 				RenderMode.Wire,
 				Color.yellow,
-				1f,
+				voronoiRenderer.Thickness,
 				PolygonScale + 0.01f,
 				true
 			);
@@ -293,8 +293,8 @@ namespace DavidUtils.Geometry.Generators
 			BoundsComp.TransformToBounds_Local(selectedRenderer);
 			BoundsComp.TransformToBounds_Local(hoverRenderer);
 			
-			selectedRenderer.transform.localPosition += Vector3.up * 1f;
-			hoverRenderer.transform.localPosition += Vector3.up * 1f;
+			selectedRenderer.transform.localPosition += Vector3.up * 2f;
+			hoverRenderer.transform.localPosition += Vector3.up * 2f;
 		}
 
 		private void UpdateHoverRenderer() => hoverRenderer.Polygon = MousePolygon ?? new Polygon();

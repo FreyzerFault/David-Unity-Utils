@@ -78,13 +78,14 @@ namespace DavidUtils.Rendering
 
 		public virtual void Clear()
 		{
+			Debug.Log("CLEAR");
 			renderObjs.ForEach(UnityUtils.DestroySafe);
 			renderObjs.Clear();
 			
 			// Por si acaso eliminamos todos los hijos
-			Renderer[] notDeletedRenderers = GetComponentsInChildren<Renderer>();
-			if (notDeletedRenderers.NotNullOrEmpty())
-				notDeletedRenderers.ForEach(UnityUtils.DestroySafe);
+			// Renderer[] notDeletedRenderers = GetComponentsInChildren<Renderer>();
+			// if (notDeletedRenderers.NotNullOrEmpty())
+			// 	notDeletedRenderers.ForEach(UnityUtils.DestroySafe);
 		}
 
 		#endregion
@@ -116,7 +117,7 @@ namespace DavidUtils.Rendering
 			set
 			{
 				colorPaletteData = value;
-				if (singleColor) Colors = new[] {BaseColor};
+				if (singleColor) Colors = BaseColor.ToFilledArray(colors.Length).ToArray();
 				else SetRainbowColors(colors.Length);
 			}
 		}
@@ -127,7 +128,7 @@ namespace DavidUtils.Rendering
 			set
 			{
 				colorPaletteData.baseColor = value;
-				if (singleColor) Colors = new[] {value};
+				if (singleColor) Colors = value.ToFilledArray(colors.Length).ToArray();
 				else SetRainbowColors(colors.Length);
 			}
 		}
@@ -145,11 +146,12 @@ namespace DavidUtils.Rendering
 		}
 		public abstract void UpdateColor();
 
-		protected Color GetColor(int i = -1) => singleColor 
-			? BaseColor
-			: i >= 0 && i < colors.Length 
-				? colors[i] 
-				: DefaultColor;
+		protected Color GetColor(int i = -1) => 
+			singleColor || colors.IsNullOrEmpty() 
+				? BaseColor
+				: i >= 0 && i < colors.Length 
+					? colors[i] 
+					: colors[0];
 
 		public Color[] SetRainbowColors(int numColors, Color? baseColor = null)
 		{

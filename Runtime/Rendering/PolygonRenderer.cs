@@ -45,7 +45,7 @@ namespace DavidUtils.Rendering
 		
 		private Polygon ScaledPolygon => polygon.ScaleByCenter(centeredScale);
 
-		protected void Awake()
+		protected virtual void Awake()
 		{
 			_lineRenderer = GetComponent<LineRenderer>() ?? gameObject.AddComponent<LineRenderer>();
 			_meshRenderer = GetComponent<MeshRenderer>() ?? gameObject.AddComponent<MeshRenderer>();
@@ -82,7 +82,7 @@ namespace DavidUtils.Rendering
 			UpdateThickness();
 		}
 
-		public void Clear()
+		public virtual void Clear()
 		{
 			polygon = new Polygon();
 			UnityUtils.DestroySafe(subPolyRenderers);
@@ -249,11 +249,11 @@ namespace DavidUtils.Rendering
 		#region TERRAIN
 
 		private Terrain Terrain => Terrain.activeTerrain;
-		[SerializeField] private bool projectedOnTerrain;
+		[SerializeField] protected bool projectedOnTerrain;
 		
 		public float origHeight = 0;
 		public float terrainHeightOffset = 0.1f;
-		public bool ProjectedOnTerrain
+		public virtual bool ProjectedOnTerrain
 		{
 			get => projectedOnTerrain && Terrain != null;
 			set
@@ -321,7 +321,7 @@ namespace DavidUtils.Rendering
 			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
 			polygonRenderer.polygon = polygon;
 			polygonRenderer.color = color ?? Color.white;
-			polygonRenderer.outlineColor = outlineColor ?? Color.black;
+			polygonRenderer.outlineColor = (renderMode == PolygonRenderMode.Wire ? color : outlineColor) ?? Color.black;
 			polygonRenderer.thickness = thickness;
 			polygonRenderer.renderMode = renderMode;
 			polygonRenderer.centeredScale = centeredScale;
