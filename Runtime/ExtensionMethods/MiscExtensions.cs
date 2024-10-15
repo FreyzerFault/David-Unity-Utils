@@ -344,6 +344,29 @@ namespace DavidUtils.ExtensionMethods
 
 			return -1;
 		}
+		
+		/// <summary>
+		///		All Indices of items that match a predicate.
+		/// </summary>
+		public static int[] AllIndices<T>(this IEnumerable<T> source, Predicate<T> predicate)
+		{
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			List<int> indices = new();
+			int index = 0;
+			foreach (T e in enumerable)
+			{
+				if (predicate(e)) indices.Add(index);
+				++index;
+			}
+
+			return indices.ToArray();
+		}
+		
+		public static IEnumerable<T> FromIndices<T>(this IEnumerable<T> source, params int[] indices)
+		{
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			return indices.Select(i => enumerable.ElementAt(i));
+		}  
 
 		/// <summary>
 		///     Swaps 2 elements at the specified index positions in place.

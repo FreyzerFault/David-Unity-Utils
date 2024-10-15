@@ -60,6 +60,8 @@ namespace DavidUtils.Rendering
 		public void AddObj(Vector3 pos) => renderObjs.Add(InstantiateObj(pos));
 		public void AddObjs(IEnumerable<Vector2> pos) => renderObjs.AddRange(pos.Select(p => InstantiateObj(p)));
 		public void AddObjs(IEnumerable<Vector3> pos) => renderObjs.AddRange(pos.Select(p => InstantiateObj(p)));
+		
+		public void InsertObj(int index, Vector3 pos) => renderObjs.Insert(index, InstantiateObj(pos));
 
 		public void RemoveObj(int i)
 		{
@@ -78,7 +80,7 @@ namespace DavidUtils.Rendering
 
 		public virtual void Clear()
 		{
-			Debug.Log("CLEAR");
+			if (renderObjs.IsNullOrEmpty()) return;
 			renderObjs.ForEach(UnityUtils.DestroySafe);
 			renderObjs.Clear();
 			
