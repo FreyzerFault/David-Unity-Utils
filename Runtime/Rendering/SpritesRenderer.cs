@@ -36,7 +36,7 @@ namespace DavidUtils.Rendering
 		}
 		private void UpdateSize() => renderObjs.ForEach(sr => sr.transform.SetGlobalScale(Vector3.one * size));
 
-		protected override void SetCommonProperties(SpriteRenderer sr)
+		protected override void UpdateCommonProperties(SpriteRenderer sr)
 		{
 			sr.sprite = sprite;
 			sr.transform.SetGlobalScale(Vector3.one * Size);

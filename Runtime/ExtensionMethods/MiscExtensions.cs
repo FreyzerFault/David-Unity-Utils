@@ -362,10 +362,14 @@ namespace DavidUtils.ExtensionMethods
 			return indices.ToArray();
 		}
 		
+		/// <summary>
+		///		Consulta elementos con los indices dados
+		///		NULL si algun indice esta fuera de rango
+		/// </summary>
 		public static IEnumerable<T> FromIndices<T>(this IEnumerable<T> source, params int[] indices)
 		{
 			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
-			return indices.Select(i => enumerable.ElementAt(i));
+			return indices.Any(i => i >= enumerable.Count()) ? null : indices.Select(i => enumerable.ElementAt(i));
 		}  
 
 		/// <summary>

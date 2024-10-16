@@ -85,8 +85,8 @@ namespace DavidUtils.Rendering
 				renderObjs.ForEach(r => r.OutlineColor = value);
 			}
 		}
-		
-		protected override void SetCommonProperties(PolygonRenderer polyRenderer)
+
+		protected override void UpdateCommonProperties(PolygonRenderer polyRenderer)
 		{
 			polyRenderer.RenderMode = renderMode;
 			polyRenderer.Thickness = thickness;

@@ -8,7 +8,14 @@ namespace DavidUtils.ExtensionMethods
 	public static class VectorExtensions
 	{
 		#region RANDOM GENERATION
-
+		
+		// IN RANGE
+		public static Vector2 GetRandomPos(Vector2 min, Vector2 max) =>
+			new(
+				Random.Range(min.x, max.x),
+				Random.Range(min.y, max.y)
+			);
+		
 		public static Vector3 GetRandomPos(Vector3 min, Vector3 max) =>
 			new(
 				Random.Range(min.x, max.x),
@@ -16,11 +23,23 @@ namespace DavidUtils.ExtensionMethods
 				Random.Range(min.z, max.z)
 			);
 
-		public static Vector2 GetRandomPos(Vector2 min, Vector2 max) =>
-			new(
-				Random.Range(min.x, max.x),
-				Random.Range(min.y, max.y)
-			);
+		public static IEnumerable<Vector2> RandomPositions(int count, Vector2 min, Vector2 max) =>
+			Enumerable.Range(0, count).Select(_ => GetRandomPos(min, max));
+		
+		public static IEnumerable<Vector3> RandomPositions(int count, Vector3 min, Vector3 max) =>
+			Enumerable.Range(0, count).Select(_ => GetRandomPos(min, max));
+		
+		// INSIDE CIRCLE / SPHERE
+		public static Vector2 RandomPositionInsideCircle(float radius = 1) => Random.insideUnitCircle * radius;
+		public static Vector3 RandomPositionInsideSphere(float radius = 1) => Random.insideUnitSphere * radius;
+		
+		public static IEnumerable<Vector2> RandomPositionsInsideCircle(int count, float radius = 1) =>
+			radius.ToFilledArray(count).Select(RandomPositionInsideCircle);
+		
+		public static IEnumerable<Vector3> RandomPositionsInsideSphere(int count, float radius = 1) =>
+			radius.ToFilledArray(count).Select(RandomPositionInsideSphere);
+		
+
 
 		#endregion
 

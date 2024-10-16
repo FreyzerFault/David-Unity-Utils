@@ -11,10 +11,11 @@ namespace DavidUtils.Rendering
 	[Serializable]
 	public abstract class DynamicRenderer<T> : MonoBehaviour where T : Component
 	{
-		protected virtual Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
+		protected virtual Material SphereMaterial => Resources.Load<Material>("Materials/Geometry Unlit");
 		protected virtual string DefaultChildName => "Render Object";
 
 		public List<T> renderObjs = new();
+		public List<T> ignoredObjs = new();
 
 		public bool Active
 		{
@@ -24,8 +25,16 @@ namespace DavidUtils.Rendering
 
 		public virtual void ToggleVisibility(bool visible) => gameObject.SetActive(visible);
 
-		protected abstract void SetCommonProperties(T renderObj);
+		public void UpdateCommonProperties() => renderObjs.ForEach(UpdateCommonProperties);
+		protected abstract void UpdateCommonProperties(T renderObj);
 
+
+		protected virtual void Awake() => UpdateRenderObjsFromChildren();
+
+		
+		private void UpdateRenderObjsFromChildren() => renderObjs =
+			GetComponentsInChildren<T>()?.Where(obj => !ignoredObjs.Contains(obj)).ToList() ?? new List<T>();
+			
 
 		#region INSTANTIATION
 
@@ -38,7 +47,7 @@ namespace DavidUtils.Rendering
 		public virtual T InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
 		{
 			var renderObj = UnityUtils.InstantiateObject<T>(transform, objName ?? DefaultChildName, localPos);
-			SetCommonProperties(renderObj);
+			UpdateCommonProperties(renderObj);
 			if (ProjectedOnTerrain) ProjectOnTerrain();
 			return renderObj;
 		}
@@ -47,7 +56,7 @@ namespace DavidUtils.Rendering
 			where Tobj : T
 		{
 			var renderObj = UnityUtils.InstantiateObject<Tobj>(transform, objName ?? DefaultChildName, localPos);
-			SetCommonProperties(renderObj);
+			UpdateCommonProperties(renderObj);
 			if (ProjectedOnTerrain) ProjectOnTerrain();
 			return renderObj;
 		}
@@ -57,16 +66,37 @@ namespace DavidUtils.Rendering
 
 		#region CRUD
 
+		/// <summary>
+		/// Añade un nuevo objeto en la posición indicada Instanciandolo
+		/// </summary>
 		public void AddObj(Vector3 pos) => renderObjs.Add(InstantiateObj(pos));
 		public void AddObjs(IEnumerable<Vector2> pos) => renderObjs.AddRange(pos.Select(p => InstantiateObj(p)));
 		public void AddObjs(IEnumerable<Vector3> pos) => renderObjs.AddRange(pos.Select(p => InstantiateObj(p)));
 		
+		/// <summary>
+		/// Inserta el Objeto ordenado en index 
+		/// </summary>
 		public void InsertObj(int index, Vector3 pos) => renderObjs.Insert(index, InstantiateObj(pos));
 
+		/// <summary>
+		/// Elimina el GameObject de la Jerarquía de Unity y de la lista de renderObjs
+		/// </summary>
 		public void RemoveObj(int i)
 		{
+			if (i >= renderObjs.Count) return;
 			UnityUtils.DestroySafe(renderObjs[i]);
 			renderObjs.RemoveAt(i);
+		}
+		public void RemoveObjs(int i, int count)
+		{
+			if (i >= renderObjs.Count) return;
+			UnityUtils.DestroySafe(renderObjs.Skip(i).Take(count));
+			renderObjs.RemoveRange(i, count);
+		}
+		public void RemoveObjs(int[] indices)
+		{
+			UnityUtils.DestroySafe(renderObjs.FromIndices(indices));
+			renderObjs = renderObjs.Where((_, i) => !indices.Contains(i)).ToList();
 		}
 
 		public void UpdateObj(int i, Vector3 pos) => renderObjs[i].transform.localPosition = pos;
@@ -74,15 +104,29 @@ namespace DavidUtils.Rendering
 		public void UpdateAllObj(IEnumerable<Vector3> pos)
 		{
 			IEnumerable<Vector3> localPositions = pos as Vector3[] ?? pos.ToArray();
-			if (localPositions.Count() != renderObjs.Count) InstantiateObjs(localPositions);
-			localPositions.ForEach((p, i) => UpdateObj(i, p));
+			if (localPositions.Count() != renderObjs.Count)
+			{
+				if (localPositions.Count() < renderObjs.Count)
+				{
+					RemoveObjs(localPositions.Count(), renderObjs.Count - localPositions.Count());
+					UpdateAllObj(localPositions);
+				}
+				else
+				{
+					UpdateAllObj(localPositions.Take(renderObjs.Count));
+					InstantiateObjs(localPositions.Skip(renderObjs.Count));
+				}
+			}
+			else
+				localPositions.ForEach((p, i) => UpdateObj(i, p));
 		}
 
 		public virtual void Clear()
 		{
+			if (renderObjs.IsNullOrEmpty()) UpdateRenderObjsFromChildren();
 			if (renderObjs.IsNullOrEmpty()) return;
-			renderObjs.ForEach(UnityUtils.DestroySafe);
-			renderObjs.Clear();
+			renderObjs?.ForEach(UnityUtils.DestroySafe);
+			renderObjs?.Clear();
 			
 			// Por si acaso eliminamos todos los hijos
 			// Renderer[] notDeletedRenderers = GetComponentsInChildren<Renderer>();

@@ -1,3 +1,5 @@
+using System.Linq;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
@@ -6,9 +8,31 @@ namespace DavidUtils.Editor.Rendering
 {
     public class DynamicRendererEditor: UnityEditor.Editor, IUndoableEditor
     {
-        protected bool colorFoldout = true;
+        protected static bool testingFoldout = true;
+        protected static bool colorFoldout = true;
 
-        protected void ColorGUI<T>(DynamicRenderer<T> renderer) where T : Component
+        protected virtual void TestingGUI<T>(DynamicRenderer<T> renderer) where T : Component
+        {
+            testingFoldout = EditorGUILayout.Foldout( testingFoldout, "TESTING", true, EditorStyles.foldoutHeader);
+            if (!testingFoldout) return;
+            
+            if (GUILayout.Button("Force Update Props")) renderer.UpdateCommonProperties();
+            if (GUILayout.Button("CLEAR ALL OBJECTS")) renderer.Clear();
+            
+            EditorGUILayout.Separator();
+            
+            if (GUILayout.Button("Spawn 10 Entities Random", EditorStyles.miniButton))
+                renderer.AddObjs(VectorExtensions.RandomPositionsInsideSphere(10));
+            
+            if (GUILayout.Button("Update 10 Entities Random", EditorStyles.radioButton)) 
+                renderer.UpdateAllObj(VectorExtensions.RandomPositionsInsideSphere(10));
+            
+            
+            if (GUILayout.Button("Remove 10 Entities", EditorStyles.toolbarButton)) 
+                renderer.RemoveObjs(0, 10);
+        }
+        
+        protected virtual void ColorGUI<T>(DynamicRenderer<T> renderer) where T : Component
         {
             colorFoldout = EditorGUILayout.Foldout(colorFoldout, "COLOR", true, EditorStyles.foldoutHeader);
             if (!colorFoldout) return;

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace DavidUtils
 {
@@ -14,15 +13,25 @@ namespace DavidUtils
 		/// <summary>
 		///     Destroy para Player y Editor
 		/// </summary>
-		public static void DestroySafe(MonoBehaviour mb) => DestroySafe(mb.gameObject);
+		public static void DestroySafe(MonoBehaviour mb) => DestroySafe(mb?.gameObject);
 
-		public static void DestroySafe(Component comp) => DestroySafe(comp.gameObject);
-		public static void DestroySafe(GameObject obj) => Destroy(obj);
+		public static void DestroySafe(Component comp) => DestroySafe(comp?.gameObject);
+
+		public static void DestroySafe(GameObject obj)
+		{
+			Debug.Log($"Destroying in {(Application.isPlaying ? "Playing" : "Editor")} mode");;
+			if (obj != null) Destroy(obj);
+			else Debug.LogWarning("[UnityUtils.DestroySafe()]: Trying to destroy a null object".Colored("orange"));
+		}
+
 		public static void DestroySafe(IEnumerable<GameObject> objs) => objs.ForEach(DestroySafe);
 		public static void DestroySafe(IEnumerable<Component> objs) => objs.ForEach(DestroySafe);
 		public static void DestroySafe(IEnumerable<MonoBehaviour> objs) => objs.ForEach(DestroySafe);
 		
-		private static Action<GameObject> Destroy => Application.isPlaying ? Object.Destroy : Object.DestroyImmediate;
+		private static Action<GameObject> Destroy => 
+			Application.isPlaying 
+				? UnityEngine.Object.Destroy 
+				: UnityEngine.Object.DestroyImmediate;
 
 		/// <summary>
 		///     Crea un EMPTY OBJECT normal y corriente

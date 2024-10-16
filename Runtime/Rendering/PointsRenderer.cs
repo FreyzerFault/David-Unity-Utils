@@ -12,7 +12,15 @@ namespace DavidUtils.Rendering
 	public class PointsRenderer : DynamicRenderer<Renderer>
 	{
 		protected override string DefaultChildName => "Point";
-		protected override Material Material => Resources.Load<Material>("Materials/Geometry Unlit");
+		protected override Material SphereMaterial => Resources.Load<Material>("Materials/Geometry Unlit");
+
+		protected override void Awake()
+		{
+			base.Awake();
+			
+			// IGNORE Other Renderers that are not SpriteRenderers or MeshRenderers
+			renderObjs.RemoveAll(obj => obj.GetComponent<MeshRenderer>() == null && obj.GetComponent<SpriteRenderer>() == null);
+		}
 
 
 		#region COMMON PROPS
@@ -23,8 +31,20 @@ namespace DavidUtils.Rendering
 		public RenderMode Mode
 		{
 			get => _renderMode;
-			set => _renderMode = value;
+			set
+			{
+				_renderMode = value;
+				UpdateRenderMode();
+			}
 		}
+
+		public void UpdateRenderMode()
+		{
+			Vector3[] positions = renderObjs.Select(r => r.transform.localPosition).ToArray();
+			Clear();
+			AddObjs(positions);
+		}
+		
 
 		public bool IsCircle => _renderMode == RenderMode.Circle;
 		
@@ -39,7 +59,7 @@ namespace DavidUtils.Rendering
 				UpdateRadius();
 			}
 		}
-		private void UpdateRadius() => renderObjs.ForEach(obj => obj.transform.SetGlobalScale(Scale));
+		public void UpdateRadius() => renderObjs.ForEach(obj => obj.GetComponent<SpriteRenderer>().size = new Vector2(radius, radius));
 
 		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCircle ? pointThickness / 2 : 0));
 		public Vector3 Scale => RadiusToScale(radius);
@@ -78,13 +98,25 @@ namespace DavidUtils.Rendering
 
 		private void UpdateProperties()
 		{
-			renderObjs.ForEach(SetCommonProperties);
+			renderObjs.ForEach(UpdateCommonProperties);
 		}
 
-		protected override void SetCommonProperties(Renderer pointRenderer)
+		protected override void UpdateCommonProperties(Renderer pointRenderer)
 		{
 			pointRenderer.transform.SetGlobalScale(Scale);
-			pointRenderer.material = Material;
+
+			switch (_renderMode)
+			{
+				case RenderMode.Sphere:
+					pointRenderer.sharedMaterial = SphereMaterial;
+					break;
+				case RenderMode.Circle:
+				case RenderMode.Point:
+					pointRenderer.transform.localRotation = Quaternion.Euler(90,0,0);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
 
 		#endregion
@@ -152,17 +184,11 @@ namespace DavidUtils.Rendering
 
 		#endregion
 
-
-
-		protected void OnValidate()
-		{
-			renderObjs.ForEach(SetCommonProperties);
-		}
-
+		
 		public override Renderer InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
 		{
 			if (i == -1) i = renderObjs.Count;
-			if (i >= colors.Length) SetRainbowColors(i+1);
+			if (i >= colors.Length && !singleColor) SetRainbowColors(i+1);
 			Renderer renderObj = _renderMode switch
 			{
 				RenderMode.Sphere => InstantiateSphere(localPos, objName, GetColor(i)),
@@ -170,7 +196,7 @@ namespace DavidUtils.Rendering
 				RenderMode.Point => InstantiatePoint(localPos, objName, GetColor(i)),
 				_ => null
 			};
-			SetCommonProperties(renderObj);
+			UpdateCommonProperties(renderObj);
 			
 			return renderObj;
 		}
@@ -198,9 +224,15 @@ namespace DavidUtils.Rendering
 		private SpriteRenderer InstantiateCircle(Vector3? localPos = null, string objName = null, Color? color = null)
 		{
 			if (pointThickness < 0) return InstantiatePoint(localPos, objName);
-			SpriteRenderer sr = Resources.Load<GameObject>("Prefabs/Circumference").GetComponent<SpriteRenderer>();
-			sr.name = objName ?? DefaultChildName;
-			sr.transform.localPosition = localPos ?? Vector3.zero;
+			
+			GameObject srObj = Instantiate(
+				Resources.Load<GameObject>("Prefabs/Circumference"),
+				localPos ?? Vector3.zero,
+				Quaternion.identity, 
+				transform);
+			SpriteRenderer sr = srObj.GetComponent<SpriteRenderer>();
+			srObj.name = objName ?? DefaultChildName;
+			srObj.transform.localPosition = localPos ?? Vector3.zero;
 			sr.color = color ?? Color.white;
 			
 			// TODO Modificar la mask hija para modificar el grosor con thickness
@@ -213,9 +245,15 @@ namespace DavidUtils.Rendering
 		/// </summary>
 		private SpriteRenderer InstantiatePoint(Vector3? localPos = null, string objName = null, Color? color = null)
 		{
-			SpriteRenderer sr = Resources.Load<GameObject>("Prefabs/Circle").GetComponent<SpriteRenderer>();
-			sr.name = objName ?? DefaultChildName;
-			sr.transform.localPosition = localPos ?? Vector3.zero;
+			GameObject srObj = Instantiate(
+				Resources.Load<GameObject>("Prefabs/Circle"),
+				localPos ?? Vector3.zero,
+				Quaternion.identity, 
+				transform);
+			SpriteRenderer sr = srObj.GetComponent<SpriteRenderer>();
+			
+			srObj.name = objName ?? DefaultChildName;
+			srObj.transform.localPosition = localPos ?? Vector3.zero;
 			sr.color = color ?? Color.white;
 			return sr;
 		}
