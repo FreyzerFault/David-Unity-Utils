@@ -14,8 +14,8 @@ namespace DavidUtils.Rendering
 		protected virtual Material SphereMaterial => Resources.Load<Material>("Materials/Geometry Unlit");
 		protected virtual string DefaultChildName => "Render Object";
 
-		public List<T> renderObjs = new();
-		public List<T> ignoredObjs = new();
+		[SerializeField] public List<T> renderObjs = new();
+		[SerializeField] public List<T> ignoredObjs = new();
 
 		public bool Active
 		{
@@ -125,7 +125,7 @@ namespace DavidUtils.Rendering
 		{
 			if (renderObjs.IsNullOrEmpty()) UpdateRenderObjsFromChildren();
 			if (renderObjs.IsNullOrEmpty()) return;
-			renderObjs?.ForEach(UnityUtils.DestroySafe);
+			UnityUtils.DestroySafe(renderObjs);
 			renderObjs?.Clear();
 			
 			// Por si acaso eliminamos todos los hijos

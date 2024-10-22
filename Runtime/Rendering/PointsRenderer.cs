@@ -8,15 +8,31 @@ using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
-	[Serializable]
+	[ExecuteAlways][Serializable]
 	public class PointsRenderer : DynamicRenderer<Renderer>
 	{
 		protected override string DefaultChildName => "Point";
 		protected override Material SphereMaterial => Resources.Load<Material>("Materials/Geometry Unlit");
 
+		[SerializeField] private GameObject spherePrefab;
+		[SerializeField] private GameObject pointPrefab;
+		[SerializeField] private GameObject circlePrefab;
+		
+		protected GameObject Prefab => renderMode switch
+		{
+			RenderMode.Sphere => spherePrefab ??= Resources.Load<GameObject>("Prefabs/Geometry/Sphere"),
+			RenderMode.Point => pointPrefab ??= Resources.Load<GameObject>("Prefabs/Geometry/Circle"),
+			RenderMode.Circle => circlePrefab ??= Resources.Load<GameObject>("Prefabs/Geometry/Circumference"),
+			_ => null
+		};
+
 		protected override void Awake()
 		{
 			base.Awake();
+			
+			spherePrefab = Resources.Load<GameObject>("Prefabs/Geometry/Sphere");
+			pointPrefab = Resources.Load<GameObject>("Prefabs/Geometry/Circle");
+			circlePrefab = Resources.Load<GameObject>("Prefabs/Geometry/Circumference");
 			
 			// IGNORE Other Renderers that are not SpriteRenderers or MeshRenderers
 			renderObjs.RemoveAll(obj => obj.GetComponent<MeshRenderer>() == null && obj.GetComponent<SpriteRenderer>() == null);
@@ -27,13 +43,13 @@ namespace DavidUtils.Rendering
 		
 		public enum RenderMode { Sphere, Circle, Point }
 
-		private RenderMode _renderMode;
+		[SerializeField] private RenderMode renderMode;
 		public RenderMode Mode
 		{
-			get => _renderMode;
+			get => renderMode;
 			set
 			{
-				_renderMode = value;
+				renderMode = value;
 				UpdateRenderMode();
 			}
 		}
@@ -46,7 +62,7 @@ namespace DavidUtils.Rendering
 		}
 		
 
-		public bool IsCircle => _renderMode == RenderMode.Circle;
+		public bool IsCircle => renderMode == RenderMode.Circle;
 		
 		[Range(0.1f, 20)] [SerializeField]
 		private float radius = .5f;
@@ -59,15 +75,34 @@ namespace DavidUtils.Rendering
 				UpdateRadius();
 			}
 		}
-		public void UpdateRadius() => renderObjs.ForEach(obj => obj.GetComponent<SpriteRenderer>().size = new Vector2(radius, radius));
+		public void UpdateRadius() => renderObjs.ForEach(obj =>
+		{
+			switch (renderMode)
+			{
+				case RenderMode.Sphere:
+					obj.transform.localScale = (Vector3.one * radius);
+					break;
+				case RenderMode.Circle:
+				case RenderMode.Point:
+					obj.GetComponent<SpriteRenderer>().size = new Vector2(radius, radius);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		});
 
 		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCircle ? pointThickness / 2 : 0));
 		public Vector3 Scale => RadiusToScale(radius);
 
-		public void SetRadius(int i, float pointRadius) => 
-			renderObjs.ElementAt(i).transform.SetGlobalScale(Vector3.one * (pointRadius * radius));
+		public void SetRadius(int i, float newRadius)
+		{
+			if (renderMode == RenderMode.Sphere)
+				renderObjs.ElementAt(i).transform.localScale = (Vector3.one * radius);
+			else
+				renderObjs.ElementAt(i).GetComponent<SpriteRenderer>().size = new Vector2(newRadius, newRadius);
+		}
 
-		
+
 		public Color PointColor
 		{
 			get => colors[0];
@@ -98,24 +133,26 @@ namespace DavidUtils.Rendering
 
 		private void UpdateProperties()
 		{
-			renderObjs.ForEach(UpdateCommonProperties);
+			UpdateRadius();
+			UpdateColor();
+			UpdateThickness();
 		}
-
-		protected override void UpdateCommonProperties(Renderer pointRenderer)
+		
+		protected override void UpdateCommonProperties(Renderer renderObj)
 		{
-			pointRenderer.transform.SetGlobalScale(Scale);
-
-			switch (_renderMode)
+			switch (renderMode)
 			{
 				case RenderMode.Sphere:
-					pointRenderer.sharedMaterial = SphereMaterial;
+					renderObj.transform.localScale = Vector3.one * radius;
+					renderObj.GetComponent<MeshFilter>().sharedMesh.SetColor(BaseColor);
 					break;
 				case RenderMode.Circle:
 				case RenderMode.Point:
-					pointRenderer.transform.localRotation = Quaternion.Euler(90,0,0);
+					renderObj.transform.localRotation = Quaternion.Euler(90,0,0);
+					renderObj.GetComponent<SpriteRenderer>().color = BaseColor;
+					renderObj.transform.localScale = Vector3.one;
+					renderObj.GetComponent<SpriteRenderer>().size = new Vector2(radius, radius);
 					break;
-				default:
-					throw new ArgumentOutOfRangeException();
 			}
 		}
 
@@ -126,7 +163,7 @@ namespace DavidUtils.Rendering
 
 		public override void UpdateColor()
 		{
-			switch (_renderMode)
+			switch (renderMode)
 			{
 				case RenderMode.Sphere:
 					renderObjs.ForEach((obj, i) => obj.GetComponent<MeshFilter>().sharedMesh.SetColor(GetColor(i)));
@@ -189,77 +226,23 @@ namespace DavidUtils.Rendering
 		{
 			if (i == -1) i = renderObjs.Count;
 			if (i >= colors.Length && !singleColor) SetRainbowColors(i+1);
-			Renderer renderObj = _renderMode switch
+			
+			GameObject obj = Instantiate(Prefab, localPos ?? Vector3.zero, Quaternion.identity, transform);
+			obj.name = objName ?? DefaultChildName;
+			
+			Renderer renderObj = renderMode switch
 			{
-				RenderMode.Sphere => InstantiateSphere(localPos, objName, GetColor(i)),
-				RenderMode.Circle => InstantiateCircle(localPos, objName, GetColor(i)),
-				RenderMode.Point => InstantiatePoint(localPos, objName, GetColor(i)),
+				RenderMode.Sphere => obj.GetComponent<MeshRenderer>(),
+				RenderMode.Circle => obj.GetComponent<SpriteRenderer>(),
+				RenderMode.Point => obj.GetComponent<SpriteRenderer>(),
 				_ => null
 			};
+			
 			UpdateCommonProperties(renderObj);
 			
 			return renderObj;
 		}
-
-
-
-		#region OBJECT CREATION
-
-		private MeshRenderer InstantiateSphere(Vector3? localPos = null, string objName = null, Color? color = null)
-		{
-			GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-			sphere.name = objName ?? DefaultChildName;
-			sphere.transform.parent = transform;
-			sphere.transform.localPosition = localPos ?? Vector3.zero;
-			sphere.GetComponent<MeshFilter>().sharedMesh.SetColor(color ?? Color.white);
-			return sphere.GetComponent<MeshRenderer>();
-		}
-
-		// TODO Mover la logica de creacion del Circulo y Punto a un Generador de Objetos
-		// TODO Aplicar Thickness al circulo
-
-		/// <summary>
-		///     Instancia un Círculo. Si no thickness 0 o negativo, sera un punto
-		/// </summary>
-		private SpriteRenderer InstantiateCircle(Vector3? localPos = null, string objName = null, Color? color = null)
-		{
-			if (pointThickness < 0) return InstantiatePoint(localPos, objName);
-			
-			GameObject srObj = Instantiate(
-				Resources.Load<GameObject>("Prefabs/Circumference"),
-				localPos ?? Vector3.zero,
-				Quaternion.identity, 
-				transform);
-			SpriteRenderer sr = srObj.GetComponent<SpriteRenderer>();
-			srObj.name = objName ?? DefaultChildName;
-			srObj.transform.localPosition = localPos ?? Vector3.zero;
-			sr.color = color ?? Color.white;
-			
-			// TODO Modificar la mask hija para modificar el grosor con thickness
-			
-			return sr;
-		}
-
-		/// <summary>
-		///     Instancia un Circulo como un Punto
-		/// </summary>
-		private SpriteRenderer InstantiatePoint(Vector3? localPos = null, string objName = null, Color? color = null)
-		{
-			GameObject srObj = Instantiate(
-				Resources.Load<GameObject>("Prefabs/Circle"),
-				localPos ?? Vector3.zero,
-				Quaternion.identity, 
-				transform);
-			SpriteRenderer sr = srObj.GetComponent<SpriteRenderer>();
-			
-			srObj.name = objName ?? DefaultChildName;
-			srObj.transform.localPosition = localPos ?? Vector3.zero;
-			sr.color = color ?? Color.white;
-			return sr;
-		}
-
-		#endregion
-
+		
 
 		#region DEBUG
 

@@ -21,7 +21,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Geometry Unlit HDRP
-  m_Shader: {fileID: -6465566751694194690, guid: d9bb3fd5ef7cd1b49ba26747441f94b5, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: d9bb3fd5ef7cd1b49ba26747441f94b5,
+    type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
@@ -127,6 +128,7 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 10
+    - _DstBlend2: 10
     - _DstBlendAlpha: 0
     - _EmissionScaleUI: 0
     - _EnableBlendModePreserveSpecularLighting: 0
@@ -142,6 +144,7 @@ Material:
     - _OcclusionStrength: 1
     - _OpaqueCullMode: 2
     - _Parallax: 0.005
+    - _PerPixelSorting: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
@@ -185,6 +188,7 @@ Material:
     - _EmissionColorUI: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &7555574817254443526
 MonoBehaviour:
   m_ObjectHideFlags: 11

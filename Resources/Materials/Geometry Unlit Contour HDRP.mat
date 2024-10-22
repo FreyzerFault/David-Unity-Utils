@@ -21,7 +21,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Geometry Unlit Contour HDRP
-  m_Shader: {fileID: -6465566751694194690, guid: fd91f310e02face4ba88e0f5f1a5f801, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: fd91f310e02face4ba88e0f5f1a5f801,
+    type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -113,6 +114,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ConservativeDepthOffsetEnable: 0
+    - _Contour_Thickness: 0.2
     - _Cull: 0
     - _CullMode: 0
     - _CullModeForward: 0
@@ -124,6 +126,7 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 0
+    - _DstBlend2: 0
     - _DstBlendAlpha: 0
     - _EmissionScaleUI: 0
     - _EnableBlendModePreserveSpecularLighting: 0
@@ -139,6 +142,7 @@ Material:
     - _OcclusionStrength: 1
     - _OpaqueCullMode: 2
     - _Parallax: 0.005
+    - _PerPixelSorting: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
@@ -182,6 +186,7 @@ Material:
     - _EmissionColorUI: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &7555574817254443526
 MonoBehaviour:
   m_ObjectHideFlags: 11
