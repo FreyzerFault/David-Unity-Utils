@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
@@ -43,6 +45,19 @@ namespace DavidUtils.Editor.Rendering
             TestingGUI(_renderer);
             
             serializedObject.ApplyModifiedProperties();
+        }
+
+
+        public static void InputField_Multiple<T>(SerializedObject sObj, string propName, string label,
+            Action<T> onChanged = null, Type type = null) =>
+            InputField(sObj, propName, label, () => sObj.targetObjects.Cast<T>().ForEach(onChanged), type);
+
+        public static void InputField(SerializedObject sObj, string propName, string label,
+            Action onChanged = null, Type type = null)
+        {
+            SerializedProperty prop = sObj.FindProperty(propName);
+            if (prop == null) Debug.LogWarning($"Input Field {propName} in Object {sObj.targetObject.name} can't be found as Property");
+            InputField(prop, label, onChanged, type);
         }
 
         public static void InputField(SerializedProperty prop, string label, Action onChanged = null, Type type = null)
@@ -121,25 +136,5 @@ namespace DavidUtils.Editor.Rendering
             prop.serializedObject.ApplyModifiedProperties();
             onChanged();
         }
-        
-        
-        #region UNDO
-        
-        // private static string UndoName_PointRadiusChanged => "Point Radius Changed";
-        // private static string UndoName_RenderModeChanged => "Render Mode Changed";
-        //
-        // public override Undo.UndoRedoEventCallback UndoRedoEvent => delegate (in UndoRedoInfo info)
-        // {
-        //     base.UndoRedoEvent(info);
-        //
-        //     var renderer = (PointsRenderer) target;
-        //     if (renderer == null) return;
-        //     
-        //     // Line Visibility not needed to be updated
-        //     if (info.undoName == UndoName_RenderModeChanged) renderer.UpdateRenderMode();
-        //     if (info.undoName == UndoName_PointRadiusChanged) renderer.UpdateRadius();
-        // };
-        
-        #endregion
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace DavidUtils.Editor.Rendering
 {
-    public class DynamicRendererEditor: UnityEditor.Editor //, IUndoableEditor
+    public class DynamicRendererEditor: UnityEditor.Editor
     {
         protected static bool testingFoldout = true;
         protected static bool colorFoldout = true;
@@ -75,35 +75,5 @@ namespace DavidUtils.Editor.Rendering
             renderer.BaseColor = baseColor;
             renderer.UpdateColor();
         }
-
-        
-        #region UNDO
-
-        // public virtual Undo.UndoRedoEventCallback UndoRedoEvent => delegate (in UndoRedoInfo info)
-        // {
-        //     switch (target)
-        //     {
-        //         case DynamicRenderer<PolygonRenderer> polyRenderer:
-        //             if (info.undoName == "Color Changed") 
-        //                 polyRenderer.UpdateColor(); 
-        //             break;
-        //         case DynamicRenderer<Renderer> renderer:
-        //             if (info.undoName == "Color Changed") 
-        //                 renderer.UpdateColor(); 
-        //             break;
-        //         default:
-        //             // SubType Custom Editor NOT IMPLEMENTED
-        //             Debug.LogError($"{target.GetType()} Custom Editor is not implemented.\n" +
-        //                            $"Base Type is {target.GetType().BaseType}");
-        //             base.OnInspectorGUI();
-        //             return;
-        //     }
-        //
-        // };
-        //
-        // protected void OnEnable() => Undo.undoRedoEvent += UndoRedoEvent;
-        // protected void OnDisable() => Undo.undoRedoEvent -= UndoRedoEvent;
-
-        #endregion
     }
 }

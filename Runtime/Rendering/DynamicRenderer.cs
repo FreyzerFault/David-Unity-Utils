@@ -114,7 +114,7 @@ namespace DavidUtils.Rendering
 				else
 				{
 					UpdateAllObj(localPositions.Take(renderObjs.Count));
-					InstantiateObjs(localPositions.Skip(renderObjs.Count));
+					AddObjs(localPositions.Skip(renderObjs.Count));
 				}
 			}
 			else

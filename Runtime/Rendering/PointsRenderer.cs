@@ -59,13 +59,14 @@ namespace DavidUtils.Rendering
 			Vector3[] positions = renderObjs.Select(r => r.transform.localPosition).ToArray();
 			Clear();
 			AddObjs(positions);
+			UpdateProperties();
 		}
 		
 
 		public bool IsCircle => renderMode == RenderMode.Circle;
 		
 		[Range(0.1f, 20)] [SerializeField]
-		private float radius = .5f;
+		private float radius = 1f;
 		public float Radius
 		{
 			get => radius;

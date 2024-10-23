@@ -7,6 +7,7 @@ using DavidUtils.Geometry;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
@@ -55,6 +56,8 @@ namespace DavidUtils.Rendering
 			_lineRenderer.loop = true;
 			_lineRenderer.material = Resources.Load<Material>("UI/Materials/Line Material");
 			_meshRenderer.material = Resources.Load<Material>("Materials/Geometry Unlit");
+
+			_lineRenderer.shadowCastingMode = ShadowCastingMode.Off;
 			
 			origHeight = transform.localPosition.y;
 			generateSubPolygons = generateSubPolygons && maxSubPolygonsPerFrame > 0;

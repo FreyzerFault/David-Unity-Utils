@@ -1,31 +1,33 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Collections
 {
     [Serializable]
     public class KeyValuePairSerializable<TKey, TValue>: ArrayElementTitleAttribute.IArrayElementTitle
     {
-        [HideInInspector]
-        public TKey key;
-        public TValue value;
-        
-        public string Name => key.ToString();
+        public TKey Key { get; }
+        public TValue Value { get; }
 
-        public KeyValuePairSerializable(TKey key, TValue value = default) { this.key = key; this.value = value; }
-        public KeyValuePairSerializable(KeyValuePair<TKey, TValue> pair) { key = pair.Key; value = pair.Value; }
+        public string Name => Key.ToString();
+        
+        public KeyValuePairSerializable(TKey key, TValue value = default) { Key = key; Value = value; }
+        public KeyValuePairSerializable(KeyValuePair<TKey, TValue> pair) { Key = pair.Key; Value = pair.Value; }
     }
     
     [Serializable]
-    public class DictionarySerializable<TKey, TValue> : ISerializationCallbackReceiver
+    public class DictionarySerializable<TKey, TValue> : UnityEngine.Object, IEnumerable<KeyValuePairSerializable<TKey, TValue>>, ISerializationCallbackReceiver
     {
         // TODO Comprobar que cada elemento tiene la key como titulo
+        [FormerlySerializedAs("array")]
         [ArrayElementTitle("key")]
-        [SerializeField] private KeyValuePairSerializable<TKey, TValue>[] array = Array.Empty<KeyValuePairSerializable<TKey, TValue>>();
+        [SerializeField] private List<KeyValuePairSerializable<TKey, TValue>> list = new();
         protected Dictionary<TKey, TValue> dictionary = new();
         
         public TValue this[TKey key]
@@ -33,22 +35,23 @@ namespace DavidUtils.Collections
             get => dictionary[key];
             set
             {
-                // TODO comprobar si, al ser KeyValuePairSerializable una clase, el array
-                // con los valores de los pairs se actualiza automáticamente
+                Debug.Log($"Setting value {key} : {value}");
                 
-                dictionary[key] = value;
-                
-                // var pair = new KeyValuePairSerializable<TKey, TValue>(key, value);
-                // if (_dictionary.TryAdd(key, value))
-                // {
-                //     array.Add(pair);
-                // }
-                // else
-                // {
-                //     _dictionary[key] = value;
-                //     int index = array.FindIndex(pair => EqualityComparer<TKey>.Default.Equals(pair.key, key));
-                //     array[index] = pair;
-                // }
+                var pair = new KeyValuePairSerializable<TKey, TValue>(key, value);
+                if (dictionary.TryAdd(key, value))
+                {
+                    list.Add(pair);
+                }
+                else
+                {
+                    dictionary[key] = value;
+                    int index = list.FindIndex(p => 
+                        EqualityComparer<TKey>.Default.Equals(p.Key, key));
+                    if (index != -1)
+                        list[index] = pair;
+                    else
+                        SincronizeList();
+                }
             }
         }
 
@@ -65,9 +68,9 @@ namespace DavidUtils.Collections
         }
         
         private void SincronizeList() =>
-            array = dictionary.Select(pair => new KeyValuePairSerializable<TKey, TValue>(pair)).ToArray();
+            list = dictionary.Select(pair => new KeyValuePairSerializable<TKey, TValue>(pair)).ToList();
         private void SincronizeDictionary() =>
-            dictionary = new Dictionary<TKey, TValue>(array.Select(pair => new KeyValuePair<TKey, TValue>(pair.key, pair.value)));
+            dictionary = new Dictionary<TKey, TValue>(list.Select(pair => new KeyValuePair<TKey, TValue>(pair.Key, pair.Value)));
 
         #endregion
         
@@ -87,7 +90,7 @@ namespace DavidUtils.Collections
         
         public DictionarySerializable(TKey[] keyList, TValue[] values = null)
         {
-            array = keyList.Select((key, i) =>
+            list = keyList.Select((key, i) =>
                     new KeyValuePairSerializable<TKey, TValue>(
                         key,
                         values == null
@@ -95,13 +98,13 @@ namespace DavidUtils.Collections
                             : i < values.Length
                                 ? values[i]
                                 : default))
-                .ToArray();
+                .ToList();
             SincronizeDictionary();
         }
 
         public DictionarySerializable(KeyValuePairSerializable<TKey, TValue>[] elements)
         {
-            array = elements.ToArray();
+            list = elements.ToList();
             SincronizeDictionary();
         }
 
@@ -111,6 +114,17 @@ namespace DavidUtils.Collections
             this.dictionary = dictionary;
             SincronizeList();
         }
+
+        public DictionarySerializable(DictionarySerializable<TKey, TValue> other) : this(other.Keys, other.Values) { }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public IEnumerator<KeyValuePairSerializable<TKey, TValue>> GetEnumerator()
+        {
+            Debug.Log($"{(list == null ? "null" : "list")}.GetEnumerator");
+            return list.GetEnumerator();
+        }
+
+        public void Add(TKey key, TValue value) => this[key] = value;
     }
     
 }
