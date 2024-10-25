@@ -172,49 +172,9 @@ namespace DavidUtils.DevTools.CustomAttributes
 					obj = GetValueByArrayFieldName(obj, elementName, index);
 				}
 				else
-				{
 					obj = GetValueByFieldName(obj, element);
-				}
 
 			return obj;
-
-
-			object GetValueByArrayFieldName(object source, string name, int index)
-			{
-				if (GetValueByFieldName(source, name) is not IEnumerable enumerable) return null;
-				IEnumerator enumerator = enumerable.GetEnumerator();
-
-				for (var i = 0; i <= index; i++)
-					if (!enumerator.MoveNext())
-						return null;
-				return enumerator.Current;
-			}
-
-			// Search "source" object for a field with "name" and get it's value
-			object GetValueByFieldName(object source, string name)
-			{
-				if (source == null) return null;
-				Type type = source.GetType();
-
-				while (type != null)
-				{
-					FieldInfo fieldInfo = type.GetField(
-						name,
-						BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance
-					);
-					if (fieldInfo != null) return fieldInfo.GetValue(source);
-
-					PropertyInfo propertyInfo = type.GetProperty(
-						name,
-						BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase
-					);
-					if (propertyInfo != null) return propertyInfo.GetValue(source, null);
-
-					type = type.BaseType;
-				}
-
-				return null;
-			}
 		}
 
 
@@ -224,6 +184,50 @@ namespace DavidUtils.DevTools.CustomAttributes
 		public static void SetValue(this SerializedProperty property, object value) =>
 			GetFieldInfo(property).SetValue(property.serializedObject.targetObject, value);
 
+		
+		
+		/// <summary>
+		///		Search "source" object for a Enumerable field with "name" and get it's value in "index" position
+		/// </summary>
+		static object GetValueByArrayFieldName(object source, string name, int index)
+		{
+			if (GetValueByFieldName(source, name) is not IEnumerable enumerable) return null;
+			IEnumerator enumerator = enumerable.GetEnumerator();
+
+			for (var i = 0; i <= index; i++)
+				if (!enumerator.MoveNext())
+					return null;
+			return enumerator.Current;
+		}
+		
+		/// <summary>
+		///		Search "source" object for a field with "name" and get it's value
+		/// </summary>
+		static object GetValueByFieldName(object source, string name)
+		{
+			if (source == null) return null;
+			Type type = source.GetType();
+
+			while (type != null)
+			{
+				FieldInfo fieldInfo = type.GetField(
+					name,
+					BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance
+				);
+				if (fieldInfo != null) return fieldInfo.GetValue(source);
+
+				PropertyInfo propertyInfo = type.GetProperty(
+					name,
+					BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase
+				);
+				if (propertyInfo != null) return propertyInfo.GetValue(source, null);
+
+				type = type.BaseType;
+			}
+
+			return null;
+		}
+		
 		/// <summary>
 		///     Is specific attribute defined on SerializedProperty
 		/// </summary>

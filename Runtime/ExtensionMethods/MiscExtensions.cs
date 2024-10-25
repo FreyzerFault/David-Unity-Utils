@@ -128,7 +128,11 @@ namespace DavidUtils.ExtensionMethods
 		/// <summary>
 		///     Surround string with "color" tag
 		/// </summary>
-		public static string Colored(this string message, string colorCode) => $"<color={colorCode}>{message}</color>";
+		public static string Colored(this string message, string colorCode)
+		{
+			Debug.Log($"<color={colorCode}>{message}</color>");
+			return $"<color={colorCode}>{message}</color>";
+		}
 
 		/// <summary>
 		///     Surround string with "size" tag

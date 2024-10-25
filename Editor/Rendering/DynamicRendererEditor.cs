@@ -69,7 +69,6 @@ namespace DavidUtils.Editor.Rendering
 
             if (!EditorGUI.EndChangeCheck()) return;
             
-            Undo.RecordObject(renderer, "Color Changed");
             renderer.singleColor = singleColor;
             renderer.ColorPalette = colorPalette;
             renderer.BaseColor = baseColor;
