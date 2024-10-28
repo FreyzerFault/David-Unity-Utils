@@ -1,25 +1,34 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DavidUtils.DevTools.Table;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.UI.Fonts;
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.DevTools.InspectorUtilities
+namespace DavidUtils.Editor.DevTools.Table
 {
     public static class TableFields
     {
         private static GUIStyle DefaultTextStyle => MyFonts.SmallMonoStyle;
-
+        
+        
         private static float CalcHeight(this GUIStyle style, int rows = 1) =>
             style.CalcHeight(
                 new GUIContent(string.Join("", "\n".ToFilledArray(rows))),
                 EditorGUIUtility.currentViewWidth - 50);
+
+        #region TABLES
+
         
-        public static void Table(IEnumerable<string> list, ref Vector2 scrollPos, string header = null, int maxRowsVisible = 20)
+        /// <summary>
+        ///     Inspector Scrollable Table
+        ///     Header stays while scrolling
+        /// </summary>
+        public static void Table(IEnumerable<string> lines, ref Vector2 scrollPos, string header = null, int maxRowsVisible = 20)
         {
-            var tableContent = new GUIContent(string.Join("\n", list));
+            var tableContent = new GUIContent(string.Join("\n", lines));
             Vector2 tableSize = DefaultTextStyle.CalcSize(tableContent);
 
             if (header != null)
@@ -41,13 +50,24 @@ namespace DavidUtils.Editor.DevTools.InspectorUtilities
             EditorGUILayout.EndScrollView();
         }
         
+        // Table[line][value]
+        // Add the Value Lenghts to calculate the column width
+        public static void Table(IEnumerable<IEnumerable<string>> values, ref Vector2 scrollPos, int[] valueLengths, string header = null, int maxRowsVisible = 20) => 
+            Table(values.Select(v => v.ToTableLine(valueLengths)), ref scrollPos, header, maxRowsVisible);
+
+        /// <summary>
+        ///     Scrollable & Expandable Table
+        ///     Table don't show ALL values for performance reasons
+        ///     Use the counter to expand or shrink the table by the increment
+        /// </summary>
         public static void ExpandableTable(
-            IEnumerable<string> list, ref int numVisible, ref Vector2 scrollPos, string header = null, Action onExpand = null, int maxRowsVisible = 20)
+            IEnumerable<string> lines, ref int numVisible, ref Vector2 scrollPos,
+            string header = null, Action onExpand = null, int maxRowsVisible = 20, int increment = 10)
         {
             EditorGUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.MiddleLeft },
                 GUILayout.ExpandWidth(false), GUILayout.MinWidth(0));
 
-            int newNumVisible = CounterGUI(numVisible, 10, list.Count());
+            int newNumVisible = CounterField(numVisible, increment, lines.Count());
             if (newNumVisible != numVisible) onExpand?.Invoke();
             numVisible = newNumVisible;
             
@@ -55,10 +75,19 @@ namespace DavidUtils.Editor.DevTools.InspectorUtilities
 
             EditorGUILayout.Separator();
             
-            Table(list.Take(numVisible), ref scrollPos, header, maxRowsVisible);
+            Table(lines.Take(numVisible), ref scrollPos, header, maxRowsVisible);
         }
 
-        private static int CounterGUI(int counter, int increment, int max)
+        #endregion
+
+
+        #region AUX COMPONENTS
+
+        /// <summary>
+        ///     A simple counter Field with ADD and SUBSTRACT buttons
+        ///     [-] [+] x / N
+        /// </summary>
+        public static int CounterField(int counter, int increment, int max)
         {
             if (GUILayout.Button("-", GUILayout.MaxWidth(20))) counter -= increment;
             if (GUILayout.Button("+", GUILayout.MaxWidth(20))) counter += increment;
@@ -67,5 +96,7 @@ namespace DavidUtils.Editor.DevTools.InspectorUtilities
 
             return Mathf.Clamp(counter, 0, max);
         }
+
+        #endregion
     }
 }

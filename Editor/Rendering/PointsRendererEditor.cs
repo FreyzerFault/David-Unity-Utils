@@ -1,9 +1,8 @@
 using System;
-using DavidUtils.Editor.DevTools.InspectorUtilities;
 using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
-using Fields = DavidUtils.Editor.DevTools.InspectorUtilities.MyInputFields;
+using Fields = DavidUtils.Editor.DevTools.CustomFields.MyInputFields;
 
 namespace DavidUtils.Editor.Rendering
 {

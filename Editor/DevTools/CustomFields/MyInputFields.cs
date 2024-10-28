@@ -4,7 +4,7 @@ using DavidUtils.ExtensionMethods;
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.DevTools.InspectorUtilities
+namespace DavidUtils.Editor.DevTools.CustomFields
 {
     public static class MyInputFields
     {

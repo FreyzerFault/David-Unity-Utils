@@ -144,6 +144,25 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
 		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
 
+		
+		// [X, Y, X, Y, ...] => [(X,Y), (X,Y) ,...]
+		public static Vector2[] ToVector2Array(this double[] xy) => 
+			Enumerable.Range(0, xy.Length / 2)
+				.Select(i => new Vector2((float)xy[i * 2], (float)xy[i * 2 + 1])).ToArray();
+		
+		public static Vector2[] ToVector2Array(this float[] xy) => 
+			Enumerable.Range(0, xy.Length / 2)
+				.Select(i => new Vector2(xy[i * 2], xy[i * 2 + 1])).ToArray();
+		
+		// [X, Y, Z, X, Y, Z, ...] => [(X,Y,Z), (X,Y,Z) ,...]
+		public static Vector3[] ToVector3Array(this double[] xyz) => 
+			Enumerable.Range(0, xyz.Length / 3)
+				.Select(i => new Vector3((float)xyz[i * 3], (float)xyz[i * 3 + 1], (float)xyz[i * 3 + 2])).ToArray();
+		
+		public static Vector3[] ToVector3Array(this float[] xyz) => 
+			Enumerable.Range(0, xyz.Length / 3)
+				.Select(i => new Vector3(xyz[i * 3], xyz[i * 3 + 1], xyz[i * 3 + 2])).ToArray();
+		
 		#endregion
 
 
