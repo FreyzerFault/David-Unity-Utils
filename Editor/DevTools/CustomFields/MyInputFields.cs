@@ -101,10 +101,8 @@ namespace DavidUtils.Editor.DevTools.CustomFields
                     break;
             }
             
-            if (onChanged == null) return;
-
             if (prop.serializedObject.ApplyModifiedProperties())
-                onChanged();
+                onChanged?.Invoke();
         }
 
 
@@ -196,7 +194,7 @@ namespace DavidUtils.Editor.DevTools.CustomFields
             }
             
             if (prop.serializedObject.ApplyModifiedProperties())
-                onChanged();
+                onChanged?.Invoke();
         }
 
         #endregion
