@@ -220,8 +220,8 @@ namespace DavidUtils.Rendering
 
 		#region TERRAIN
 
-		public bool projectedOnTerrain;
-		public float terrainHeightOffset = 0.1f;
+		protected bool projectedOnTerrain;
+		[SerializeField] public float terrainHeightOffset = 0.1f;
 		private (Vector3, Quaternion, Vector3)[] originalTransforms; // For UNDO Projection on Terrain
 
 		public bool ProjectedOnTerrain

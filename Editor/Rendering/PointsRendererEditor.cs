@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
@@ -45,7 +47,5 @@ namespace DavidUtils.Editor.Rendering
             
             serializedObject.ApplyModifiedProperties();
         }
-
-
     }
 }
