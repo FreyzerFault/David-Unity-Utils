@@ -37,7 +37,7 @@ namespace DavidUtils.Rendering
 			// IGNORE Other Renderers that are not SpriteRenderers or MeshRenderers
 			renderObjs.RemoveAll(obj => obj.GetComponent<MeshRenderer>() == null && obj.GetComponent<SpriteRenderer>() == null);
 		}
-
+		
 
 		#region COMMON PROPS
 		
@@ -149,7 +149,7 @@ namespace DavidUtils.Rendering
 					break;
 				case RenderMode.Circle:
 				case RenderMode.Point:
-					renderObj.transform.localRotation = Quaternion.Euler(90,0,0);
+					renderObj.transform.localRotation = Quaternion.Euler(-90,0,0);
 					renderObj.GetComponent<SpriteRenderer>().color = BaseColor;
 					renderObj.transform.localScale = Vector3.one;
 					renderObj.GetComponent<SpriteRenderer>().size = new Vector2(radius, radius);
@@ -228,7 +228,8 @@ namespace DavidUtils.Rendering
 			if (i == -1) i = renderObjs.Count;
 			if (i >= colors.Length && !singleColor) SetRainbowColors(i+1);
 			
-			GameObject obj = Instantiate(Prefab, localPos ?? Vector3.zero, Quaternion.identity, transform);
+			GameObject obj = Instantiate(Prefab, transform);
+			obj.transform.localPosition = localPos ?? Vector3.zero;
 			obj.name = objName ?? DefaultChildName;
 			
 			Renderer renderObj = renderMode switch

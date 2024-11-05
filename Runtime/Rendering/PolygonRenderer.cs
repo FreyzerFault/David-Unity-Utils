@@ -180,7 +180,8 @@ namespace DavidUtils.Rendering
 		{
 			if (polygon == null || polygon.IsEmpty)
 			{
-				Clear();
+				polygon = new Polygon();
+				UnityUtils.DestroySafe(subPolyRenderers);
 				return;
 			}
 			

@@ -38,6 +38,8 @@ namespace Geometry.Algorithms
 		// Vertices sin repetir de todas las regiones
 		public Vector2[] AllVertices => polygons.SelectMany(r => r.Vertices).Distinct().ToArray();
 
+		public Action<Polygon> onPolygonAdded;
+
 		public Voronoi(IEnumerable<Vector2> seeds, Delaunay delaunay = null)
 		{
 			_seeds = seeds.ToList();
@@ -60,7 +62,12 @@ namespace Geometry.Algorithms
 			// Se necesita triangular las seeds primero.
 			if (delaunay.NotGenerated) GenerateDelaunay();
 
-			foreach (Vector2 seed in _seeds) polygons.Add(GeneratePolygon(seed));
+			foreach (Vector2 seed in _seeds)
+			{
+				Polygon poly = GeneratePolygon(seed);
+				polygons.Add(poly);
+				onPolygonAdded?.Invoke(poly);
+			}
 
 			return polygons;
 		}
@@ -169,7 +176,7 @@ namespace Geometry.Algorithms
 
 				polygon.Vertices = vertices.ToArray();
 			}
-
+			
 			return polygon.SortCCW();
 		}
 
@@ -254,7 +261,9 @@ namespace Geometry.Algorithms
 
 			if (!delaunay.ended) Debug.LogError("Delaunay no ha terminado antes de generar Voronoi");
 
-			polygons.Add(GeneratePolygon(_seeds[_iteration]));
+			Polygon poly = GeneratePolygon(_seeds[_iteration]);
+			polygons.Add(poly);
+			onPolygonAdded?.Invoke(poly);
 
 			_iteration++;
 		}

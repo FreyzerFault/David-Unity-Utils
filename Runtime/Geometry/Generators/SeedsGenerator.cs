@@ -29,7 +29,6 @@ namespace DavidUtils.Geometry.Generators
 			{
 				numSeeds = value;
 				GenerateSeeds();
-				OnSeedsUpdated();
 			}
 		}
 		
@@ -43,9 +42,9 @@ namespace DavidUtils.Geometry.Generators
 			{
 				seeds = value;
 				NumSeeds = seeds.Count;
-				OnSeedsUpdated();
 			}
 		}
+		private Vector3[] SeedsWorldPosition => seeds.Select(s => BoundsComp.ToWorld(s)).ToArray();
 
 		public bool SeedsAreGenerated => seeds?.Count == NumSeeds;
 
@@ -96,13 +95,13 @@ namespace DavidUtils.Geometry.Generators
 		{
 			randSeed = newRandSeed == -1 ? Random.Range(1, int.MaxValue) : newRandSeed;
 			GenerateSeeds();
-			OnSeedsUpdated();
 		}
 
 		public void GenerateSeeds()
 		{
 			seeds = GenerateSeeds(NumSeeds, randSeed, seedsDistribution).ToList();
 			DeleteRedundant();
+			OnSeedsUpdated();
 		}
 
 		private void DeleteRedundant() => seeds = seeds.Where(
@@ -167,11 +166,20 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void InstantiateRenderer()
 		{
+			Debug.Log($"Instantiate Points Renderer \n" +
+			          $"{string.Join(", ", SeedsWorldPosition.Select(s => s.ToString()))}");
 			if (Renderer == null) return;
-			Renderer.InstantiateObjs(seeds.ToV3(), "Seed");
+			Renderer.InstantiateObjs(SeedsWorldPosition, "Seed");
+			Debug.Log($"Objects Instantiated: {Renderer.renderObjs.Count}\n" +
+			          $"{string.Join(", ", Renderer.renderObjs.Select(s => s.transform.localPosition.ToString()))}");
 		}
 
-		protected virtual void UpdateRenderer() => Renderer.UpdateAllObj(seeds.ToV3());
+		protected virtual void UpdateRenderer()
+		{
+			Debug.Log($"Update Points Renderer \n" +
+			          $"{string.Join(", ", SeedsWorldPosition.Select(s => s.ToString()))}");
+			Renderer.UpdateAllObj(SeedsWorldPosition);
+		}
 
 		/// <summary>
 		/// Posiciona el Renderer de las Seeds ajustado al AABB
@@ -179,8 +187,7 @@ namespace DavidUtils.Geometry.Generators
 		protected virtual void PositionRenderer()
 		{
 			if (Renderer == null) return;
-			BoundsComp.TransformToBounds_Local(Renderer);
-			Renderer.transform.Translate(Vector3.back * .5f);
+			Renderer.transform.Translate(Vector3.up * 2f);
 		}
 
 		#endregion

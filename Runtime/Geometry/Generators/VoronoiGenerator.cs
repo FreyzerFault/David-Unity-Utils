@@ -181,21 +181,7 @@ namespace DavidUtils.Geometry.Generators
 
 		private void UpdateRenderer(int i, Polygon poly)
 		{
-			if (Renderer.Active) Renderer.SetPolygon(i, poly);
-		}
-		
-		/// <summary>
-		/// Posiciona el Renderer del Voronoi ajustado al AABB
-		/// </summary>
-		protected override void PositionRenderer()
-		{
-			base.PositionRenderer();
-
-			if (Renderer == null) return;
-			
-			BoundsComp.TransformToBounds_Local(Renderer);
-
-			PositionSelectedRenderer();
+			if (Renderer.Active) Renderer.SetPolygon(poly, i);
 		}
 
 		#endregion
@@ -289,9 +275,6 @@ namespace DavidUtils.Geometry.Generators
 		private void PositionSelectedRenderer()
 		{
 			if (selectedRenderer == null) return;
-
-			BoundsComp.TransformToBounds_Local(selectedRenderer);
-			BoundsComp.TransformToBounds_Local(hoverRenderer);
 			
 			selectedRenderer.transform.localPosition += Vector3.up * 2f;
 			hoverRenderer.transform.localPosition += Vector3.up * 2f;

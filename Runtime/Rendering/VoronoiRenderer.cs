@@ -31,6 +31,8 @@ namespace DavidUtils.Rendering
 
 			// Update properties if they changed while disabled
 			renderObjs.ForEach(r => r.UpdateAllProperties());
+			
+			_voronoi.onPolygonAdded += (p) => SetPolygon(p);
 		}
 		
 
@@ -127,19 +129,22 @@ namespace DavidUtils.Rendering
 		{
 			if (colors.Length != _voronoi.PolygonCount) SetRainbowColors(_voronoi.PolygonCount);
 
-			for (var i = 0; i < _voronoi.PolygonCount; i++) SetPolygon(i, _voronoi.polygons[i]);
+			for (var i = 0; i < _voronoi.PolygonCount; i++) SetPolygon(_voronoi.polygons[i], i);
 		}
 
-		// Asigna un poligono a una region
-		public void SetPolygon(int i, Polygon polygon)
+		// Asigna un poligono o lo añade si i < 0 o i >= count
+		public void SetPolygon(Polygon polygon, int i = -1)
 		{
-			// Instantiate if not exists
-			if (i < 0 || i >= renderObjs.Count)
-			{
+			if (i < 0 || i > renderObjs.Count)
 				i = renderObjs.Count;
-				renderObjs.Add(InstantiateObj(Vector3.zero, $"Region {i}"));
+			
+			// Instantiate if not exists
+			if (i == renderObjs.Count)
+			{
+				PolygonRenderer polyRenderer = InstantiateObj(Vector3.zero, $"Polygon {i}");
+				renderObjs.Add(polyRenderer);
 				SetRainbowColors(_voronoi.PolygonCount);
-				renderObjs[i].Color = GetColor(i);
+				polyRenderer.Color = GetColor(i);
 			}
 			
 			// Set the region Polygon
