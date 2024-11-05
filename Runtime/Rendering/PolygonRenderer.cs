@@ -21,7 +21,7 @@ namespace DavidUtils.Rendering
 			Wire,
 			Mesh,
 			OutlinedMesh,
-			Unknown
+			Patata
 		}
 		
 		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.OutlinedMesh;
