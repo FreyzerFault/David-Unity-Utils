@@ -64,7 +64,7 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void Awake()
 		{
-			Reset();
+			Init();
 			GenerateSeeds();
 			InitializeRenderer();
 
@@ -78,7 +78,7 @@ namespace DavidUtils.Geometry.Generators
 
 		#region MAIN METHODS
 
-		public virtual void Reset()
+		public virtual void Init()
 		{
 			seeds = new List<Vector2>();
 			Renderer.Clear();
@@ -166,18 +166,12 @@ namespace DavidUtils.Geometry.Generators
 
 		protected virtual void InstantiateRenderer()
 		{
-			Debug.Log($"Instantiate Points Renderer \n" +
-			          $"{string.Join(", ", SeedsWorldPosition.Select(s => s.ToString()))}");
 			if (Renderer == null) return;
 			Renderer.InstantiateObjs(SeedsWorldPosition, "Seed");
-			Debug.Log($"Objects Instantiated: {Renderer.renderObjs.Count}\n" +
-			          $"{string.Join(", ", Renderer.renderObjs.Select(s => s.transform.localPosition.ToString()))}");
 		}
 
 		protected virtual void UpdateRenderer()
 		{
-			Debug.Log($"Update Points Renderer \n" +
-			          $"{string.Join(", ", SeedsWorldPosition.Select(s => s.ToString()))}");
 			Renderer.UpdateAllObj(SeedsWorldPosition);
 		}
 

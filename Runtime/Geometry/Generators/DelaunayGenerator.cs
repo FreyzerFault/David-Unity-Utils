@@ -52,15 +52,10 @@ namespace DavidUtils.Geometry.Generators
 
 		#region MAIN METHODS
 
-		public override void Reset()
+		public override void Init()
 		{
-			base.Reset();
-
-			ResetDelaunay();
-		}
-
-		public void ResetDelaunay()
-		{
+			base.Init();
+			
 			if (animationCoroutine != null)
 				StopCoroutine(animationCoroutine);
 
@@ -75,7 +70,6 @@ namespace DavidUtils.Geometry.Generators
 		{
 			if (seeds.IsNullOrEmpty()) GenerateSeeds();
 			
-			ResetDelaunay();
 			if (animatedDelaunay)
 			{
 				animationCoroutine = StartCoroutine(RunCoroutine());
@@ -118,7 +112,6 @@ namespace DavidUtils.Geometry.Generators
 
 		public virtual IEnumerator RunCoroutine()
 		{
-			ResetDelaunay();
 			if (DrawDelaunay && AnimatedDelaunay)
 			{
 				while (!delaunay.ended)

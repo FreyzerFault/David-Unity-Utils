@@ -32,7 +32,7 @@ namespace DavidUtils.Rendering
 			// Update properties if they changed while disabled
 			renderObjs.ForEach(r => r.UpdateAllProperties());
 			
-			_voronoi.onPolygonAdded += (p) => SetPolygon(p);
+			_voronoi.onPolygonAdded += p => SetPolygon(p);
 		}
 		
 
@@ -131,6 +131,8 @@ namespace DavidUtils.Rendering
 
 			for (var i = 0; i < _voronoi.PolygonCount; i++) SetPolygon(_voronoi.polygons[i], i);
 		}
+
+		public void AddPolygon(Polygon polygon) => SetPolygon(polygon);
 
 		// Asigna un poligono o lo añade si i < 0 o i >= count
 		public void SetPolygon(Polygon polygon, int i = -1)

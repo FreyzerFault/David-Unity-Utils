@@ -14,6 +14,13 @@ namespace DavidUtils.Geometry.Testing
 
 		public int seed = 999;
 
+		protected override void Awake()
+		{
+			base.Awake();
+			
+			generator.Init();
+		}
+
 
 		protected override void InitializeTests()
 		{

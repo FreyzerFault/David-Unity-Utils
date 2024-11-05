@@ -20,8 +20,7 @@ namespace DavidUtils.Rendering
 		{
 			Wire,
 			Mesh,
-			OutlinedMesh,
-			Patata
+			OutlinedMesh
 		}
 		
 		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.OutlinedMesh;
@@ -182,7 +181,8 @@ namespace DavidUtils.Rendering
 			if (polygon == null || polygon.IsEmpty)
 			{
 				polygon = new Polygon();
-				UnityUtils.DestroySafe(subPolyRenderers);
+				subPolygons = new List<Polygon>();
+				CleanSubPolyRenderers();
 				return;
 			}
 			
@@ -213,7 +213,7 @@ namespace DavidUtils.Rendering
 				CleanSubPolyRenderers();
 				_meshFilter.sharedMesh.SetPolygonConvex(ScaledPolygon, color);
 			}
-				
+			
 			UpdateSubPolygonRenderers();
 			
 			if (ProjectedOnTerrain) UpdateTerrainProjection();

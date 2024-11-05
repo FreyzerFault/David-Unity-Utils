@@ -24,7 +24,7 @@ namespace DavidUtils.Editor.Geometry.Generators
 			}
 
 			if (GUILayout.Button("Reset"))
-				voronoiGen.Reset();
+				voronoiGen.Init();
 
 			EditorGUILayout.EndHorizontal();
 
