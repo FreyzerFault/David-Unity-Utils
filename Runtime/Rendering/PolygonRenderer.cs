@@ -20,7 +20,8 @@ namespace DavidUtils.Rendering
 		{
 			Wire,
 			Mesh,
-			OutlinedMesh
+			OutlinedMesh,
+			Unknown
 		}
 		
 		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.OutlinedMesh;
