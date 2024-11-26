@@ -51,7 +51,8 @@ namespace DavidUtils.Editor.DevTools.CustomFields
                     prop.colorValue = EditorGUILayout.ColorField(label, prop.colorValue);
                     break;
                 case SerializedPropertyType.ObjectReference:
-                    prop.objectReferenceValue = EditorGUILayout.ObjectField(label, prop.objectReferenceValue, prop.objectReferenceValue?.GetType(), true);
+                    prop.objectReferenceValue = EditorGUILayout.ObjectField(label, prop.objectReferenceValue, prop.objectReferenceValue?.GetType() ??
+                        typeof(GameObject), true);
                     break;
                 case SerializedPropertyType.LayerMask:
                     break;

@@ -124,7 +124,7 @@ namespace DavidUtils.DevTools.Testing
 			iterations = 0;
 			playing = true;
 			if (testsCoroutine != null) EndTests();
-			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(waitSeconds) : RunTests_Single());
+			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(waitSeconds, OnStartTest, OnEndTest) : RunTests_Single());
 		}
 
 		public void EndTests()

@@ -90,6 +90,8 @@ namespace DavidUtils.Geometry.Testing
 
 		public void Reset()
 		{
+			Debug.Log("Resetting Polygon Test");
+			polygon = new Polygon();
 			splitPolygons = Array.Empty<Polygon>();
 			intersectionPoints.Clear();
 			interiorPolygon.Vertices = Array.Empty<Vector2>();
@@ -138,6 +140,7 @@ namespace DavidUtils.Geometry.Testing
 
 				OnStartTest += () =>
 				{
+					UpdatePolygonRenderer();
 					Debug.Log(
 						$"<color=#00ffff><b>Starting Test #{iterations}</b> - Seed: {seed} - NumVertices: {numVertices} - Time: {Time.time}</color>",
 						this
@@ -149,6 +152,7 @@ namespace DavidUtils.Geometry.Testing
 					Reset();
 					RandomizeSeed();
 					Renderer.Clear();
+					_exteriorRenderer.Clear();
 				};
 			}
 			else
@@ -161,7 +165,10 @@ namespace DavidUtils.Geometry.Testing
 		public void BuildInteriorPolygon()
 		{
 			interiorPolygon = polygon.InteriorPolygon(Vector2.one * interiorPolygonMargin);
+			_exteriorRenderer.Polygon = polygon;
 			Renderer.Polygon = interiorPolygon;
+			
+			UpdatePolygonRenderer();
 		}
 
 		// Esto ya hace to el proceso de legalización del poligono interior
@@ -169,6 +176,7 @@ namespace DavidUtils.Geometry.Testing
 		{
 			mergedPolygon = interiorPolygon.Legalize();
 			Renderer.Polygon = mergedPolygon;
+			UpdatePolygonRenderer();
 		}
 
 		// Las siguientes funciones son para mostrar el proceso de legalización paso a paso
@@ -176,19 +184,22 @@ namespace DavidUtils.Geometry.Testing
 		{
 			interiorPolygon = interiorPolygon.AddAutoIntersections(out intersectionPoints);
 			Renderer.Polygon = interiorPolygon;
+			UpdatePolygonRenderer();
 		}
 
 		public void SplitPolygonsTest()
 		{
 			AddAutoIntersectionsTest();
+			
 			splitPolygons = interiorPolygon.SplitAutoIntersectedPolygons(intersectionPoints);
-			UpdateSplitPolygonRenderers();
+			
+			UpdatePolygonRenderer();
 		}
 
 		public void SelectCCWpolygons()
 		{
 			splitPolygons = splitPolygons.Where(p => p.IsCounterClockwise()).ToArray();
-			UpdateSplitPolygonRenderers();
+			UpdatePolygonRenderer();
 		}
 
 		public void MergePolygonInOne()
@@ -205,10 +216,10 @@ namespace DavidUtils.Geometry.Testing
 
 			splitPolygons.ForEach(p => mergedPolygon = mergedPolygon.Merge(p));
 			Renderer.Polygon = mergedPolygon;
-
-			Renderer.GetComponent<MeshRenderer>().enabled = true;
-			splitPolygonRenderers.ForEach(UnityUtils.DestroySafe);
-			splitPolygonRenderers = Array.Empty<PolygonRenderer>();
+			
+			splitPolygons = Array.Empty<Polygon>();
+			
+			UpdatePolygonRenderer();
 		}
 
 		#endregion
@@ -216,33 +227,58 @@ namespace DavidUtils.Geometry.Testing
 
 		#region RENDERING
 
-		private PolygonRenderer polygonRenderer;
-		private PolygonRenderer[] splitPolygonRenderers;
-		private PolygonRenderer Renderer => polygonRenderer;
-		private PolygonRenderer[] SplitRenderers => splitPolygonRenderers;
+		private PolygonRenderer _polygonRenderer;
+		private PolygonRenderer _exteriorRenderer;
+		private PolygonRenderer[] _splitPolygonRenderers;
+		
+		private PolygonRenderer Renderer => _polygonRenderer;
+		private PolygonRenderer[] SplitRenderers => _splitPolygonRenderers;
 
 		private void InitializeRenderer()
 		{
-			polygonRenderer = GetComponent<PolygonRenderer>() ?? gameObject.AddComponent<PolygonRenderer>();
+			_polygonRenderer = GetComponent<PolygonRenderer>() ?? gameObject.AddComponent<PolygonRenderer>();
+			_polygonRenderer.Color = Color.green;
+			_polygonRenderer.Thickness = 0.15f;
+			_polygonRenderer.RenderMode = PolygonRenderer.PolygonRenderMode.OutlinedMesh;
+			_polygonRenderer.Polygon = polygon;
+
+
+			_exteriorRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(transform.parent, "Exterior Polygon");
+			_exteriorRenderer.Color = Color.grey.WithAlpha(0.2f);
+			_exteriorRenderer.Thickness = _polygonRenderer.Thickness / 2;
+			_exteriorRenderer.RenderMode = PolygonRenderer.PolygonRenderMode.OutlinedMesh;
+			_exteriorRenderer.Polygon = polygon;
+			
+			Debug.Log("CReated Exterior Renderer", _exteriorRenderer);
 		}
 
-		private void UpdatePolygonRenderer() => Renderer.Polygon = polygon;
-
-		private void UpdateSplitPolygonRenderers()
+		private void UpdatePolygonRenderer()
 		{
-			PolygonRenderer[] children = GetComponentsInChildren<PolygonRenderer>().SkipWhile(p => p.gameObject == gameObject).ToArray();
-			if (children.NotNullOrEmpty()) children.ForEach(UnityUtils.DestroySafe);
+			if (_splitPolygonRenderers.NotNullOrEmpty())
+			{
+				_splitPolygonRenderers?.ForEach(UnityUtils.DestroySafe);
+				_splitPolygonRenderers = Array.Empty<PolygonRenderer>();
+			}
 
-			Color[] colors = Color.green.GetRainBowColors(splitPolygons.Length);
-			splitPolygonRenderers = splitPolygons.Select((p, i) =>
+			if (splitPolygons.IsNullOrEmpty())
+			{
+				_polygonRenderer.Thickness = 0.15f;
+				Renderer.Color = Color.green;
+				return;
+			}
+			
+			Color[] colors = Color.green.GetRainBowColors(splitPolygons.Length, 0.2f);
+			_splitPolygonRenderers = splitPolygons.Select((p, i) =>
 			{
 				PolygonRenderer polyRender = UnityUtils.InstantiateObject<PolygonRenderer>(transform, "Split Polygon");
 				polyRender.Polygon = p;
 				polyRender.Color = colors[i];
+				polyRender.Thickness = _polygonRenderer.Thickness;
 				return polyRender;
 			}).ToArray();
 
-			Renderer.GetComponent<MeshRenderer>().enabled = false;
+			_polygonRenderer.Thickness = 0f;
+			Renderer.Color = Color.gray.WithAlpha(0.2f);
 		}
 		
 

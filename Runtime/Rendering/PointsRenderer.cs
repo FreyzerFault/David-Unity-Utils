@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Linq;
-using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.MeshExtensions;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {

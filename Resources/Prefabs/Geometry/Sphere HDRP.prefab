@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3378640166028708490}
   - component: {fileID: 7317139901638119729}
   m_Layer: 0
-  m_Name: Sphere
+  m_Name: Sphere HDRP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -65,7 +65,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 3ff0fc7d9c66d814994b079e836875c8, type: 2}
+  - {fileID: 2100000, guid: 283443dfbd4ff274ab64806dab6f5ab0, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

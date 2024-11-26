@@ -253,7 +253,7 @@ namespace Geometry.Algorithms
 		private int _iteration;
 
 		// Habra terminado cuando para todas las semillas haya un poligono
-		public bool Ended => polygons.NotNullOrEmpty() && polygons.Count == _seeds.Count;
+		public bool Ended => (polygons.NotNullOrEmpty() && polygons.Count == _seeds.Count) || _iteration >= _seeds.Count;
 
 		public void Run_OneIteration()
 		{
