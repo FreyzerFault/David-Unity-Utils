@@ -179,6 +179,19 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region TEST
+		
+		public bool PointCollinear(Vector2 p) => GeometryUtils.IsColinear(begin, end, p);
+		public bool PointOnEdge(Vector2 point) => GeometryUtils.PointOnSegment(begin, end, point);
+
+		public float DistanceTo(Vector2 point) =>
+			PointOnEdge(GeometryUtils.Projection(point, begin, end))
+				? GeometryUtils.DistanceToLine(begin, end, point)
+				: Mathf.Min((point - begin).magnitude, (point - end).magnitude);
+
+		#endregion
+
+
 		#region DEBUG
 
 #if UNITY_EDITOR

@@ -21,6 +21,15 @@ namespace DavidUtils.Rendering.Extensions
 		public static Vector3 GetNormal2D(this LineRenderer lr) => lr.IsInXY() ? Vector3.back : Vector3.up;
 
 
+		#region MATERIAL
+		
+		private static Material DefaultMaterial => Resources.Load<Material>("UI/Materials/Line Material");
+
+		public static void SetDefaultMaterial(this LineRenderer lr) => lr.sharedMaterial = DefaultMaterial;
+
+		#endregion
+		
+		
 		#region MODIFY LINE
 
 		public static void CopyLineRendererPoints(this LineRenderer lr, LineRenderer other)

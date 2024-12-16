@@ -56,7 +56,12 @@ namespace DavidUtils.Rendering
 			_lineRenderer.useWorldSpace = false;
 			_lineRenderer.loop = true;
 			_lineRenderer.material = Resources.Load<Material>("UI/Materials/Line Material");
-			_meshRenderer.material = Resources.Load<Material>("Materials/Geometry Unlit");
+			
+			// Check if RenderPipeline is URP or HDRP
+			bool URP = GraphicsSettings.currentRenderPipeline.GetType().Name.Contains("Universal");
+			bool HDRP = GraphicsSettings.currentRenderPipeline.GetType().Name == "HDRenderPipelineAsset";
+			
+			_meshRenderer.material = Resources.Load<Material>($"Materials/Geometry Unlit{(HDRP ? " HDRP" : "")}");
 
 			_lineRenderer.shadowCastingMode = ShadowCastingMode.Off;
 			
@@ -251,7 +256,7 @@ namespace DavidUtils.Rendering
 		#endregion
 
 
-		#region TERRAIN
+		#region TERRAIN PROJECTION
 
 		private Terrain Terrain => Terrain.activeTerrain;
 		[SerializeField] protected bool projectedOnTerrain;
