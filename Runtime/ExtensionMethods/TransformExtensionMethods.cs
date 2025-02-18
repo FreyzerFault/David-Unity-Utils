@@ -53,16 +53,16 @@ namespace DavidUtils.ExtensionMethods
 		
 		#region WORLD TRANSFORMATIONS
 
-		public static void ToWorld(this Transform transform, Vector3 localPoint) 
+		public static Vector3 ToWorld(this Transform transform, Vector3 localPoint) 
 			=> transform.localToWorldMatrix.MultiplyPoint(localPoint);
 		
-		public static void ToWorld(this Transform transform, Vector2 localPoint) 
+		public static Vector3 ToWorld(this Transform transform, Vector2 localPoint) 
 			=> transform.localToWorldMatrix.MultiplyPoint(localPoint.ToV3xy());
 		
-		public static void ToLocal(this Transform transform, Vector3 worldPoint) 
+		public static Vector3 ToLocal(this Transform transform, Vector3 worldPoint) 
 			=> transform.worldToLocalMatrix.MultiplyPoint(worldPoint);
 		
-		public static void ToLocal(this Transform transform, Vector2 worldPoint) 
+		public static Vector3 ToLocal(this Transform transform, Vector2 worldPoint) 
 			=> transform.worldToLocalMatrix.MultiplyPoint(worldPoint.ToV3xy());
 
 		#endregion
