@@ -120,6 +120,20 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region PLANES
+
+		public static bool IsAny2DPlane(this Plane plane) => plane.IsXYPlane() || plane.IsXZPlane() || plane.IsYZPlane();
+		
+		public static bool IsXYPlane(this Plane plane) => Mathf.Approximately(Mathf.Abs(plane.normal.z), 1);
+		public static bool IsXZPlane(this Plane plane) => Mathf.Approximately(Mathf.Abs(plane.normal.y), 1);
+		public static bool IsYZPlane(this Plane plane) => Mathf.Approximately(Mathf.Abs(plane.normal.x), 1);
+		
+		public static Vector3 GetPointProjected(this Plane plane, Vector3 p) 
+			=> p + -plane.normal * plane.GetDistanceToPoint(p); 
+
+		#endregion
+		
+
 		#region INTERSECTIONS
 
 		#region LINES
@@ -212,6 +226,7 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		
 		#region RAYS
 
 		/// <summary>
@@ -274,6 +289,37 @@ namespace DavidUtils.Geometry
 
 			return p + dir * t;
 		}
+
+		#endregion
+
+
+		#region RAYS on PLANES
+
+		public static bool IntersectionRayPlane(Ray ray, Plane plane, out Vector3 intersection)
+		{
+			intersection = Vector3.zero;
+			
+			// Dot Product == 0 => Ray is parallel to plane
+			// Dot Product > 0 => Ray is pointing away from the plane
+			float dot = Vector3.Dot(plane.normal, ray.direction);
+			if (dot >= 0) return false;
+
+			float t;
+            
+			// Raycast with any other Plane
+			if (!plane.Raycast(ray, out t)) return false;
+            
+			intersection = ray.GetPoint(t);
+            
+			// Debug.Log($"p in Hex Plane is {intersection.ToString()}" +
+			//           (plane.IsAny2DPlane() ? $"Plane was {(plane.IsXYPlane() ? "XY" : plane.IsXZPlane() ? "XZ" : "YZ")}" : ""));
+            
+			return true;
+		}
+
+		public static bool IntersectionRayPlane(Vector3 p, Vector3 dir, Vector3 pNormal, Vector3 pPoint,
+			out Vector3 intersection) =>
+			IntersectionRayPlane(new Ray(p, dir), new Plane(pNormal, pPoint), out intersection);
 
 		#endregion
 
