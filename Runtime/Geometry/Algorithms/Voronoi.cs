@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.MouseInputs;
+using Geometry.Algorithms;
 using UnityEngine;
-using UnityEngine.Serialization;
 
-namespace Geometry.Algorithms
+namespace DavidUtils.Geometry.Algorithms
 {
 	[Serializable]
 	public class Voronoi

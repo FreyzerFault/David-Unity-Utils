@@ -16,5 +16,10 @@
     "email": "martinezalcantara29@gmail.com",
     "url": "https://daviduvi.dev"
   },
-  "hideInEditor": false
+  "hideInEditor": false,
+  "dependencies": {
+    "com.unity.cinemachine": "3.1.3",
+    "com.unity.inputsystem": "1.12.0"
+
+  }
 }

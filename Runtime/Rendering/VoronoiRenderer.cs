@@ -2,6 +2,7 @@
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
+using DavidUtils.Geometry.Algorithms;
 using Geometry.Algorithms;
 using UnityEngine;
 using UnityEngine.Serialization;

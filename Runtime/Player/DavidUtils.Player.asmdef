@@ -1,10 +1,10 @@
 {
     "name": "DavidUtils.Player",
-    "rootNamespace": "DavidUtils.Player",
+    "rootNamespace": "DavidUtils",
     "references": [
-        "GUID:910480fa5826ed0419a9fecbcb3b7c26",
-        "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:d95f62dca18902045bd3f2c6a5898a9d"
+        "DavidUtils.Camera",
+        "DavidUtils",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

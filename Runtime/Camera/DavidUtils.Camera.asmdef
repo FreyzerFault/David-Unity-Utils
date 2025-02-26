@@ -1,6 +1,6 @@
 {
     "name": "DavidUtils.Camera",
-    "rootNamespace": "DavidUtils.Camera",
+    "rootNamespace": "DavidUtils",
     "references": [
         "Unity.Cinemachine",
         "DavidUtils"

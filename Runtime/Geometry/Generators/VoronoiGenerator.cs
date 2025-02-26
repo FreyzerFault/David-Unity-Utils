@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry.Algorithms;
 using DavidUtils.MouseInputs;
 using DavidUtils.Rendering;
 using Geometry.Algorithms;

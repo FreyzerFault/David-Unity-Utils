@@ -1,10 +1,10 @@
 {
     "name": "DavidUtils.Geometry",
-    "rootNamespace": "DavidUtils.Geometry",
+    "rootNamespace": "DavidUtils",
     "references": [
-        "GUID:a7adaf89cbc238348aa7047394acc30d",
-        "GUID:19e954fc4bd167841829ed4a1c787597",
-        "GUID:503ddd898dfaaed448ebb74d18067b58"
+        "DavidUtils.ExtensionMethods",
+        "DavidUtils.DevTools",
+        "DavidUtils.MouseInputs"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

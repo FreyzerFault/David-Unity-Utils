@@ -1,6 +1,6 @@
 {
     "name": "DavidUtils.ExtensionMethods",
-    "rootNamespace": "DavidUtils.ExtensionMethods",
+    "rootNamespace": "DavidUtils",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
