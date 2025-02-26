@@ -114,7 +114,7 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _ConservativeDepthOffsetEnable: 0
-    - _Contour_Thickness: 0.2
+    - _Contour_Thickness: 0.215
     - _Cull: 0
     - _CullMode: 0
     - _CullModeForward: 0
@@ -179,7 +179,7 @@ Material:
     - _smoothness: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Base_Color: {r: 0, g: 1, b: 0.96078444, a: 1}
+    - _Base_Color: {r: 0, g: 1, b: 0.9607844, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}

@@ -72,8 +72,7 @@ namespace DavidUtils.Geometry
 		///     Comprueba si el Punto p esta en linea definida por los puntos A,B
 		/// </summary>
 		/// <returns></returns>
-		public static bool PointOnLine(Vector2 a, Vector2 b, Vector2 p) =>
-			Equals(TriArea2(a, b, p), 0);
+		public static bool PointOnLine(Vector2 a, Vector2 b, Vector2 p) => IsColinear(a, b, p);
 
 		/// <summary>
 		///     Comprueba si el Punto P esta en el segmento A-B
@@ -280,6 +279,28 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region PROJECTION
+
+		/// <summary>
+		/// Projection of a point P over a line defined by A and B
+		/// </summary>
+		/// <param name="p"></param>
+		/// <param name="a"></param>
+		/// <param name="b"></param>
+		/// <returns></returns>
+		public static Vector2 Projection(Vector2 p, Vector2 a, Vector2 b)
+		{
+			Vector2 ab = b - a;
+			Vector2 ap = p - a;
+
+			float s = Vector2.Dot(ap, ab) / ab.sqrMagnitude;
+
+			return a + ab * s;
+		}
+
+		#endregion
+		
+
 		#region DISTANCE TO LINE
 
 		/// <summary>
@@ -289,17 +310,8 @@ namespace DavidUtils.Geometry
 		/// <param name="a"></param>
 		/// <param name="b"></param>
 		/// <returns>Distancia más corta</returns>
-		public static float DistanceToLine(Vector2 p, Vector2 a, Vector2 b)
-		{
-			Vector2 ab = b - a;
-			Vector2 ap = p - a;
-
-			float s = Vector2.Dot(ap, ab) / ab.sqrMagnitude;
-
-			Vector2 projection = a + ab * s;
-
-			return (p - projection).magnitude;
-		}
+		public static float DistanceToLine(Vector2 p, Vector2 a, Vector2 b) => 
+			(p - Projection(p,a,b)).magnitude;
 
 		#endregion
 

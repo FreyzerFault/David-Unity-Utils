@@ -5,6 +5,7 @@ using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Geometry
 {
@@ -15,6 +16,12 @@ namespace DavidUtils.Geometry
 		[SerializeField]
 		private Vector2[] vertices;
 		public Vector2 centroid;
+
+		[SerializeField] private Vector2 min;
+		[SerializeField] private Vector2 max;
+		public Vector2 Min { get => min; private set => min = value; }
+		public Vector2 Max { get => max; private set => max = value; }
+		
 
 		// Empty or 1 single vertex
 		public bool IsEmpty => vertices.IsNullOrEmpty();
