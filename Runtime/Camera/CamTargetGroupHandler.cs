@@ -12,7 +12,7 @@ namespace DavidUtils.Camera
 
 		private CinemachineTargetGroup _targetGroup;
 
-		public Transform[] Targets => _targetGroup.Targets.Select(t => t.Object.transform).ToArray();
+		public Transform[] Targets => _targetGroup.Targets.Select(t => t.Object).ToArray();
 
 		protected virtual void Awake() => _targetGroup = GetComponent<CinemachineTargetGroup>();
 
