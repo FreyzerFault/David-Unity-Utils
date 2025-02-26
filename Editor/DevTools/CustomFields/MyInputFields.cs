@@ -95,8 +95,6 @@ namespace DavidUtils.Editor.DevTools.CustomFields
                     break;
                 case SerializedPropertyType.Hash128:
                     break;
-                case SerializedPropertyType.RenderingLayerMask:
-                    break;
                 default:
                     EditorGUILayout.PropertyField(prop, new GUIContent(label), true);
                     break;
@@ -186,8 +184,6 @@ namespace DavidUtils.Editor.DevTools.CustomFields
                 case SerializedPropertyType.ManagedReference:
                     break;
                 case SerializedPropertyType.Hash128:
-                    break;
-                case SerializedPropertyType.RenderingLayerMask:
                     break;
                 default:
                     EditorGUI.PropertyField(rect, prop, new GUIContent(label), true);
