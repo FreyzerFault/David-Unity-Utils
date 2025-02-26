@@ -1,4 +1,4 @@
-using Cinemachine;
+using Unity.Cinemachine;
 using UnityEngine;
 
 namespace DavidUtils.Camera
@@ -15,9 +15,9 @@ namespace DavidUtils.Camera
 
 		protected override void Awake()
 		{
-			var brain = GetComponent<CinemachineBrain>();
+			CinemachineBrain brain = GetComponent<CinemachineBrain>();
 			activeCam = brain.ActiveVirtualCamera as CinemachineVirtualCameraBase;
-			if (cams.Length == 0) cams = FindObjectsOfType<CinemachineVirtualCameraBase>();
+			if (cams.Length == 0) cams = FindObjectsByType<CinemachineVirtualCameraBase>(FindObjectsSortMode.None);
 		}
 
 		private void Start()

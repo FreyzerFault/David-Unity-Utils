@@ -1,5 +1,5 @@
 ﻿using System.Linq;
-using Cinemachine;
+using Unity.Cinemachine;
 using UnityEngine;
 
 namespace DavidUtils.Camera
@@ -12,7 +12,7 @@ namespace DavidUtils.Camera
 
 		private CinemachineTargetGroup _targetGroup;
 
-		public Transform[] Targets => _targetGroup.m_Targets.Select(t => t.target).ToArray();
+		public Transform[] Targets => _targetGroup.Targets.Select(t => t.Object.transform).ToArray();
 
 		protected virtual void Awake() => _targetGroup = GetComponent<CinemachineTargetGroup>();
 
