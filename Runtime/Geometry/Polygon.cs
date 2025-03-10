@@ -859,7 +859,7 @@ namespace DavidUtils.Geometry
 
 		public Texture2D ToTexture(Vector2 texSize, Color backgroundColor = default, Color fillColor = default)
 		{
-			fillColor = fillColor == default ? backgroundColor.Invert() : fillColor;
+			fillColor = fillColor == backgroundColor ? backgroundColor.Invert() : fillColor;
 			
 			AABB_2D	aabb = new(vertices);
 			Vector2 aabbSize = aabb.Size;
