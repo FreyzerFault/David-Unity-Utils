@@ -857,17 +857,19 @@ namespace DavidUtils.Geometry
 			$"{VertexCount} vertices: {string.Join(", ", vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
 			$"Centroid: {centroid}";
 
-		public Texture2D ToTexture(Vector2 texSize)
+		public Texture2D ToTexture(Vector2 texSize, Color backgroundColor = default, Color fillColor = default)
 		{
+			fillColor = fillColor == default ? backgroundColor.Invert() : fillColor;
+			
 			AABB_2D	aabb = new(vertices);
 			Vector2 aabbSize = aabb.Size;
 			Color[] pixels = new Color[Mathf.CeilToInt(texSize.x) * Mathf.CeilToInt(texSize.y)];
 			for (var y = 0; y < Mathf.CeilToInt(texSize.y); y++)
 			for (var x = 0; x < Mathf.CeilToInt(texSize.x); x++)
 			{
-				float xt = x / texSize.y, yt = y / texSize.y;
+				float xt = x / texSize.x, yt = y / texSize.y;
 				Vector2 point = new Vector2(xt * aabbSize.x, yt * aabbSize.y) + aabb.min;
-				pixels[y * Mathf.CeilToInt(texSize.x) + x] = Contains_RayCast(point) ? Color.white : Color.black;
+				pixels[y * Mathf.CeilToInt(texSize.x) + x] = Contains_RayCast(point) ? backgroundColor : fillColor;
 			}
 			
 			var texture = new Texture2D(Mathf.CeilToInt(texSize.x),Mathf.CeilToInt(texSize.y));
