@@ -857,6 +857,32 @@ namespace DavidUtils.Geometry
 			$"{VertexCount} vertices: {string.Join(", ", vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
 			$"Centroid: {centroid}";
 
+		public Texture2D ToTexture(Color backgroundColor = default, Color fillColor = default)
+		{
+			fillColor = fillColor == backgroundColor ? backgroundColor.Invert() : fillColor;
+			
+			AABB_2D aabb = new(vertices);
+			if (aabb.min != Vector2.zero)
+			{
+				aabb.max = aabb.max - aabb.min;
+				aabb.min -= aabb.min;
+			}
+			
+			Color[] pixels = new Color[Mathf.CeilToInt(aabb.x) * Mathf.CeilToInt(aabb.y)];
+			for (var y = 0; y < Mathf.CeilToInt(aabb.y); y++)
+			for (var x = 0; x < Mathf.CeilToInt(aabb.x); x++)
+				pixels[y * Mathf.CeilToInt(aabb.x) + x] =
+					Contains_RayCast(new Vector2(x,y))
+						? fillColor 
+						: backgroundColor;
+			
+			Texture2D texture = new(Mathf.CeilToInt(aabb.x),Mathf.CeilToInt(aabb.y));
+			texture.SetPixels(pixels);
+			texture.Apply();
+			
+			return texture;
+		}
+
 		public Texture2D ToTexture(Vector2 texSize, Color backgroundColor = default, Color fillColor = default)
 		{
 			fillColor = fillColor == backgroundColor ? backgroundColor.Invert() : fillColor;
