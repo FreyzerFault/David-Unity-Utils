@@ -7,6 +7,52 @@ namespace DavidUtils.ExtensionMethods
 {
 	public static class VectorExtensions
 	{
+		#region SIZE SCALING
+		
+		/// <summary>
+		///		Upscale the Size to match the Aspect Ratio of the Size given, keeping the center still. 
+		///		It resize it to 1:1 and then apply the aspect ratio of the targetSize
+		///		Example: ResizeToAspectRatio(1, 1.2) => w:h -> 1:1 -> w':h'
+		/// </summary>
+		public static Vector2 UpscaleToMathSizeAspectRatio(this Vector2 size, Vector2 targetSize)
+			=>	size.UpscaleToAspectRatio(AspectRatioOver1(targetSize));
+		
+		/// <summary>
+		///		Upscale the Size to match the Aspect Ratio given, keeping the center still
+		///		It resize it to 1:1 and then apply the aspect ratio
+		///		Example: ResizeToAspectRatio(1, 1.2) => w:h -> 1:1 -> w':h'
+		/// </summary>
+		public static Vector2 UpscaleToAspectRatio(this Vector2 size, Vector2 aspectRatio) 
+			=> size.UpscaleToSquareRatio() * aspectRatio; // w:h -> 1:1 -> w':h'
+		
+		/// <summary>
+		/// Get Aspect Ratio of a Size where w:h -> w and h &ge; 1 
+		/// </summary>
+		public static Vector2 AspectRatioOver1(this Vector2 size) 
+			=> new(size.x / Mathf.Max(size.x, size.y), size.y / Mathf.Max(size.x, size.y));
+		
+		/// <summary>
+		/// Get Aspect Ratio of a Size where w:h -> w and h &le; 1 
+		/// </summary>
+		public static Vector2 AspectRatioUnder1(this Vector2 size) 
+			=> new(size.x / Mathf.Min(size.x, size.y), size.y / Mathf.Min(size.x, size.y));
+		
+		/// <summary>
+		///		Upscale the Size given to a Square Ratio so max Axis is the same
+		/// </summary>
+		public static Vector2 UpscaleToSquareRatio(this Vector2 size)
+			=> new(Mathf.Max(size.x, size.y), Mathf.Max(size.x, size.y));
+		
+		/// <summary>
+		///		Downscale the Size given to a Square Ratio so min Axis is the same
+		/// </summary>
+		public static Vector2 DownscaleToSquareRatio(this Vector2 size) 
+			=> new(Mathf.Min(size.x, size.y), Mathf.Min(size.x, size.y));
+		
+
+		#endregion
+		
+		
 		#region RANDOM GENERATION
 		
 		// IN RANGE
@@ -43,6 +89,7 @@ namespace DavidUtils.ExtensionMethods
 
 		#endregion
 
+		
 		#region NORMALIZATION
 
 		// Normalize points in [0,1] taking the min and max from the points
@@ -98,10 +145,8 @@ namespace DavidUtils.ExtensionMethods
 
 		#region CONVERSION
 
-		public static Vector2Int ToVector2Int(this Vector2 v) => new((int)v.x, (int)v.y);
 		public static Vector2 ToVector2(this Vector2Int v) => new(v.x, v.y);
 		
-		public static Vector3Int ToVector3Int(this Vector3 v) => new((int)v.x, (int)v.y, (int)v.z);
 		public static Vector3 ToVector3(this Vector3Int v) => new(v.x, v.y, v.z);
 		
 		public static Point ToPoint(this Vector2 v) => new((int)v.x, (int)v.y);
@@ -348,7 +393,7 @@ namespace DavidUtils.ExtensionMethods
 		{
 			IEnumerable<Vector2> pointsEnumerable = points as Vector2[] ?? points?.ToArray();
 			if (pointsEnumerable.IsNullOrEmpty()) return default;
-			return pointsEnumerable.Aggregate(Vector2.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
+			return pointsEnumerable!.Aggregate(Vector2.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
 		}
 
 		public static Vector3 Center(this IEnumerable<Vector3> points)

@@ -24,7 +24,7 @@ namespace DavidUtils.Rendering
 		}
 		
 		public const PolygonRenderMode DEFAULT_RENDER_MODE = PolygonRenderMode.OutlinedMesh;
-		public const float DEFAULT_THICKNESS = 1f;
+		public const float DEFAULT_THICKNESS = .1f;
 		public const float DEFAULT_CENTERED_SCALE = 1f;
 		public const int DEFAULT_MAX_SUBPOLYGONS_PER_FRAME = 10;
 		public const int DEFAULT_MAX_SUBPOLYGONS_COUNT = 500;
@@ -93,7 +93,8 @@ namespace DavidUtils.Rendering
 		public virtual void Clear()
 		{
 			polygon = new Polygon();
-			UnityUtils.DestroySafe(subPolyRenderers);
+			subPolygons = new List<Polygon>();
+			UpdatePolygon();
 		}
 
 
@@ -187,13 +188,19 @@ namespace DavidUtils.Rendering
 			{
 				polygon = new Polygon();
 				subPolygons = new List<Polygon>();
+				_lineRenderer.Clear();
+				_meshFilter.sharedMesh.Clear();
 				CleanSubPolyRenderers();
 				return;
 			}
 			
 			if (_meshFilter == null && _lineRenderer == null) return;
 			
-			if (_meshFilter.sharedMesh == null) _meshFilter.mesh = new Mesh();
+			// Redo New Mesh. If not, it will edit the mesh it has.
+			// If it's a mesh from an asset, it will be edited forever.
+			// For example, if you set the capsule mesh here, the original mesh will be edited and you 
+			// would have to reset all the assets deleting Library folder.
+			_meshFilter.mesh = new Mesh();
 			
 			SetLinePoints();
 
@@ -202,7 +209,7 @@ namespace DavidUtils.Rendering
 				if (Application.isPlaying)
 				{
 					IEnumerator subPolygonCoroutine = _meshFilter.sharedMesh.SetPolygonConcaveCoroutine(
-						(sp) => { subPolygons = sp; },
+						sp => { subPolygons = sp; },
 						UpdateSubPolygonRenderers,
 						ScaledPolygon, color, maxSubPolygonsPerFrame, maxSubPolygonCount / maxSubPolygonsPerFrame);
 					StartCoroutine(subPolygonCoroutine);

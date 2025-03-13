@@ -35,8 +35,9 @@ namespace DavidUtils.DevTools.Testing
 		}
 
 		[Header("Tests")]
-		public bool runOnStart;
-		public bool autoRun;
+		public bool runOnStart = true;
+		public bool autoRun = true;
+		public bool logTestInfo = true;
 		
 		public float waitSeconds = 1;
 
@@ -67,8 +68,8 @@ namespace DavidUtils.DevTools.Testing
 		#endregion
 		
 
-		protected Action OnStartTest;
-		protected Action OnEndTest;
+		protected Action onStartAllTests;
+		protected Action onEndAllTests;
 
 		// TESTS => [Test Action, Test Condition]
 		protected Dictionary<Func<IEnumerator>, TestInfo> tests = new();
@@ -124,7 +125,7 @@ namespace DavidUtils.DevTools.Testing
 			iterations = 0;
 			playing = true;
 			if (testsCoroutine != null) EndTests();
-			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(waitSeconds, OnStartTest, OnEndTest) : RunTests_Single());
+			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(waitSeconds, onStartAllTests, onEndAllTests) : RunTests_Single());
 		}
 
 		public void EndTests()
@@ -141,9 +142,9 @@ namespace DavidUtils.DevTools.Testing
 		public IEnumerator RunTests_Single()
 		{
 			playing = true;
-			OnStartTest?.Invoke();
+			onStartAllTests?.Invoke();
 			yield return TestsCoroutine();
-			OnEndTest?.Invoke();
+			onEndAllTests?.Invoke();
 			iterations++;
 			playing = false;
 		}
@@ -153,11 +154,9 @@ namespace DavidUtils.DevTools.Testing
 			playing = true;
 			while (playing)
 			{
-				(before ?? OnStartTest)?.Invoke();
+				(before ?? onStartAllTests)?.Invoke();
 				yield return TestsCoroutine();
-				yield return new WaitForSeconds(waitSeconds);
-				yield return new WaitUntil(() => playing);
-				(after ?? OnEndTest)?.Invoke();
+				(after ?? onEndAllTests)?.Invoke();
 				iterations++;
 			}
 		}
@@ -173,7 +172,8 @@ namespace DavidUtils.DevTools.Testing
 				_testTimes.Add(time);
 
 				bool success = info.successCondition?.Invoke() ?? true;
-				LogTest(info.name, success, time);
+				
+				if (logTestInfo) LogTest(info.name, success, time);
 
 				if (success) info.onSuccess?.Invoke();
 				else info.onFailure?.Invoke();

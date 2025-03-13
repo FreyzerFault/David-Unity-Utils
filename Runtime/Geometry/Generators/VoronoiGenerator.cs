@@ -150,7 +150,7 @@ namespace DavidUtils.Geometry.Generators
 		// POLYGON under Mouse (guarda el index del poligono)
 		protected int mousePolygonIndex = -1;
 
-		protected Polygon? MousePolygon =>
+		protected Polygon MousePolygon =>
 			mousePolygonIndex != -1 && mousePolygonIndex < PolygonCount
 				? voronoi.polygons[mousePolygonIndex]
 				: null;
@@ -182,7 +182,7 @@ namespace DavidUtils.Geometry.Generators
 		// Polygon Selected when clicking
 		[HideInInspector] public int selectedPolygonIndex = -1;
 
-		public Polygon? SelectedPolygon =>
+		public Polygon SelectedPolygon =>
 			IsPolygonSelected ? voronoi.polygons[selectedPolygonIndex] : null;
 
 		public bool IsPolygonSelected =>

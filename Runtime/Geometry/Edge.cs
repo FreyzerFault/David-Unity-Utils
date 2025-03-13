@@ -7,9 +7,13 @@ using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
+	
 	[Serializable]
 	public class Edge
 	{
+		// Para vertices superpuestos
+		public const float VertexEpsilon = 0.0001f;
+		
 		public Vector2 begin;
 		public Vector2 end;
 
@@ -29,6 +33,8 @@ namespace DavidUtils.Geometry
 		public Vector2 Vector => end - begin;
 		public Vector2 Dir => Vector.normalized;
 
+		public bool IsValid => !GeometryUtils.Equals(begin, end);
+		
 
 		#region MEDIATRIZ
 
@@ -94,17 +100,17 @@ namespace DavidUtils.Geometry
 
 		#region INTERSECCIONES
 
-		public Vector2? Intersection(Edge other) =>
-			GeometryUtils.IntersectionSegmentSegment(begin, end, other.begin, other.end);
+		public bool Intersection(Edge other, out Vector2 intersection) =>
+			GeometryUtils.IntersectionSegmentSegment(begin, end, other.begin, other.end, out intersection);
 
-		public Vector2? Intersection_LineSegment(Edge other) =>
-			GeometryUtils.IntersectionLineSegment(begin, end, other.begin, other.end);
+		public bool Intersection_LineSegment(Edge other, out Vector2 intersection) =>
+			GeometryUtils.IntersectionLineSegment(begin, end, other.begin, other.end, out intersection);
 
-		public Vector2? Intersection_LineLine(Edge other) =>
-			GeometryUtils.IntersectionLineLine(begin, end, other.begin, other.end);
+		public bool Intersection_LineLine(Edge other, out Vector2 intersection) =>
+			GeometryUtils.IntersectionLineLine(begin, end, other.begin, other.end, out intersection);
 
 		#endregion
-
+		
 
 		#region SPLIT
 
@@ -181,7 +187,9 @@ namespace DavidUtils.Geometry
 
 		#region TEST
 		
-		public bool PointCollinear(Vector2 p) => GeometryUtils.IsColinear(begin, end, p);
+		public bool Collinear(Edge other) => GeometryUtils.CollinearVectors(begin, end, other.begin, other.end);
+		
+		public bool PointCollinear(Vector2 p) => GeometryUtils.CollinearPointInLine(begin, end, p);
 		public bool PointOnEdge(Vector2 point) => GeometryUtils.PointOnSegment(begin, end, point);
 
 		public float DistanceTo(Vector2 point) =>
@@ -221,6 +229,64 @@ namespace DavidUtils.Geometry
 			GizmosExtensions.DrawArrow(cap, beginInWorld, vector, up, capSize, color, thickness);
 		}
 #endif
+
+		#endregion
+	}
+
+	public static class EdgeExtensions
+	{
+		
+		#region INVALID EDGES
+		
+		/// <summary>
+		///     Quita las aristas invalidas
+		///		(colineales, generando area nula)
+		///		y con longitud 0 (begin == end)
+		/// </summary>
+		public static Edge[] RemoveInvalidEdges(this Edge[] edges)
+		{
+			if (edges.IsNullOrEmpty()) return edges; // Empty
+			
+			List<Edge> validEdges = new List<Edge>(edges.Length);
+
+			foreach (Edge edge in edges)
+			{
+				if (!edge.IsValid) continue; // Invalid Edge IGNORED
+
+				if (validEdges.Count > 0)
+				{
+					// Check if last edge added is colinear with this one
+					Edge lastEdge = validEdges[^1];
+					if (lastEdge.Collinear(edge))
+					{
+						// If colinear, create a new edge from begin to end
+						Edge newEdge = new(lastEdge.begin, edge.end);
+						
+						// If new edge is valid, replace last edge with new edge
+						if (newEdge.IsValid) 
+							validEdges[^1] = newEdge;
+						
+						continue;
+					}
+				}
+
+				// All GOOD: No invalid Edge, no Collinear edge
+				validEdges.Add(edge);
+			}
+
+			return validEdges.ToArray();
+		}
+
+		/// <summary>
+		///		Check if Next Edge ends in the beginning of the current edge
+		///		Creating a null Area
+		///		U-Turn (Pokemon Move)
+		/// </summary>
+		/// <returns>
+		///		TRUE => Next Edge ends in the beginning of the current edge
+		/// </returns>
+		public static bool IsU_Turn(this Edge a, Edge b) 
+			=> Vector2.Distance(a.end, b.begin) < Edge.VertexEpsilon;
 
 		#endregion
 	}

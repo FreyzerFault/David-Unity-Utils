@@ -5,9 +5,12 @@ namespace DavidUtils.Geometry
 	public static class GeometryUtils
 	{
 		public const float Epsilon = 0.00000001f;
-
+		
 		public static bool Equals(float a, float b) => Mathf.Abs(a - b) < Epsilon;
 		public static bool Equals(Vector2 v1, Vector2 v2) => Mathf.Abs((v1 - v2).magnitude) < Epsilon;
+
+		
+		#region POINT RELATIVE POSITION TEST
 
 		/// <summary>
 		///     AreaTri (p,begin,end) == NEGATIVO => Esta a la Derecha de la Arista (begin -> end)
@@ -19,7 +22,7 @@ namespace DavidUtils.Geometry
 		public static bool IsLeft(Vector2 begin, Vector2 end, Vector2 p) => TriArea2(begin, end, p) > Epsilon;
 		public static bool IsLeft(Vector3 begin, Vector3 end, Vector3 p) => TriArea2(begin, end, p) > Epsilon;
 		
-		public static bool IsColinear(Vector2 begin, Vector2 end, Vector2 p) => Equals(TriArea2(begin, end, p), 0);
+		public static bool CollinearPointInLine(Vector2 begin, Vector2 end, Vector2 p) => Equals(TriArea2(begin, end, p), 0);
 
 		/// <summary>
 		///     Area del Triangulo al Cuadrado (para clasificar puntos a la derecha o izquierda de un segmento)
@@ -42,7 +45,11 @@ namespace DavidUtils.Geometry
 			float g, float h, float i
 		) => a * e * i + g * b * f + c * d * h - c * e * g - i * d * b - a * h * f;
 
-		#region Point In Tests
+		#endregion
+
+		
+
+		#region POINT INSIDE TEST
 
 		/// <summary>
 		///     <para>Comprueba si el punto p esta dentro del Circulo formado por a,b,c</para>
@@ -72,7 +79,7 @@ namespace DavidUtils.Geometry
 		///     Comprueba si el Punto p esta en linea definida por los puntos A,B
 		/// </summary>
 		/// <returns></returns>
-		public static bool PointOnLine(Vector2 a, Vector2 b, Vector2 p) => IsColinear(a, b, p);
+		public static bool PointOnLine(Vector2 a, Vector2 b, Vector2 p) => CollinearPointInLine(a, b, p);
 
 		/// <summary>
 		///     Comprueba si el Punto P esta en el segmento A-B
@@ -83,6 +90,22 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+
+		#region LINE TESTS
+
+		/// <summary>
+		/// Check Collinearity of two Vectors
+		/// </summary>
+		public static bool CollinearVectors(Vector2 v1, Vector2 v2) => Equals(Mathf.Abs(Vector2.Dot(v1, v2)), 1);
+		
+		/// <summary>
+		/// Check Collinearity of two Vectors [a,b] & [c,d]
+		/// </summary>
+		public static bool CollinearVectors(Vector2 a, Vector2 b, Vector2 c, Vector2 d) => CollinearVectors(b - a, d - c);
+
+		#endregion
+
+		
 		#region ANGLE
 
 		/// <summary>
@@ -99,13 +122,17 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		
 		#region CIRCLES
 
 		/// <summary>
 		///     Calcula el Centro de un Circulo que pasa por 3 puntos (a,b,c)
 		/// </summary>
-		/// <returns>NULL si son colineares</returns>
-		public static Vector2? CircleCenter(Vector2 a, Vector2 b, Vector2 c)
+		/// <returns>
+		///		Circuncentro
+		///		Si son colineares => Punto medio
+		/// </returns>
+		public static Vector2 CircleCenter(Vector2 a, Vector2 b, Vector2 c)
 		{
 			Vector2 abMediatriz = Vector2.Perpendicular(b - a).normalized;
 			Vector2 bcMediatriz = Vector2.Perpendicular(b - c).normalized;
@@ -113,7 +140,13 @@ namespace DavidUtils.Geometry
 			Vector2 abMedio = a + (b - a) / 2;
 			Vector2 bcMedio = b + (c - b) / 2;
 
-			return IntersectionLineLine(abMedio, abMedio + abMediatriz, bcMedio, bcMedio + bcMediatriz);
+			// Circuncentro
+			if (IntersectionLineLine(abMedio, abMedio + abMediatriz, bcMedio, bcMedio + bcMediatriz,
+				    out Vector2 intersection))
+				return intersection;
+			
+			// Punto Medio
+			return  (a + b + c) / 3;
 		}
 
 		#endregion
@@ -141,8 +174,10 @@ namespace DavidUtils.Geometry
 		///     Calcula la interseccion de dos rectas definidas por los puntos (a,b) y (c,d)
 		/// </summary>
 		/// <returns>NULL si son paralelas</returns>
-		public static Vector2? IntersectionLineLine(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		public static bool IntersectionLineLine(Vector2 a, Vector2 b, Vector2 c, Vector2 d, out Vector2 intersection)
 		{
+			intersection = Vector2.zero;
+			
 			Vector2 ab = b - a;
 			Vector2 cd = d - c;
 			Vector2 ac = c - a;
@@ -154,11 +189,12 @@ namespace DavidUtils.Geometry
 			float denominador = cd.x * ab.y - ab.x * cd.y;
 
 			// Colinear
-			if (Mathf.Abs(denominador) < Epsilon) return null;
+			if (Mathf.Abs(denominador) < Epsilon) return false;
 
 			float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
 
-			return a + ab * t;
+			intersection = a + ab * t;
+			return true;
 		}
 
 		#endregion
@@ -171,8 +207,13 @@ namespace DavidUtils.Geometry
 		///     Si s esta en [0,1] => Interseccion en el segmento
 		/// </summary>
 		/// <returns>null if no intersection, or colinear</returns>
-		public static Vector2? IntersectionLineSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		public static Vector2? IntersectionLineSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d) 
+			=> IntersectionLineSegment(a,b,c,d, out Vector2 intersection) ? intersection : null;
+
+		public static bool IntersectionLineSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d, out Vector2 intersection)
 		{
+			intersection = Vector2.zero;
+			
 			Vector2 ab = b - a;
 			Vector2 cd = d - c;
 			Vector2 ac = c - a;
@@ -184,23 +225,28 @@ namespace DavidUtils.Geometry
 			float denominador = cd.x * ab.y - ab.x * cd.y;
 
 			// Colinear
-			if (Mathf.Abs(denominador) < Epsilon) return null;
+			if (Mathf.Abs(denominador) < Epsilon) return false;
 
 			float s = (ab.x * ac.y - ac.x * ab.y) / denominador;
 
 			// Interseccion fuera del segmento, si se extienden intersectarian
-			if (s is < 0 or > 1) return null;
+			if (s is < 0 or > 1) return false;
 
-			return c + cd * s;
+			intersection = c + cd * s;
+			return true;
 		}
 
 		/// <summary>
 		///     Calcula el Punto de Interseccion entre dos segmentos (a,b) y (c,d)
 		///     Si s y t estan en [0,1] => Interseccion en el segmento
 		/// </summary>
-		/// <returns>null if no intersection, or colinear</returns>
-		public static Vector2? IntersectionSegmentSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+		public static Vector2? IntersectionSegmentSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d) 
+			=> IntersectionSegmentSegment(a,b,c,d, out Vector2 intersection) ? intersection : null;
+		
+		public static bool IntersectionSegmentSegment(Vector2 a, Vector2 b, Vector2 c, Vector2 d, out Vector2 intersection)
 		{
+			intersection = Vector2.zero;
+			
 			Vector2 ab = b - a;
 			Vector2 cd = d - c;
 			Vector2 ac = c - a;
@@ -212,15 +258,16 @@ namespace DavidUtils.Geometry
 			float denominador = cd.x * ab.y - ab.x * cd.y;
 
 			// Colinear
-			if (Mathf.Abs(denominador) < Epsilon) return null;
+			if (Mathf.Abs(denominador) < Epsilon) return false;
 
 			float t = (cd.x * ac.y - ac.x * cd.y) / denominador;
 			float s = (ab.x * ac.y - ac.x * ab.y) / denominador;
 
 			// Interseccion fuera del segmento, si se extienden intersectarian
-			if (t is < 0 or > 1 || s is < 0 or > 1) return null;
+			if (t is < 0 or > 1 || s is < 0 or > 1) return false;
 
-			return a + ab * t;
+			intersection = a + ab * t;
+			return true;
 		}
 
 		#endregion
@@ -364,9 +411,17 @@ namespace DavidUtils.Geometry
 		
 		#region CONVEXITY & CONCAVITY
 
-		public static bool IsConvex(Vector2 a, Vector2 b, Vector2 c) => IsLeft(a, b, c);
-		public static bool IsConcave(Vector2 a, Vector2 b, Vector2 c) => IsRight(a, b, c);
+		
+		public static bool IsCCW(Vector2 a, Vector2 b, Vector2 c) => IsLeft(a, b, c);
+		public static bool IsCW(Vector2 a, Vector2 b, Vector2 c) => IsRight(a, b, c);
 
+		/// <summary>
+		///		Check if given Polygon is Convex.
+		///		If ANY three consecutive vertices form 1 RIGHT turn => CONCAVE.
+		///		If ALL are LEFT turns, it's CONVEX.
+		///
+		///		Trivial Case: 3 Vertices => CONVEX
+		/// </summary>
 		public static bool IsConvex(this Vector2[] vertices)
 		{
 			switch (vertices.Length)
@@ -374,18 +429,19 @@ namespace DavidUtils.Geometry
 				case < 3:
 					return false;
 				case 3:
-					return IsConvex(vertices[0], vertices[1], vertices[2]);
+					return IsCCW(vertices[0], vertices[1], vertices[2]);
 			}
 
 			for (var i = 0; i < vertices.Length; i++)
 			{
-				if (IsRight(vertices[i], vertices[(i + 1) % vertices.Length], vertices[(i + 2) % vertices.Length]))
+				if (IsCW(vertices[i], vertices[(i + 1) % vertices.Length], vertices[(i + 2) % vertices.Length]))
 					return false;
 			}
 
 			return true;
 		}
 
+		// Not Convex => Concave
 		public static bool IsConcave(this Vector2[] vertices) => !IsConvex(vertices);
 
 		#endregion

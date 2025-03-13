@@ -32,7 +32,7 @@ namespace DavidUtils.Geometry.Testing
 				)
 			);
 
-			OnStartTest = () =>
+			onStartAllTests = () =>
 			{
 				if (iterations == 0)
 				{

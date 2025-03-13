@@ -5,7 +5,7 @@ using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using UnityEngine;
-using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry
 {
@@ -22,6 +22,7 @@ namespace DavidUtils.Geometry
 		public Vector2 Min { get => min; private set => min = value; }
 		public Vector2 Max { get => max; private set => max = value; }
 		
+		public AABB_2D AABB => new(Min, Max);
 
 		// Empty or 1 single vertex
 		public bool IsEmpty => vertices.IsNullOrEmpty();
@@ -33,9 +34,7 @@ namespace DavidUtils.Geometry
 			{
 				if (vertices == value) return;
 				vertices = value;
-				_edges = VerticesToEdges(value);
-				centroid = value.Center();
-				RemoveInvalidEdges();
+				OnUpdateVertices();
 			}
 		}
 		public int VertexCount => vertices?.Length ?? 0;
@@ -49,6 +48,12 @@ namespace DavidUtils.Geometry
 			}
 		}
 
+		private void OnUpdateVertices()
+		{
+			_edges = VerticesToEdges(vertices);
+			centroid = vertices.Center();
+		}
+		
 
 		#region EDGES
 
@@ -64,7 +69,6 @@ namespace DavidUtils.Geometry
 				_edges = value;
 				vertices = EdgesToVertices(value);
 				centroid = vertices.Center();
-				RemoveInvalidEdges();
 			}
 		}
 		public Edge[] EdgesFromCentroid
@@ -112,6 +116,7 @@ namespace DavidUtils.Geometry
 		{
 		}
 
+		public void Clear() => Vertices = Array.Empty<Vector2>();
 
 		#region SECONDARY PROPERTIES
 
@@ -147,15 +152,20 @@ namespace DavidUtils.Geometry
 			Vertices = vertices.Distinct().ToArray();
 
 		/// <summary>
-		///     Quita las aristas invalidas (colineales que van y vuelven, generando area nula)
+		///     Remove all Invalid Edges till ALL are VALID
+		///		(Collinear, that generates Area 0)
+		///		and lenght 0 edges (begin == end)
 		/// </summary>
-		public void RemoveInvalidEdges()
+		/// <returns>
+		///		TRUE	=> edges removed
+		///		FALSE	=> no invalid edges found
+		/// </returns>
+		public bool RemoveInvalidEdges()
 		{
-			if (_edges is not { Length: > 2 }) return;
-			_edges = _edges.IterateByPairs_InLoop(
-					(e1, e2) => Vector2.Distance(e1.Dir, -e2.Dir) < Mathf.Epsilon ? new Edge(e1.begin, e2.end) : e2
-				)
-				.ToArray();
+			var validEdges = _edges.RemoveInvalidEdges();
+			bool edgesRemoved = validEdges.Length != _edges.Length;
+			Edges = validEdges;
+			return edgesRemoved;
 		}
 
 		#endregion
@@ -205,9 +215,9 @@ namespace DavidUtils.Geometry
 			Vector2[] intersections = parallels.IterateByPairs_InLoop(
 					(e1, e2) =>
 					{
-						Vector2? intersection = e1.Intersection_LineLine(e2);
-						if (!intersection.HasValue) Debug.Log("No intersection found");
-						return intersection ?? e2.begin;
+						bool intersected = e1.Intersection_LineLine(e2, out Vector2 intersection);
+						if (!intersected) Debug.Log("No intersection found");
+						return intersected ? intersection : e2.begin;
 					}
 				)
 				.ToArray();
@@ -227,10 +237,10 @@ namespace DavidUtils.Geometry
 				// Calculamos la intersección de los ejes adyacentes
 				Edge prev = interiorEdges[(i - 1 + interiorEdges.Count) % interiorEdges.Count];
 				Edge next = interiorEdges[(i + 1) % interiorEdges.Count];
-				Vector2? intersection = prev.Intersection_LineLine(next);
 
 				// Puede que fueran colineales, lo cual no deberia pasar, pero por si acaso, ignoramos este caso
-				if (!intersection.HasValue) continue;
+				if (!prev.Intersection_LineLine(next, out Vector2 intersection))
+					continue;
 
 				// NO ES VALIDA => La eliminamos
 				interiorEdges.RemoveAt(i);
@@ -238,8 +248,8 @@ namespace DavidUtils.Geometry
 
 				// Sustituimos sus adyacentes conectandolos con la interseccion
 				// Con cuidado si estan en los extremos
-				interiorEdges[i == interiorEdges.Count ? 0 : i].begin = intersection.Value;
-				interiorEdges[i == 0 ? ^1 : i - 1].end = intersection.Value;
+				interiorEdges[i == interiorEdges.Count ? 0 : i].begin = intersection;
+				interiorEdges[i == 0 ? ^1 : i - 1].end = intersection;
 
 				// Reiniciamos la busqueda desde 0 porque puede generar aristas invalidas de nuevo
 				i = -1;
@@ -277,7 +287,7 @@ namespace DavidUtils.Geometry
 
 			// - Los unimos en un solo poligono
 			if (polygons.Length == 1) return polygons.First();
-			var mergedPolygon = new Polygon();
+			Polygon mergedPolygon = new();
 
 			// Los ordeno segun la distancia con el centroide del 1º poligono
 			Vector2 firstCentroid = polygons.First().centroid;
@@ -293,47 +303,72 @@ namespace DavidUtils.Geometry
 		///     Añade a un polígono que se autointersecta, los puntos de interseccion como vértices
 		///     Lo cual dividiria el poligono en subpoligonos que seran algunos CCW y otros CW
 		/// </summary>
-		public Polygon AddAutoIntersections(out List<Vector2> intersections)
+		/// <param name="simpleCheck">
+		///		To check if there's a single intersection, for optimal testing purposes
+		/// </param>
+		public Polygon AddAutoIntersections(out List<Vector2> intersections, bool simpleCheck = false)
 		{
 			intersections = new List<Vector2>();
 			List<Edge> edgeList = Edges.ToList();
 
-			// - Busca las intersecciones n con n
-			// Se busca n a n y se dividen las aristas en caso de interseccion
-			// Se repite hasta que no haya intersecciones (por seguridad hasta un maximo de repeticiones)
+			//	Busca las intersecciones n con n (edges[i] con edges[j])
+			//	Se evita comparar aristas adyacentes ya que no deberían intersectarse
+			//	Las aristas que intersecan se dividen en 4
+			//	Se repite con la arista i hasta que no haya intersecciones
+			//	(Si encuentra una intersección i con j, i se repite con las siguientes aristas)
+			//	(hasta un máximo de repeticiones con la misma arista i, por seguridad)
+			
+			const int maxRestarts = 20;
 			var restartCount = 0;
-			var maxRestarts = 20;
 			for (var i = 0; i < edgeList.Count && restartCount < maxRestarts; i++)
 			for (int j = i + 2; j < edgeList.Count && restartCount < maxRestarts; j++)
 			{
-				if (i == j || (i == 0 && j == edgeList.Count - 1)) continue;
+				// No need to compare with the previous edge in the case i = 0 and j = n-1
+				if (i == 0 && j == edgeList.Count - 1) continue;
+				
 				Edge e1 = edgeList[i];
 				Edge e2 = edgeList[j];
-				Vector2? intersection = e1.Intersection(e2);
+				
+				bool intersect = e1.Intersection(e2, out Vector2 intersection);
+				
+				// Invalid intersection => Intersection is an existing vertex
+				bool intersectInVertex =
+					intersect
+					&& (intersection == e1.begin
+					    || intersection == e1.end
+					    || intersection == e2.begin
+					    || intersection == e2.end);
 
-				if (!intersection.HasValue
-				    || intersection.Value == e1.begin
-				    || intersection.Value == e1.end
-				    || intersection.Value == e2.begin
-				    || intersection.Value == e2.end)
+				// No Intersection or Vertex Intersection => Check Next Edge Pair 
+				if (!intersect || intersectInVertex)
 					continue;
 
+				if (simpleCheck)
+				{
+					intersections.Add(intersection);
+					return this;
+				}
+					
+				// Elimina ambos segmentos y los sustituye por los segmentos divididos en el punto de intersección
 				edgeList.RemoveAt(i);
-				edgeList.InsertRange(i, e1.Split(intersection.Value));
+				edgeList.InsertRange(i, e1.Split(intersection));
 
+				// Adjust index j after insertion
 				int newJ = j > i ? j + 1 : j;
 				edgeList.RemoveAt(newJ);
-				edgeList.InsertRange(newJ, e2.Split(intersection.Value));
+				edgeList.InsertRange(newJ, e2.Split(intersection));
 
-				intersections.Add(intersection.Value);
+				// Save intersection for later use
+				intersections.Add(intersection);
 
-				// Repite
+				// Repeat edge i with next edge j till max restarts reached or all edges j checked
 				i = -1;
 				restartCount++;
 				break;
 			}
 
-			var autointersectedPoly = new Polygon(edgeList.ToArray());
+			// Build the new polygon with the new edges
+			Polygon autointersectedPoly = new(edgeList.ToArray());
 			autointersectedPoly.RemoveInvalidEdges();
 			return autointersectedPoly;
 		}
@@ -359,6 +394,8 @@ namespace DavidUtils.Geometry
 			Edge.SearchLoop(edges1.ToArray())?.ForEach(edges => polygons.Add(new Polygon(edges)));
 			Edge.SearchLoop(edges2.ToArray())?.ForEach(edges => polygons.Add(new Polygon(edges)));
 
+			if (polygons.Count == 0) polygons.Add(this);
+			
 			return polygons.ToArray();
 		}
 
@@ -557,7 +594,7 @@ namespace DavidUtils.Geometry
 				bool hasPointsOnEdge = outOfConvexPolyVertices.Any(v => tri.IsPointOnEdge(v));
 				bool hasPointsInsideTri = outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v));
 				
-				PointTest[] hasPointsOnTriTests = outOfConvexPolyVertices.Select((v, i) => 
+				PointTest[] hasPointsOnTriTests = outOfConvexPolyVertices.Select((v, index) => 
 					new PointTest
 						{
 							insideTri = tri.Contains_CrossProd(v),
@@ -568,7 +605,7 @@ namespace DavidUtils.Geometry
 							a = a,
 							b = b,
 							c = c,
-							pointIn = i
+							pointIn = index
 						}).Where(t => t.insideTri || t.onEdge).ToArray();
 				
 				if (tri.IsCCW())
@@ -682,7 +719,53 @@ namespace DavidUtils.Geometry
 		#endregion
 
 
+		#region INTERSECTIONS
+
+		/// <summary>
+		///		Intersections with a Line or Segment. 
+		///		If Line use edgeIsAInfiniteLine = true
+		/// </summary>
+		public bool Intersects(Edge edge, out Vector2[] intersections, bool edgeIsAInfiniteLine = false)
+		{
+			bool isConvex = IsConvex();
+			
+			List<Vector2> intersList = new List<Vector2>();
+			foreach (Edge polyEdge in _edges)
+			{
+				if (edgeIsAInfiniteLine 
+					    ? !edge.Intersection_LineSegment(polyEdge, out Vector2 intersection)
+					    : !edge.Intersection(polyEdge, out intersection)) continue;
+				
+				// Intersection Found
+				intersList.Add(intersection);
+				
+				// CONVEX Polygon always has 2 intersections on lines
+				if (isConvex && intersList.Count == 2)
+					break;
+			}
+
+			intersections = intersList.ToArray();
+			return intersections.NotNullOrEmpty();
+		}
+
+		#endregion
+		
+
 		#region TESTS
+		
+		public bool IsValid() => vertices.NotNullOrEmpty() || vertices.Length > 2;
+		
+		public bool HasAutoIntersections()
+		{
+			AddAutoIntersections(out List<Vector2> intersections, true);
+			return intersections.NotNullOrEmpty();
+		}
+
+		public bool IsDegenerate() => 
+			vertices.Distinct() != vertices 
+			|| _edges.IterateByPairs_InLoop(
+				(e1, e2) => Vector2.Distance(e1.begin, e2.end) < Edge.VertexEpsilon
+			).Any(b => b);
 
 		public bool IsConvex() => vertices.IsConvex();
 		public bool IsConcave() => vertices.IsConcave();
@@ -729,7 +812,7 @@ namespace DavidUtils.Geometry
 		}
 		
 		public bool IsPointOnEdge(Vector2 point) =>
-			_edges.Any(e => GeometryUtils.IsColinear(e.begin, e.end, point));
+			_edges.Any(e => GeometryUtils.CollinearPointInLine(e.begin, e.end, point));
 		
 		
 		/// <summary>
@@ -790,7 +873,6 @@ namespace DavidUtils.Geometry
 
 #if UNITY_EDITOR
 
-
 		public void DrawGizmosWire(
 			Matrix4x4 mTRS, float thickness = 1, Color color = default, bool projectOnTerrain = false
 		)
@@ -847,7 +929,224 @@ namespace DavidUtils.Geometry
 		#endregion
 
 		
-		public bool Equals(Polygon other) => Equals(vertices, other.vertices) && centroid.Equals(other.centroid);
+
+		#region PROCEDURAL GENERATION
+		
+		/// <summary>
+		///		Generate Random Vertices.
+		/// </summary>
+		/// <param name="autointersected">
+		/// FALSE => Polygon will be sorted by CCW.
+		/// </param>
+		public void SetRandomVertices(int numVertices, float radius = 10, bool autointersected = false)
+		{
+			if (numVertices < 3) 
+				Debug.LogError("Random Polygon must have at least 3 vertices");
+
+			vertices = new Vector2[numVertices];
+			
+			for (var i = 0; i < numVertices; i++) 
+				vertices[i] = Random.insideUnitCircle * radius;
+			
+			OnUpdateVertices();
+			
+			// Sort by Angle to avoid autointersections
+			if (!autointersected)
+				Vertices = vertices.SortByAngle(vertices.Center());
+		}
+
+		#endregion
+
+		#region TEXTURE
+		
+		/// <summary>
+		/// 	Render on Texture with same dimensions as Polygon AABB
+		/// 	You can reproject the Polygon to the Texture dimension you want before this
+		/// 	Or use ToTexture(Vector2 texSize) to render on a texture with a different size
+		/// </summary>
+		public Texture2D ToTexture(Color fillColor = default, Color backgroundColor = default
+			, bool transparent = false, bool optimizationTest = true)
+			=> ToTexture(Vector2Int.CeilToInt(AABB.Size), fillColor, backgroundColor, transparent, optimizationTest);
+
+		/// <summary>
+		/// 	Render on Texture with dimension = texSize.
+		/// 	To test if a point is INSIDE => Scanline Algorithm.
+		///		In each height, it creates a SCANLINE from left to right,
+		///		check intersections with all edges (stop when 2 inters. found if CONVEX),
+		///		sort them by X and group by pairs to check if a pixel fall between a pair.
+		/// 	If it is, it is painted with fillColor, otherwise with backgroundColor
+		/// </summary>
+		public Texture2D ToTextureContainsRaycast(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
+			, bool transparent = false, bool optimizationTest = true, bool debug = false)
+		{
+			if (transparent) backgroundColor = Color.clear; // Transparent background
+			if (fillColor == backgroundColor) fillColor = backgroundColor.Invert(); // Invert fill if same color
+			
+			// AABB resized to match the texture aspect ratio
+			AABB_2D aabb = new(vertices);
+			aabb.UpscaleToMatchAspectRatio(texSize);
+
+			bool matchAABBWithTextureSize = Vector2Int.CeilToInt(aabb.Size) == texSize;
+			
+			Color[] pixels = new Color[texSize.x * texSize.y];
+for (var y = 0; y < texSize.y; y++)
+			{
+				for (var x = 0; x < texSize.x; x++)
+				{
+					// X to Polygon World Space
+					float worldX = matchAABBWithTextureSize ? x : x / (float)texSize.x * aabb.Width + aabb.min.x;
+					float worldY = matchAABBWithTextureSize ? y : y / (float)texSize.y * aabb.Height + aabb.min.y;
+			
+					// Set Fill Color if X between ANY of the inters. pairs
+					pixels[y * texSize.x + x] = Contains_RayCast(new Vector2(worldX, worldY))
+							? fillColor
+							: backgroundColor;
+				}
+				
+			}
+			
+			Texture2D texture =
+				transparent 
+					? new Texture2D(texSize.x,texSize.y, TextureFormat.RGBA32, false) 
+					: new Texture2D(texSize.x,texSize.y);
+			
+			texture.SetPixels(pixels);
+			texture.Apply();
+			
+			return texture;
+		}
+		
+		public Texture2D ToTexture(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
+			, bool transparent = false, bool scalinebrakpointsTest = true, bool debug = false)
+		{
+			if (transparent) backgroundColor = Color.clear; // Transparent background
+			if (fillColor == backgroundColor) fillColor = backgroundColor.Invert(); // Invert fill if same color
+			
+			// AABB resized to match the texture aspect ratio
+			AABB_2D aabb = new(vertices);
+			aabb.UpscaleToMatchAspectRatio(texSize);
+
+			bool matchAABBWithTextureSize = Vector2Int.CeilToInt(aabb.Size) == texSize;
+			
+			Color[] pixels = scalinebrakpointsTest 
+				? Array.Empty<Color>()
+				: backgroundColor.ToFilledArray(texSize.x * texSize.y).ToArray();
+			
+			for (var y = 0; y < texSize.y; y++)
+			{
+				// Use directly Y if AABB match the Texture Size
+				float scanHeight = matchAABBWithTextureSize ? y : y / (float)texSize.y * aabb.Height + aabb.min.y;
+				
+				// Scanline from left to right
+				Edge scanLine = new(new Vector2(0, scanHeight), new Vector2(1, scanHeight)); // Don't need X
+				bool intersects = Intersects(scanLine, out Vector2[] intersections, true);
+				
+				// No Intersections
+				if (!intersects)
+				{
+					if (scalinebrakpointsTest)
+						pixels = pixels.Concat(backgroundColor.ToFilledArray(texSize.x)).ToArray();
+					continue;
+				}
+
+				// If 1 Intersection => Add the pixel
+				if (intersections.Length == 1)
+				{
+					if (debug)
+						Debug.LogWarning("Polygon-Line Intersection: single intersection, unexpected behavior");
+					Vector2Int texPoint = Vector2Int.RoundToInt(aabb.Normalize(intersections[0]) * texSize);
+					
+					if (scalinebrakpointsTest)
+						pixels = pixels.Concat(backgroundColor.ToFilledArray(texSize.x)).ToArray();
+					
+					pixels[texPoint.y * texSize.x + texPoint.x] = fillColor;
+					continue;
+				}
+				
+				// It may not have ODD Intersections.
+				// Intersections on a Vertex must count as 2 because both adyacent edges may count as intersected 
+				if (intersections.Length % 2 == 1) 
+					Debug.LogError("Polygon-Line Intersection: Odd number of intersections, unexpected behavior");
+				
+				// Sort by X
+				intersections = intersections.OrderBy(v => v.x).ToArray();
+
+				if (scalinebrakpointsTest)
+				{
+					// Pixels that acts as breakpoints for the color + first and last pixel
+					int[] horizontalBreakpoints =
+						new[] { 0 }.Concat(
+								intersections.Select(i =>
+									Mathf.RoundToInt(matchAABBWithTextureSize
+										? i.x
+										: (i.x - aabb.min.x) / aabb.Width * texSize.x)
+								)
+							)
+							.Append(texSize.x)
+							.ToArray();
+
+					// if (debug)
+						// Debug.Log($"H: {scanHeight:f2} => {string.Join(',', horizontalBreakpoints.Select(i => i.ToString()))}");
+
+					// Iterate from breakpoint to breakpoint alternating colors
+					Color currentColor = fillColor;
+					List<Color> pixelLine = new List<Color>();
+					for (var k = 0; k < horizontalBreakpoints.Length - 1; k++)
+					{
+						currentColor = currentColor == fillColor ? backgroundColor : fillColor; // Switch color
+						pixelLine.AddRange(currentColor.ToFilledArray(horizontalBreakpoints[k + 1] - horizontalBreakpoints[k])); // Fill with color
+					}
+					pixels = pixels.Concat(pixelLine).ToArray();
+
+					if (debug)
+					{
+						string breakpoints = string.Join(',', horizontalBreakpoints.Select(i => i.ToString()));
+						Debug.Log($"H: {scanHeight:f2} => " +
+						          $"[{breakpoints}] " +
+						          $"{pixelLine.Count}: {string.Join(", ", pixelLine.Select(p => p == fillColor ? "0" : "·"))}");
+					}
+				}
+				else
+				{
+					Tuple<Vector2, Vector2>[] intersectionPairs =
+						intersections.Length == 2
+							? new []{new Tuple<Vector2, Vector2>(intersections[0], intersections[1])} // Only 2
+							: intersections.GroupInPairs().ToArray(); // More than 2 => Group in Pairs
+				
+					if (debug)
+						Debug.Log($"H: {scanHeight:f2} => {string.Join(',', intersectionPairs.Select(pair => $"{pair.Item1} - {pair.Item2}"))}");
+					
+					// Scan horizontaly
+					for (var x = 0; x < texSize.x; x++)
+					{
+						// X to Polygon World Space
+						float worldX = matchAABBWithTextureSize ? x : x / (float)texSize.x * aabb.Width + aabb.min.x;
+				
+						// Set Fill Color if X between ANY of the inters. pairs
+						pixels[y * texSize.x + x] =
+							intersectionPairs.Any(pair => worldX >= pair.Item1.x && worldX <= pair.Item2.x)
+								? fillColor
+								: backgroundColor;
+					}
+				}
+				
+			}
+			
+			Texture2D texture =
+				transparent 
+					? new Texture2D(texSize.x,texSize.y, TextureFormat.RGBA32, false) 
+					: new Texture2D(texSize.x,texSize.y);
+			
+			texture.SetPixels(pixels);
+			texture.Apply();
+			
+			return texture;
+		}
+
+		#endregion
+		
+		
+		public bool Equals(Polygon other) => other != null && Equals(vertices, other.vertices) && centroid.Equals(other.centroid);
 
 		public override bool Equals(object obj) => obj is Polygon other && Equals(other);
 
@@ -857,52 +1156,5 @@ namespace DavidUtils.Geometry
 			$"{VertexCount} vertices: {string.Join(", ", vertices.Take(10))} {(VertexCount > 10 ? "..." : "")}\n" +
 			$"Centroid: {centroid}";
 
-		public Texture2D ToTexture(Color backgroundColor = default, Color fillColor = default)
-		{
-			fillColor = fillColor == backgroundColor ? backgroundColor.Invert() : fillColor;
-			
-			AABB_2D aabb = new(vertices);
-			if (aabb.min != Vector2.zero)
-			{
-				aabb.max = aabb.max - aabb.min;
-				aabb.min -= aabb.min;
-			}
-			
-			Color[] pixels = new Color[Mathf.CeilToInt(aabb.x) * Mathf.CeilToInt(aabb.y)];
-			for (var y = 0; y < Mathf.CeilToInt(aabb.y); y++)
-			for (var x = 0; x < Mathf.CeilToInt(aabb.x); x++)
-				pixels[y * Mathf.CeilToInt(aabb.x) + x] =
-					Contains_RayCast(new Vector2(x,y))
-						? fillColor 
-						: backgroundColor;
-			
-			Texture2D texture = new(Mathf.CeilToInt(aabb.x),Mathf.CeilToInt(aabb.y));
-			texture.SetPixels(pixels);
-			texture.Apply();
-			
-			return texture;
-		}
-
-		public Texture2D ToTexture(Vector2 texSize, Color backgroundColor = default, Color fillColor = default)
-		{
-			fillColor = fillColor == backgroundColor ? backgroundColor.Invert() : fillColor;
-			
-			AABB_2D	aabb = new(vertices);
-			Vector2 aabbSize = aabb.Size;
-			Color[] pixels = new Color[Mathf.CeilToInt(texSize.x) * Mathf.CeilToInt(texSize.y)];
-			for (var y = 0; y < Mathf.CeilToInt(texSize.y); y++)
-			for (var x = 0; x < Mathf.CeilToInt(texSize.x); x++)
-			{
-				float xt = x / texSize.x, yt = y / texSize.y;
-				Vector2 point = new Vector2(xt * aabbSize.x, yt * aabbSize.y) + aabb.min;
-				pixels[y * Mathf.CeilToInt(texSize.x) + x] = Contains_RayCast(point) ? backgroundColor : fillColor;
-			}
-			
-			var texture = new Texture2D(Mathf.CeilToInt(texSize.x),Mathf.CeilToInt(texSize.y));
-			texture.SetPixels(pixels);
-			texture.Apply();
-			
-			return texture;
-		}
 	}
 }

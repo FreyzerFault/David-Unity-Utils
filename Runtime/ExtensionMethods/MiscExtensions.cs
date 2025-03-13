@@ -247,6 +247,17 @@ namespace DavidUtils.ExtensionMethods
 		}
 
 		/// <summary>
+		///		Performs an action on each element of a collection
+		///		modifying the source
+		/// </summary>
+		public static void ForEachMutable<T>(this T[] source, Func<T,T> action)
+		{
+			if (source == null) return;
+			for (var i = 0; i < source.Length; i++) 
+				source[i] = action(source[i]);
+		}
+			
+		/// <summary>
 		///     Performs an action on each element of a collection using the index.
 		/// </summary>
 		public static void ForEach<T>(this IEnumerable<T> source, Action<T, int> action)
@@ -299,6 +310,7 @@ namespace DavidUtils.ExtensionMethods
 		/// </summary>
 		public static IEnumerable<T> ToFilledArray<T>(this T source, int size)
 		{
+			if (size <= 0) return Array.Empty<T>();
 			var array = new T[size];
 			Array.Fill(array, source);
 			return array;
@@ -498,6 +510,27 @@ namespace DavidUtils.ExtensionMethods
 		public static IEnumerable<R> IterateByPairs_NoLoop<T, R>(this IEnumerable<T> source, Func<T, T, R> action) =>
 			source.IterateByPairs(action, false, false);
 
+		/// <summary>
+		///		Create a Pair List from a Collection [a,b], [c,d], [e,f], ...
+		/// </summary>
+		public static IEnumerable<Tuple<T,T>> GroupInPairs<T>(this IEnumerable<T> source)
+		{
+			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
+			List<Tuple<T, T>> pairs = new();
+			for (var i = 0; i < enumerable.Count(); i += 2)
+			{
+				// Odd number of elements
+				if (i + 1 == enumerable.Count()) return pairs;
+				
+				T a = enumerable.ElementAt(i);
+				T b = enumerable.ElementAt(i + 1);
+				
+				pairs.Add(new Tuple<T, T>(a,b));
+			}
+
+			return pairs;
+		}
+		
 		#endregion
 
 

@@ -82,6 +82,33 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#endregion
 
+
+		#region AABB CONVERSIONS
+
+		/// <summary>
+		///		Upscale the AABB to match the Aspect Ratio given
+		///		It resize it to 1:1 and then apply the aspect ratio => w:h -> 1:1 -> w':h'
+		/// </summary>
+		public void UpscaleToAspectRatio(Vector2 aspectRatio) =>
+			Size = Size.UpscaleToAspectRatio(aspectRatio);
+		
+		/// <summary>
+		///		Upscale the AABB to match the Aspect Ratio of the Size given
+		///		It resize it to 1:1 and then apply the aspect ratio => w:h -> 1:1 -> w':h'
+		/// </summary>
+		public void UpscaleToMatchAspectRatio(Vector2 targetSize) =>
+			Size = Size.UpscaleToMathSizeAspectRatio(targetSize);
+
+		/// <summary>
+		///		Upscale the AABB to match the Aspect Ratio of the AABB given
+		///		It resize it to 1:1 and then apply the aspect ratio => w:h -> 1:1 -> w':h'
+		/// </summary>
+		public void UpscaleToMatchAspectRatio(AABB_2D targetAABB) =>
+			UpscaleToMatchAspectRatio(targetAABB.Size);
+
+		#endregion
+		
+
 		#region SPACE CONVERSIONS
 
 		public static Quaternion RotationToXZplane => Quaternion.AngleAxis(90, Vector3.right);

@@ -31,11 +31,13 @@ O añádelo directamente en el "manifest.json":
 Añade los siguientes registros:
 
 ```json
-{
-  "name": "package.openupm.com",
-  "url": "https://package.openupm.com",
-  "scopes": ["com.azixmcaze.unityserializabledictionary"]
-}
+"scopedRegistries": [
+  {
+    "name": "package.openupm.com",
+    "url": "https://package.openupm.com",
+    "scopes": ["com.azixmcaze.unityserializabledictionary"]
+  }
+],
 ```
 
 ¿Cómo? 2 opciones:

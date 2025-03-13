@@ -317,7 +317,7 @@ namespace DavidUtils.Geometry.Algorithms
 
 		#region TEST INSIDE POLYGON
 
-		public Polygon? GetPolygon(Vector2 point) =>
+		public Polygon GetPolygon(Vector2 point) =>
 			polygons?.Count > 0 ? polygons[GetPolygonIndex(point)] : null;
 
 		public int GetPolygonIndex(Vector2 point)
