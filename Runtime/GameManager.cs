@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 namespace DavidUtils
 {
@@ -36,7 +37,7 @@ namespace DavidUtils
 
 		private void OnDestroy() => onGameStateChanged.RemoveAllListeners();
 
-		private void OnStateChange(GameState newState)
+		protected virtual void OnStateChange(GameState newState)
 		{
 			switch (newState)
 			{
@@ -53,6 +54,14 @@ namespace DavidUtils
 			onGameStateChanged?.Invoke(newState);
 		}
 
-		private void OnPause() => State = State == GameState.Paused ? GameState.Playing : GameState.Paused;
+		private void TogglePause() => State = State == GameState.Paused ? GameState.Playing : GameState.Paused;
+
+		#region SCENES
+
+		public void LoadScene(string sceneName) => SceneManager.LoadScene(sceneName);
+		public void ReloadScene() => SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+		public void ExitGame() => Application.Quit();
+
+		#endregion
 	}
 }
