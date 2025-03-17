@@ -516,19 +516,30 @@ namespace DavidUtils.ExtensionMethods
 		public static IEnumerable<Tuple<T,T>> GroupInPairs<T>(this IEnumerable<T> source)
 		{
 			IEnumerable<T> enumerable = source as T[] ?? source.ToArray();
-			List<Tuple<T, T>> pairs = new();
-			for (var i = 0; i < enumerable.Count(); i += 2)
-			{
-				// Odd number of elements
-				if (i + 1 == enumerable.Count()) return pairs;
-				
-				T a = enumerable.ElementAt(i);
-				T b = enumerable.ElementAt(i + 1);
-				
-				pairs.Add(new Tuple<T, T>(a,b));
-			}
 
-			return pairs;
+			switch (enumerable.Count())
+			{
+				// TRIVIAL Cases
+				case 1:
+					return new[] { new Tuple<T, T>(enumerable.ElementAt(0), default) };
+				case 2:
+					return new[] { new Tuple<T, T>(enumerable.ElementAt(0), enumerable.ElementAt(1)) };
+				
+				default:
+					List<Tuple<T, T>> pairs = new();
+					for (var i = 0; i < enumerable.Count(); i += 2)
+					{
+						// Odd number of elements
+						if (i + 1 == enumerable.Count()) return pairs;
+				
+						T a = enumerable.ElementAt(i);
+						T b = enumerable.ElementAt(i + 1);
+				
+						pairs.Add(new Tuple<T, T>(a,b));
+					}
+
+					return pairs;
+			}
 		}
 		
 		#endregion

@@ -5,7 +5,7 @@ using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Geometry.Generators;
 using UnityEngine;
 
-namespace DavidUtils.Geometry.Testing
+namespace DavidUtils.Tests.Runtime.Geometry
 {
 	public class VoronoiTest : TestRunner
 	{

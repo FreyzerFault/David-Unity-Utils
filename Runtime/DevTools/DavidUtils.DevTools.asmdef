@@ -2,7 +2,8 @@
     "name": "DavidUtils.DevTools",
     "rootNamespace": "DavidUtils",
     "references": [
-        "DavidUtils.ExtensionMethods"
+        "DavidUtils.ExtensionMethods",
+        "DavidUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

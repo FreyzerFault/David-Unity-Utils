@@ -1,11 +1,12 @@
 using DavidUtils.DevTools.Testing;
 using DavidUtils.ExtensionMethods;
+using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace DavidUtils.Geometry.Testing
+namespace DavidUtils.Tests.Runtime.Geometry
 {
     public class PolygonGeneratorTest: TestRunner
     {

@@ -17,12 +17,21 @@ namespace DavidUtils.Geometry
 		private Vector2[] vertices;
 		public Vector2 centroid;
 
-		[SerializeField] private Vector2 min;
-		[SerializeField] private Vector2 max;
-		public Vector2 Min { get => min; private set => min = value; }
-		public Vector2 Max { get => max; private set => max = value; }
+		[SerializeField] private AABB_2D aabb;
+		public Vector2 Min => aabb.max;
+		public Vector2 Max => aabb.min;
+		public Vector2 Size => aabb.Size;
 		
-		public AABB_2D AABB => new(Min, Max);
+		public AABB_2D AABB
+		{
+			get => new(Min, Max);
+			set
+			{
+				vertices = NormalizeVertices();
+				// TODO To new AABB
+				aabb = value;
+			}
+		}
 
 		// Empty or 1 single vertex
 		public bool IsEmpty => vertices.IsNullOrEmpty();
@@ -52,6 +61,7 @@ namespace DavidUtils.Geometry
 		{
 			_edges = VerticesToEdges(vertices);
 			centroid = vertices.Center();
+			aabb = new AABB_2D(vertices);
 		}
 		
 
@@ -69,6 +79,7 @@ namespace DavidUtils.Geometry
 				_edges = value;
 				vertices = EdgesToVertices(value);
 				centroid = vertices.Center();
+				aabb = new AABB_2D(vertices);
 			}
 		}
 		public Edge[] EdgesFromCentroid
@@ -99,6 +110,8 @@ namespace DavidUtils.Geometry
 			this.vertices = vertices;
 			_edges = edges;
 			this.centroid = centroid;
+			aabb = new AABB_2D(vertices);
+			
 			if (cleanInvalidEdges)
 				RemoveInvalidEdges();
 		}
@@ -112,7 +125,8 @@ namespace DavidUtils.Geometry
 		{
 		}
 
-		public Polygon(Edge[] edges, bool cleanInvalidEdges = true) : this(EdgesToVertices(edges), edges, cleanInvalidEdges)
+		public Polygon(Edge[] edges, bool cleanInvalidEdges = true) 
+			: this(EdgesToVertices(edges), edges, cleanInvalidEdges)
 		{
 		}
 
@@ -173,15 +187,16 @@ namespace DavidUtils.Geometry
 
 		#region VERTEX TRANSFORMATION
 
-		public Polygon NormalizeMinMax(Vector2 min, Vector2 max)
-		{
-			return new Polygon(vertices.Select(v =>
-				new Vector2(
-					Mathf.InverseLerp(min.x, max.x, v.x),
-					Mathf.InverseLerp(min.y, max.y, v.y)
-				)).ToArray());
-		}
+		public Polygon Normalize() => NormalizeMinMax(Min, Max);
+
+		public Polygon NormalizeMinMax(Vector2 min, Vector2 max) => 
+			new(NormalizeVerticesMinMax(min, max));
 		
+		public Vector2[] NormalizeVertices() => NormalizeVerticesMinMax(Min, Max);
+		
+		public Vector2[] NormalizeVerticesMinMax(Vector2 min, Vector2 max) =>
+			vertices.Select(v => v - min / (max - min)).ToArray();
+
 		public Polygon Revert() => new(vertices.Reverse().ToArray());
 
 		public Polygon SortCCW() => new(vertices.SortByAngle(centroid).ToArray());
@@ -264,8 +279,7 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
-
-
+		
 		#region AUTO-INTERSECTIONS
 
 		/// <summary>
@@ -929,7 +943,6 @@ namespace DavidUtils.Geometry
 		#endregion
 
 		
-
 		#region PROCEDURAL GENERATION
 		
 		/// <summary>
@@ -957,6 +970,7 @@ namespace DavidUtils.Geometry
 
 		#endregion
 
+		
 		#region TEXTURE
 		
 		/// <summary>
@@ -970,11 +984,8 @@ namespace DavidUtils.Geometry
 
 		/// <summary>
 		/// 	Render on Texture with dimension = texSize.
-		/// 	To test if a point is INSIDE => Scanline Algorithm.
-		///		In each height, it creates a SCANLINE from left to right,
-		///		check intersections with all edges (stop when 2 inters. found if CONVEX),
-		///		sort them by X and group by pairs to check if a pixel fall between a pair.
-		/// 	If it is, it is painted with fillColor, otherwise with backgroundColor
+		/// 	To test if a point is INSIDE => Raycast Test.
+		/// 	If pixel is contained, it is painted with fillColor, otherwise with backgroundColor
 		/// </summary>
 		public Texture2D ToTextureContainsRaycast(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
 			, bool transparent = false, bool optimizationTest = true, bool debug = false)
@@ -983,19 +994,19 @@ namespace DavidUtils.Geometry
 			if (fillColor == backgroundColor) fillColor = backgroundColor.Invert(); // Invert fill if same color
 			
 			// AABB resized to match the texture aspect ratio
-			AABB_2D aabb = new(vertices);
-			aabb.UpscaleToMatchAspectRatio(texSize);
+			AABB_2D aabbUpscaled = new(aabb.min, aabb.max); 
+			aabbUpscaled.UpscaleToMatchAspectRatio(texSize);
 
-			bool matchAABBWithTextureSize = Vector2Int.CeilToInt(aabb.Size) == texSize;
+			bool matchAABBWithTextureSize = Vector2Int.CeilToInt(aabbUpscaled.Size) == texSize;
 			
 			Color[] pixels = new Color[texSize.x * texSize.y];
-for (var y = 0; y < texSize.y; y++)
+			for (var y = 0; y < texSize.y; y++)
 			{
 				for (var x = 0; x < texSize.x; x++)
 				{
 					// X to Polygon World Space
-					float worldX = matchAABBWithTextureSize ? x : x / (float)texSize.x * aabb.Width + aabb.min.x;
-					float worldY = matchAABBWithTextureSize ? y : y / (float)texSize.y * aabb.Height + aabb.min.y;
+					float worldX = matchAABBWithTextureSize ? x : x / (float)texSize.x * aabbUpscaled.Width + aabbUpscaled.min.x;
+					float worldY = matchAABBWithTextureSize ? y : y / (float)texSize.y * aabbUpscaled.Height + aabbUpscaled.min.y;
 			
 					// Set Fill Color if X between ANY of the inters. pairs
 					pixels[y * texSize.x + x] = Contains_RayCast(new Vector2(worldX, worldY))
@@ -1015,55 +1026,67 @@ for (var y = 0; y < texSize.y; y++)
 			
 			return texture;
 		}
+
+		// When using the scanline algorithm, if UseScalineBreakpointsGeneration is TRUE:
+		// generate line pixels by the breakpoints, not iterating pixel by pixel 
+		private const bool UseScalineBreakpointsGeneration = true;
 		
+		/// <summary>
+		/// 	Render on Texture with dimension = texSize.
+		/// 	To test if a point is INSIDE => Scanline Algorithm.
+		///		In each height, it creates a SCANLINE from left to right,
+		///		check intersections with all edges (stop when 2 inters. found if CONVEX),
+		///		sort them by X and group by pairs to check if a pixel fall between a pair.
+		/// 	If it is, it is painted with fillColor, otherwise with backgroundColor
+		/// </summary>
 		public Texture2D ToTexture(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
-			, bool transparent = false, bool scalinebrakpointsTest = true, bool debug = false)
+			, bool transparent = false, bool debugInfo = false)
 		{
 			if (transparent) backgroundColor = Color.clear; // Transparent background
 			if (fillColor == backgroundColor) fillColor = backgroundColor.Invert(); // Invert fill if same color
 			
 			// AABB resized to match the texture aspect ratio
-			AABB_2D aabb = new(vertices);
-			aabb.UpscaleToMatchAspectRatio(texSize);
+			AABB_2D aabbUpscaled = new(aabb.min, aabb.max); 
+			aabbUpscaled.UpscaleToMatchAspectRatio(texSize);
 
-			bool matchAABBWithTextureSize = Vector2Int.CeilToInt(aabb.Size) == texSize;
+			bool matchAABBWithTextureSize = Vector2Int.CeilToInt(aabbUpscaled.Size) == texSize;
 			
-			Color[] pixels = scalinebrakpointsTest 
+			Color[] pixels = UseScalineBreakpointsGeneration 
 				? Array.Empty<Color>()
 				: backgroundColor.ToFilledArray(texSize.x * texSize.y).ToArray();
 			
 			for (var y = 0; y < texSize.y; y++)
 			{
 				// Use directly Y if AABB match the Texture Size
-				float scanHeight = matchAABBWithTextureSize ? y : y / (float)texSize.y * aabb.Height + aabb.min.y;
+				float scanHeight = matchAABBWithTextureSize ? y : y / (float)texSize.y * aabbUpscaled.Height + aabbUpscaled.min.y;
 				
 				// Scanline from left to right
 				Edge scanLine = new(new Vector2(0, scanHeight), new Vector2(1, scanHeight)); // Don't need X
 				bool intersects = Intersects(scanLine, out Vector2[] intersections, true);
 				
-				// No Intersections
-				if (!intersects)
+				if (!intersects) // No Intersections
 				{
-					if (scalinebrakpointsTest)
-						pixels = pixels.Concat(backgroundColor.ToFilledArray(texSize.x)).ToArray();
-					continue;
-				}
-
-				// If 1 Intersection => Add the pixel
-				if (intersections.Length == 1)
-				{
-					if (debug)
-						Debug.LogWarning("Polygon-Line Intersection: single intersection, unexpected behavior");
-					Vector2Int texPoint = Vector2Int.RoundToInt(aabb.Normalize(intersections[0]) * texSize);
-					
-					if (scalinebrakpointsTest)
+					if (UseScalineBreakpointsGeneration) // Fill the scanline
 						pixels = pixels.Concat(backgroundColor.ToFilledArray(texSize.x)).ToArray();
 					
-					pixels[texPoint.y * texSize.x + texPoint.x] = fillColor;
 					continue;
 				}
 				
-				// It may not have ODD Intersections.
+				if (intersections.Length == 1) // 1 Intersection => Add 1 pixel
+				{
+					if (debugInfo)
+						Debug.LogWarning("Polygon-Line Intersection: single intersection, unexpected behavior");
+					
+					if (UseScalineBreakpointsGeneration) // Fill the scanline first
+						pixels = pixels.Concat(backgroundColor.ToFilledArray(texSize.x)).ToArray();
+					
+					Vector2Int texPoint = Vector2Int.RoundToInt(aabbUpscaled.Normalize(intersections[0]) * texSize);
+					pixels[texPoint.y * texSize.x + texPoint.x] = fillColor;
+					
+					continue;
+				}
+				
+				// It can't have ODD Intersections.
 				// Intersections on a Vertex must count as 2 because both adyacent edges may count as intersected 
 				if (intersections.Length % 2 == 1) 
 					Debug.LogError("Polygon-Line Intersection: Odd number of intersections, unexpected behavior");
@@ -1071,63 +1094,38 @@ for (var y = 0; y < texSize.y; y++)
 				// Sort by X
 				intersections = intersections.OrderBy(v => v.x).ToArray();
 
-				if (scalinebrakpointsTest)
+				if (UseScalineBreakpointsGeneration)
 				{
 					// Pixels that acts as breakpoints for the color + first and last pixel
-					int[] horizontalBreakpoints =
-						new[] { 0 }.Concat(
-								intersections.Select(i =>
-									Mathf.RoundToInt(matchAABBWithTextureSize
-										? i.x
-										: (i.x - aabb.min.x) / aabb.Width * texSize.x)
-								)
-							)
-							.Append(texSize.x)
-							.ToArray();
-
-					// if (debug)
-						// Debug.Log($"H: {scanHeight:f2} => {string.Join(',', horizontalBreakpoints.Select(i => i.ToString()))}");
-
+					int[] xIndexBreakpoints = GetScanlineBreakpoints(texSize, aabbUpscaled, intersections, matchAABBWithTextureSize);
+					
 					// Iterate from breakpoint to breakpoint alternating colors
-					Color currentColor = fillColor;
-					List<Color> pixelLine = new List<Color>();
-					for (var k = 0; k < horizontalBreakpoints.Length - 1; k++)
-					{
-						currentColor = currentColor == fillColor ? backgroundColor : fillColor; // Switch color
-						pixelLine.AddRange(currentColor.ToFilledArray(horizontalBreakpoints[k + 1] - horizontalBreakpoints[k])); // Fill with color
-					}
+					List<Color> pixelLine = GeneratePixelLine(xIndexBreakpoints, fillColor, backgroundColor);
 					pixels = pixels.Concat(pixelLine).ToArray();
 
-					if (debug)
-					{
-						string breakpoints = string.Join(',', horizontalBreakpoints.Select(i => i.ToString()));
-						Debug.Log($"H: {scanHeight:f2} => " +
-						          $"[{breakpoints}] " +
-						          $"{pixelLine.Count}: {string.Join(", ", pixelLine.Select(p => p == fillColor ? "0" : "·"))}");
-					}
+					if (!debugInfo) continue;
+					
+					// DEBUG INFO
+					string breakpoints = string.Join(',', xIndexBreakpoints.Select(i => i.ToString()));
+					Debug.Log($"H: {scanHeight:f2} => " +
+					          $"[{breakpoints}] " +
+					          $"{pixelLine.Count}: {string.Join(", ", pixelLine.Select(p => p == fillColor ? "0" : "·"))}");
 				}
 				else
 				{
-					Tuple<Vector2, Vector2>[] intersectionPairs =
-						intersections.Length == 2
-							? new []{new Tuple<Vector2, Vector2>(intersections[0], intersections[1])} // Only 2
-							: intersections.GroupInPairs().ToArray(); // More than 2 => Group in Pairs
-				
-					if (debug)
-						Debug.Log($"H: {scanHeight:f2} => {string.Join(',', intersectionPairs.Select(pair => $"{pair.Item1} - {pair.Item2}"))}");
+					// Group in Pairs: [a,b], [c,d], ...
+					Tuple<Vector2, Vector2>[] intersectionPairs = intersections.GroupInPairs().ToArray();
 					
-					// Scan horizontaly
-					for (var x = 0; x < texSize.x; x++)
-					{
-						// X to Polygon World Space
-						float worldX = matchAABBWithTextureSize ? x : x / (float)texSize.x * aabb.Width + aabb.min.x;
-				
-						// Set Fill Color if X between ANY of the inters. pairs
-						pixels[y * texSize.x + x] =
-							intersectionPairs.Any(pair => worldX >= pair.Item1.x && worldX <= pair.Item2.x)
-								? fillColor
-								: backgroundColor;
-					}
+					// Fill the Line of Pixels between the intersection pairs with fillColor, otherwise with backgroundColor
+					FillScanlinePixels(
+						ref pixels, y, texSize, aabbUpscaled, matchAABBWithTextureSize, 
+						intersectionPairs, fillColor, backgroundColor);
+
+					if (!debugInfo) continue;
+					
+					// DEBUG INFO
+					string[] pairsStr = intersectionPairs.Select(pair => $"{pair.Item1} - {pair.Item2}").ToArray();
+					Debug.Log($"H: {scanHeight:f2} =>" + $" {string.Join(',', pairsStr)}");
 				}
 				
 			}
@@ -1143,6 +1141,65 @@ for (var y = 0; y < texSize.y; y++)
 			return texture;
 		}
 
+		
+		#region TEXTURE UTILS
+		
+		/// <summary>
+		/// Fill a Line of Pixels between the intersections (precalculated) of the polygon with a scanline
+		/// </summary>
+		private static void FillScanlinePixels(ref Color[] pixels, int y, Vector2Int texSize, AABB_2D aabb, 
+			bool matchAABBWithTextureSize, Tuple<Vector2, Vector2>[] intersectionPairs,
+			Color fillColor, Color backgroundColor)
+		{
+			for (var x = 0; x < texSize.x; x++)
+			{
+				// X to Polygon World Space
+				float worldX = matchAABBWithTextureSize ? x : x / (float)texSize.x * aabb.Width + aabb.min.x;
+
+				// Set Fill Color if X between ANY of the inters. pairs
+				pixels[y * texSize.x + x] =
+					intersectionPairs.Any(pair => worldX >= pair.Item1.x && worldX <= pair.Item2.x)
+						? fillColor
+						: backgroundColor;
+			}
+		}
+		
+		/// <summary>
+		///		Generate the pixel Indices of the Scanline Breakpoints to use to fill the texture
+		/// </summary>
+		private static int[] GetScanlineBreakpoints(Vector2Int texSize, AABB_2D aabbUpscaled, 
+			Vector2[] breakpointPositions, bool matchAABBWithTextureSize)
+		{
+			return new[] { 0 } // First Pixel Index
+				.Concat(
+					// X to Texture Space Indices
+					breakpointPositions.Select(i =>
+						Mathf.RoundToInt(matchAABBWithTextureSize
+							? i.x
+							: (i.x - aabbUpscaled.min.x) / aabbUpscaled.Width * texSize.x)
+					)
+				)
+				.Append(texSize.x) // Last Pixel Index
+				.ToArray();
+		}
+
+		/// <summary>
+		/// Fill the scanline Pixels with colors alternating in each X Index Breakpoint
+		/// </summary>
+		private static List<Color> GeneratePixelLine(int[] xIndexBreakpoints, Color fillColor, Color backgroundColor)
+		{
+			Color currentColor = fillColor;
+			List<Color> pixelLine = new List<Color>();
+			for (var k = 0; k < xIndexBreakpoints.Length - 1; k++)
+			{
+				currentColor = currentColor == fillColor ? backgroundColor : fillColor; // Switch color
+				pixelLine.AddRange(currentColor.ToFilledArray(xIndexBreakpoints[k + 1] - xIndexBreakpoints[k])); // Fill with color
+			}
+			return pixelLine;
+		}
+
+		#endregion
+		
 		#endregion
 		
 		

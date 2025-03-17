@@ -39,6 +39,8 @@ namespace DavidUtils.DevTools.Testing
 		public bool autoRun = true;
 		public bool logTestInfo = true;
 		
+		protected int iterations;
+		
 		public float waitSeconds = 1;
 
 		public float WaitMilliseconds
@@ -53,7 +55,6 @@ namespace DavidUtils.DevTools.Testing
 			set => WaitMilliseconds = float.Parse(value.Replace(" ms", ""));
 		}
 
-		protected int iterations;
 
 		
 		#region TIMERS
@@ -74,9 +75,13 @@ namespace DavidUtils.DevTools.Testing
 		// TESTS => [Test Action, Test Condition]
 		protected Dictionary<Func<IEnumerator>, TestInfo> tests = new();
 
+		// RESULTADOS => [Iteration1: {"TestA", True, "TestB", False}, Iteration2: {...}]
+		public List<Dictionary<string, bool>> successList = new();
+		
 		protected Coroutine testsCoroutine;
 		protected bool playing = true;
 		[ExposedField] public bool IsPlaying => playing;
+		[ExposedField] public bool HasEndedAtLeastOnce => !playing && successList.NotNullOrEmpty() && successList[0].Count == tests.Count;
 		[ExposedField] public string PlayingStr => playing ? "PLAYING" : "PAUSED";
 		[ExposedField] public string ToggleLabel => playing ? "STOP" : "PLAY";
 
@@ -125,12 +130,15 @@ namespace DavidUtils.DevTools.Testing
 			iterations = 0;
 			playing = true;
 			if (testsCoroutine != null) EndTests();
-			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(waitSeconds, onStartAllTests, onEndAllTests) : RunTests_Single());
+			testsCoroutine = StartCoroutine(autoRun ? RunTests_Auto(onStartAllTests, onEndAllTests) : RunTests_Single());
 		}
 
 		public void EndTests()
 		{
-			StopCoroutine(testsCoroutine);
+			if (testsCoroutine != null)
+				StopCoroutine(testsCoroutine);
+			else StopAllCoroutines();
+			
 			testsCoroutine = null;
 			playing = false;
 		}
@@ -138,6 +146,7 @@ namespace DavidUtils.DevTools.Testing
 		public void TogglePlaying() => playing = !playing;
 		public void PauseTests() => playing = false;
 		public void ResumeTests() => playing = true;
+		public void TogglePlay() => playing = !playing;
 
 		public IEnumerator RunTests_Single()
 		{
@@ -148,8 +157,20 @@ namespace DavidUtils.DevTools.Testing
 			iterations++;
 			playing = false;
 		}
+		
+		public IEnumerator RunTests_Repeated(int numIterations, Action before = null, Action after = null)
+		{
+			playing = true;
+			while (playing && iterations < numIterations)
+			{
+				(before ?? onStartAllTests)?.Invoke();
+				yield return TestsCoroutine();
+				(after ?? onEndAllTests)?.Invoke();
+				iterations++;
+			}
+		}
 
-		public IEnumerator RunTests_Auto(float waitSeconds, Action before = null, Action after = null)
+		public IEnumerator RunTests_Auto(Action before = null, Action after = null)
 		{
 			playing = true;
 			while (playing)
@@ -163,6 +184,7 @@ namespace DavidUtils.DevTools.Testing
 
 		private IEnumerator TestsCoroutine()
 		{
+			Dictionary<string, bool> testSuccessDict = new();
 			foreach ((Func<IEnumerator> test, TestInfo info) in tests)
 			{
 				float iniTime = Time.realtimeSinceStartup;
@@ -178,9 +200,13 @@ namespace DavidUtils.DevTools.Testing
 				if (success) info.onSuccess?.Invoke();
 				else info.onFailure?.Invoke();
 
+				// Save Result
+				testSuccessDict.Add(info.name, success);
+				
 				yield return new WaitForSeconds(waitSeconds);
 				yield return new WaitUntil(() => playing);
 			}
+			successList.Add(testSuccessDict);
 		}
 
 		private void LogTest(string testName, bool success, float time, string msg = null)

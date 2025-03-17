@@ -1,11 +1,18 @@
 using System.Collections;
 using DavidUtils.DevTools.Testing;
+using DavidUtils.Geometry;
 using DavidUtils.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace DavidUtils.Geometry.Testing
+namespace DavidUtils.Tests.Runtime.Geometry
 {
+    /// <summary>
+    ///     Texture Generation Test
+    ///     Using 2 Algorithms:
+    ///     - Raycast (FASTER for Bigger Textures)
+    ///     - Scanline (FASTER for Smaller Textures)
+    /// </summary>
     public class PolygonTextureTest : TestRunner
     {
         public int seed = 1234;
@@ -30,10 +37,8 @@ namespace DavidUtils.Geometry.Testing
         {
             onStartAllTests += RandomizePolygon;
             
-            AddTest(GenerateTexture, "GenerateTexture");
-            
-            // TODO: using Breakpoints es MUY MUY MUY LENTO
-            AddTest(GenerateTextureUsingScanlineBreakpoints, "GenerateTexture With RAYCAST");
+            AddTest(GenerateTextureTest, "GenerateTexture With SCANLINES");
+            AddTest(GenerateTextureUsingRaycastTest, "GenerateTexture With RAYCAST");
             
             onEndAllTests += RandomizeSeed;
         }
@@ -47,28 +52,29 @@ namespace DavidUtils.Geometry.Testing
         private void RandomizePolygon() => _polygon.SetRandomVertices(numVertices);
 
         
-        private IEnumerator GenerateTexture()
+        private IEnumerator GenerateTextureTest()
         {
-            texture = _polygon.ToTexture(
-                resolution, Color.blue, 
-                transparent ? Color.clear : Color.grey,
-                transparent: transparent, 
-                scalinebrakpointsTest: false);
+            texture = GenerateTexture();
             RenderPolygon();
             ShowOnImg();
             yield return null;
         }
         
-        private IEnumerator GenerateTextureUsingScanlineBreakpoints()
+        private IEnumerator GenerateTextureUsingRaycastTest()
         {
-            texture = _polygon.ToTexture(
-                resolution, Color.blue, 
-                transparent ? Color.clear : Color.grey,
-                transparent: transparent);
+            texture = GenerateTextureUsingRaycast();
             RenderPolygon();
             ShowOnImg();
             yield return null;
-        } 
+        }
+
+        private Texture2D GenerateTexture() =>
+            _polygon.ToTexture(resolution, Color.blue, Color.grey, transparent: transparent);
+        
+        private Texture2D GenerateTextureUsingRaycast() =>
+            _polygon.ToTextureContainsRaycast(resolution, Color.blue, Color.grey, transparent: transparent);
+        
+        
 
         private void RenderPolygon() => polyRenderer.Polygon = _polygon;
         private void ShowOnImg() => img.sprite = CreateSprite();
