@@ -24,11 +24,6 @@ namespace DavidUtils.Player
 			HandleStateChanged(state);
 		}
 
-		protected virtual void Start()
-		{
-			if (GameManager.Instance == null) return;
-			GameManager.Instance.onGameStateChanged.AddListener(HandleGameStateChanged);
-		}
 
 		protected virtual void FixedUpdate()
 		{
@@ -53,13 +48,6 @@ namespace DavidUtils.Player
 		}
 
 		protected void HandleStateChanged(PlayerState newState) => OnStateChanged?.Invoke(newState);
-
-		private void HandleGameStateChanged(GameManager.GameState gameState) => State = gameState switch
-		{
-			GameManager.GameState.Playing => PlayerState.Playing,
-			GameManager.GameState.Paused => PlayerState.Pause,
-			_ => State
-		};
 
 		#endregion
 

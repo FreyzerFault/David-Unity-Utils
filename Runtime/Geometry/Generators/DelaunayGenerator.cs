@@ -136,6 +136,7 @@ namespace DavidUtils.Geometry.Generators
 		public override void OnSeedsUpdated()
 		{
 			base.OnSeedsUpdated();
+			delaunay.Seeds = seeds;
 
 			Run();
 		}

@@ -39,14 +39,19 @@ namespace DavidUtils.Spawning
 				? Quaternion.Euler(0, Random.Range(-180, 180), 0)
 				: Quaternion.Euler(0, 0, Random.Range(-180, 180));
 
+		protected override void Awake()
+		{
+			base.Awake();
+
+			BoundsComponent boundsComp = GetComponent<BoundsComponent>();
+			if (boundsComp != null)
+				bounds = boundsComp.bounds3D;
+		}
+
 		protected override void Start()
 		{
 			for (var i = 0; i < initialNumItems; i++) SpawnRandom();
 		}
-
-		// Spawnea el objeto sacandolo de la Pool
-		protected override Spawneable Spawn(Vector3 position = default, Quaternion rotation = default) =>
-			base.Spawn(position + Center, rotation);
 
 		// Spawnea el objeto de forma random dentro de la caja
 		// spawnWithRandomRotation = true -> Randomiza la rotacion en el Eje Y

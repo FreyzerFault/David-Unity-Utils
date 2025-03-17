@@ -69,6 +69,12 @@ namespace DavidUtils.Geometry.Generators
 		
 		protected void OnAllPolygonsCreated() => voronoi.SimplifyPolygons();
 
+		public override void OnSeedsUpdated()
+		{
+			base.OnSeedsUpdated();
+			voronoi.Seeds = seeds;
+		}
+
 		#endregion
 
 

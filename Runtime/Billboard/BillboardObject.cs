@@ -10,7 +10,7 @@ namespace DavidUtils.Billboard
 		private Player.Player player;
 		private Vector3 playerPos = Vector3.zero;
 
-		protected static Player.Player Player => DavidUtils.Player.Player.Instance ?? FindObjectOfType<Player.Player>();
+		protected Player.Player Player => player ??= DavidUtils.Player.Player.Instance;
 		protected static UnityEngine.Camera Camera => CameraManager.MainCam;
 
 		public bool verticalLock;
@@ -27,11 +27,12 @@ namespace DavidUtils.Billboard
 			set => SpriteRenderer.sprite = value;
 		}
 
-		private void Awake() => player = DavidUtils.Player.Player.Instance ?? FindObjectOfType<Player.Player>();
+		private void Awake() => player = DavidUtils.Player.Player.Instance;
 
 		private void Update()
 		{
-			playerPos = player != null ? player.Position : FindObjectOfType<Player.Player>().transform.position;
+			if (Player == null) return;
+			playerPos = Player.transform.position;
 			transform.Billboard(Camera.transform, verticalLock);
 		}
 

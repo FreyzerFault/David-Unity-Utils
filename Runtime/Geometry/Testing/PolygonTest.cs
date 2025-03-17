@@ -313,6 +313,8 @@ namespace DavidUtils.Geometry.Testing
 
 		private void OnDrawGizmos()
 		{
+			if (polygon == null) return;
+			
 			var mode = DrawMode.None;
 			if (polygon.Vertices.NotNullOrEmpty()) mode = DrawMode.StartingPolygon;
 			if (interiorPolygon.Vertices.NotNullOrEmpty()) mode = DrawMode.InteriorPolygon;
