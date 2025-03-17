@@ -128,6 +128,7 @@ namespace DavidUtils.DevTools.Testing
 
         public void RestartTests()
         {
+            if (currentTestIndex < 0 || currentTestIndex >= testRunners.Length) return;
             EndTests();
             SelectTest(0);
             StartCoroutine(AutoTestingCoroutine());
