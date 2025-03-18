@@ -44,6 +44,9 @@ namespace DavidUtils.Editor.DevTools.Testing
             restartIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/restart");
             arrowRightIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow right");
             arrowLeftIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow left");
+
+            if (EditorStyles.iconButton == null)
+                return;
             
             _iconStyle = new GUIStyle(EditorStyles.iconButton)
             {
