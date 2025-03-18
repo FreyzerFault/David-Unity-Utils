@@ -19,7 +19,7 @@ namespace DavidUtils.Camera
 		public void AddTarget(Transform target) =>
 			_targetGroup.AddMember(
 				target,
-				_targetGroup.m_Targets.Length == 1 ? firstMarkerWeight : defaultmarkerWeight,
+				_targetGroup.Targets.Count == 1 ? firstMarkerWeight : defaultmarkerWeight,
 				10
 			);
 

@@ -99,8 +99,8 @@ namespace DavidUtils.DevTools.Testing
 
 		// RESULTADOS => [Iteration1: {"TestA", True, "TestB", False}, Iteration2: {...}]
 		public List<Dictionary<string, bool>> successList = new();
-		public Dictionary<string, bool> CurrentSuccesDict => iteration < successList.Count ? successList[iteration] : null;
-		public bool AnyTestFailed => CurrentSuccesDict != null && CurrentSuccesDict.Values.Any(b => !b);
+		public Dictionary<string, bool> CurrentSuccessDict => iteration < successList.Count ? successList[iteration] : null;
+		public bool AnyTestFailed => CurrentSuccessDict != null && CurrentSuccessDict.Values.Any(b => !b);
 		
 		protected Coroutine testsCoroutine;
 		protected bool playing = false;
@@ -172,6 +172,7 @@ namespace DavidUtils.DevTools.Testing
 			EndTests();
 			iteration = 0;
 			_testTimes.Clear();
+			successList.ForEach(dict => dict.Clear());
 			successList.Clear();
 		}
 
@@ -245,7 +246,8 @@ namespace DavidUtils.DevTools.Testing
 				else info.onFailure?.Invoke();
 
 				// Save Result
-				successList[iteration].Add(info.name, success);
+				if (successList[iteration].TryAdd(info.name, success))
+					successList[iteration][info.name] = success;
 				
 				onEndSingleTest?.Invoke(info);
 				
