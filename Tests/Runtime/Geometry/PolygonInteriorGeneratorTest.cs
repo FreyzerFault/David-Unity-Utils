@@ -82,7 +82,6 @@ namespace DavidUtils.Tests.Runtime.Geometry
 
 		public void Reset()
 		{
-			Debug.Log("Resetting Polygon Test");
 			_polygon = new Polygon();
 			_splitPolygons = Array.Empty<Polygon>();
 			_intersectionPoints.Clear();
@@ -115,7 +114,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 			{
 				UpdatePolygonRenderers();
 				Debug.Log(
-					$"<color=#00ffff><b>Starting Test #{iterations}</b> - Seed: {seed} - NumVertices: {numVertices} - Time: {Time.time}</color>",
+					$"<color=#00ffff><b>Starting Test #{iteration}</b> - Seed: {seed} - NumVertices: {numVertices} - Time: {Time.time}</color>",
 					this
 				);
 			};

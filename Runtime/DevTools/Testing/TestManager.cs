@@ -15,8 +15,19 @@ namespace DavidUtils.DevTools.Testing
     public class TestManager : Singleton<TestManager>
     {
         public bool runOnStart = true;
-        public float waitSecondsBetweenTests = 1;
         
+        [SerializeField] private float waitSecondsBetweenTests = 1;
+        public float WaitSecondsBetweenTests
+        {
+            get => waitSecondsBetweenTests;
+            set
+            {
+                waitSecondsBetweenTests = value;
+                foreach (TestRunner testRunner in testRunners) 
+                    testRunner.waitSeconds = waitSecondsBetweenTests;
+            }
+        }
+
         public TestRunner[] testRunners;
         public int currentTestIndex = 0;
 
@@ -24,7 +35,10 @@ namespace DavidUtils.DevTools.Testing
 
         public Action onEnd; 
         
-        public TestRunner CurrentTestRunner => testRunners[currentTestIndex];
+        public TestRunner CurrentTestRunner => 
+            currentTestIndex < 0 || currentTestIndex >= testRunners.Length 
+                ? null
+                : testRunners[currentTestIndex];
         
         private bool playing = false;
         public bool IsPlaying => playing;
@@ -79,13 +93,11 @@ namespace DavidUtils.DevTools.Testing
 
         public void SelectTest(int i)
         {
-            CurrentTestRunner.PauseTests();
-            CurrentTestRunner.gameObject.SetActive(false);
+            CurrentTestRunner?.PauseTests();
+            CurrentTestRunner?.gameObject.SetActive(false);
             
             currentTestIndex = i;
-            
-            if (currentTestIndex >= testRunners.Length) return;
-            CurrentTestRunner.gameObject.SetActive(true);
+            CurrentTestRunner?.gameObject.SetActive(true);
         }
 
         public void StartTest(int i)
@@ -96,19 +108,19 @@ namespace DavidUtils.DevTools.Testing
         
         public void StartTest()
         {
-            CurrentTestRunner.StartTests();
+            CurrentTestRunner?.StartTests();
             playing = true;
         }
 
         public void EndTests()
         {
-            CurrentTestRunner.EndTests();
+            CurrentTestRunner?.EndTests();
             playing = false;
         }
 
         public void PauseTest()
         {
-            CurrentTestRunner.PauseTests();
+            CurrentTestRunner?.PauseTests();
             playing = false;
         }
         
@@ -122,14 +134,15 @@ namespace DavidUtils.DevTools.Testing
 
         public void ResumeTest()
         {
-            CurrentTestRunner.ResumeTests();
+            CurrentTestRunner?.ResumeTests();
             playing = true;
         }
 
         public void RestartTests()
         {
-            if (currentTestIndex < 0 || currentTestIndex >= testRunners.Length) return;
-            EndTests();
+            foreach (TestRunner testRunner in testRunners) 
+                testRunner.ResetTests();
+            
             SelectTest(0);
             StartCoroutine(AutoTestingCoroutine());
         }

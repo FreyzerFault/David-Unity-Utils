@@ -34,7 +34,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 
 			onStartAllTests = () =>
 			{
-				if (iterations == 0)
+				if (iteration == 0)
 				{
 					Generator.randSeed = seed;
 					Generator.GenerateSeeds();
@@ -44,7 +44,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 					Generator.RandomizeSeeds();
 				}
 
-				Debug.Log($"<color=#00aaaa><b> Test #{iterations}: seed {Generator.randSeed}</b> </color>", this);
+				Debug.Log($"<color=#00aaaa><b> Test #{iteration}: seed {Generator.randSeed}</b> </color>", this);
 			};
 		}
 

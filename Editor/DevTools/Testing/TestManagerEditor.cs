@@ -16,6 +16,8 @@ namespace DavidUtils.Editor.DevTools.Testing
         private Texture2D checkIcon;
         private Texture2D crossIcon;
         private Texture2D restartIcon;
+        private Texture2D arrowRightIcon;
+        private Texture2D arrowLeftIcon;
         
         private GUIStyle _selectedTestStyle;
         private GUIStyle _iconStyle;
@@ -27,12 +29,21 @@ namespace DavidUtils.Editor.DevTools.Testing
 
         private void OnEnable()
         {
+            // To Update Single TestInfo in IU
+            manager.testRunners.ForEach(t =>
+            {
+                t.onStartSingleTest += _ => Repaint();
+                t.onEndSingleTest += _ => Repaint();
+            });
+            
             playIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/play");
             pauseIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/pause");
             circleIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/circle");
             checkIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/check");
             crossIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/cross");
             restartIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/restart");
+            arrowRightIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow right");
+            arrowLeftIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow left");
             
             _iconStyle = new GUIStyle(EditorStyles.iconButton)
             {
@@ -66,11 +77,18 @@ namespace DavidUtils.Editor.DevTools.Testing
                 }
             };
         }
+        
+        
 
         public override void OnInspectorGUI()
         {
             if (manager == null) return;
-            
+
+            {   // ABSOLUTE
+                PlayPauseUI();
+                RestartUI();
+            }
+                
             EditorGUILayout.Space();
             
             PlayingUI();
@@ -83,32 +101,19 @@ namespace DavidUtils.Editor.DevTools.Testing
             EditorGUILayout.Space();
             
             TestListUI();
-
-            RestartUI();
         }
 
         private void PlayingUI()
         {
-            if (playIcon == null || pauseIcon == null)
-            {
-                Debug.LogError("Play and Pause Icons not found");
-                return;
-            }
-            
+            GUILayout.Space(10);
             GUILayout.BeginHorizontal();
             {
                 GUILayout.FlexibleSpace();
-
-                if (GUILayout.Button(manager.IsPlaying ? pauseIcon : playIcon, _iconStyle)) 
-                    manager.TogglePlay();
-                
-                GUILayout.Space(10);
-                
-                GUILayout.Label($"Test {manager.currentTestIndex}", _titleStyle);
-                
+                GUILayout.Label($"{(manager.IsPlaying ? "RUNNING" : "PAUSED")}", _titleStyle);
                 GUILayout.FlexibleSpace();
             }
             GUILayout.EndHorizontal();
+            GUILayout.Space(10);
         }
 
         private void SettingsUI()
@@ -117,56 +122,126 @@ namespace DavidUtils.Editor.DevTools.Testing
             
             manager.runOnStart = EditorGUILayout.ToggleLeft("Run On Start", manager.runOnStart);
             
-            manager.waitSecondsBetweenTests = EditorGUILayout.FloatField("Secs Between Tests", manager.waitSecondsBetweenTests, GUILayout.Width(200));
+            manager.WaitSecondsBetweenTests = EditorGUILayout.FloatField("Secs Between Tests", manager.WaitSecondsBetweenTests, GUILayout.Width(200));
             
             if (EditorGUI.EndChangeCheck()) { }
         }
 
         private void TestListUI()
         {
-            EditorGUILayout.LabelField("Test Runners", EditorStyles.whiteLargeLabel);
-            EditorGUILayout.Space();
+            GUILayout.BeginHorizontal();
+            {
+                GUILayout.BeginVertical();
+                {
+                    EditorGUILayout.LabelField("Test Runners", EditorStyles.whiteLargeLabel);
+                
+                    EditorGUILayout.Space();
+                
+                    // No Test Loaded
+                    if (manager.testRunners.IsNullOrEmpty() && GUILayout.Button("Load Child Test Runners"))
+                        manager.LoadTestRunners();
+                    
+                    // Colored blue
+                    manager.testRunners.ForEach(RunnerUI);
+                }
+                GUILayout.EndVertical();
+                
+                GUILayout.FlexibleSpace();
+                
+                GUILayout.BeginVertical();
+                {
+                    GUILayout.BeginHorizontal();
+                    {
+                        GUILayout.FlexibleSpace(); // To align right
+                        EditorGUILayout.LabelField("Iteration", EditorStyles.label, GUILayout.Width(60));
+                    }
+                    GUILayout.EndHorizontal();
+                    
+                    EditorGUILayout.Space();
+                    
+                    // NUM ITERATION FIELD
+                    const float numWidth = 30;
+                    manager.testRunners.ForEach((test, index) =>
+                    {
+                        GUILayout.BeginHorizontal();
+                        {
+                            GUILayout.FlexibleSpace(); // To align right
+                            if (Application.isPlaying)
+                            {
+                                if (manager.iterations[index] > 1) 
+                                    GUILayout.Label($"{test.Iteration + 1}", GUILayout.Width(numWidth));
+                            }
+                            else // INPUT Field while not Playing
+                                manager.iterations[index] =
+                                    EditorGUILayout.IntField(manager.iterations[index], GUILayout.Width(numWidth));
+                        }
+                        GUILayout.EndHorizontal();
+                    });
+                }
+                GUILayout.EndVertical();
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        private void RunnerUI(TRunner testRunner, int index)
+        {
             GUILayout.BeginVertical();
             {
-                // No Test Loaded
-                if (manager.testRunners.IsNullOrEmpty() && GUILayout.Button("Load Child Test Runners"))
-                    manager.LoadTestRunners();
-                
-                // Colored blue
-                manager.testRunners.ForEach(RunnerUI);
+                GUILayout.BeginHorizontal();
+                {
+                    // ICON
+                    GUILayout.Label(GetIcon(testRunner, index), EditorStyles.iconButton);
+                    
+                    // TEST Runner NAME
+                    EditorGUILayout.LabelField(testRunner.name,
+                        index == manager.currentTestIndex ? _selectedTestStyle : _testLabelStyle);
+                }
+                GUILayout.EndHorizontal();
+            
+                // UNIT TEST RUNNING
+                if (manager.currentTestIndex == index) // Show ALL Tests
+                {
+                    foreach (TRunner.TestInfo info in testRunner.TestsInfo) 
+                        UnitTestUI(testRunner, info);
+                }
+                else if (testRunner.AnyTestFailed) // Show Failed Tests
+                {
+                    foreach (TRunner.TestInfo info in testRunner.TestsInfo)
+                    {
+                        if (!testRunner.CurrentSuccesDict[info.name]) 
+                            UnitTestUI(testRunner, info);
+                    }
+                }
             }
+            
             GUILayout.EndVertical();
         }
 
-        private void RunnerUI(TRunner runner, int index)
+        private void UnitTestUI(TRunner test, TRunner.TestInfo info, float indentMargin = 20)
         {
-            bool isCurrent = index == manager.currentTestIndex;
-            bool isPlaying = isCurrent && runner.IsPlaying;
-            bool isPaused = isCurrent && !runner.IsPlaying;
-            bool isEnded = runner.HasEndedAtLeastOnce;
-            
-            bool allSuccess = isEnded && runner.successList.All(dict => dict.Values.All(ok => ok));
-                    
             GUILayout.BeginHorizontal();
             {
-                GUILayout.Label(
-                    isEnded 
-                        ? (allSuccess ? checkIcon : crossIcon) 
-                        : isPlaying
-                            ? playIcon 
-                            : isPaused 
-                                ? pauseIcon
-                                : circleIcon,
-                    
-                    EditorStyles.iconButton);
-                EditorGUILayout.LabelField(runner.name,
-                    index == manager.currentTestIndex ? _selectedTestStyle : _testLabelStyle);
+                GUILayout.Space(indentMargin);
                 
-                GUILayout.FlexibleSpace();
+                // ICON
+                var successDict = test.Iteration >= test.successList.Count ? null : test.successList?[test.Iteration];
+                if (successDict != null && successDict.TryGetValue(info.name, out bool success)) // ENDED Test
+                    GUILayout.Label(success ? checkIcon : crossIcon, EditorStyles.iconButton);
+                else // NOT STARTED Test
+                    GUILayout.Label(test.currentTestInfo == info ? arrowRightIcon : circleIcon,
+                        EditorStyles.iconButton);
+                
+                // UNIT TEST NAME
+                EditorGUILayout.LabelField($"{info.name}", _testLabelStyle);
 
-                manager.iterations[index] = EditorGUILayout.IntField(manager.iterations[index], GUILayout.Width(50));
             }
             GUILayout.EndHorizontal();
+        }
+
+        private void PlayPauseUI()
+        {
+            if (GUI.Button(GetCornerRect(new Vector2(30,30), 10), manager.IsPlaying ? pauseIcon : playIcon, _bigIconStyle)) 
+                manager.TogglePlay();
         }
 
         private void RestartUI()
@@ -175,5 +250,45 @@ namespace DavidUtils.Editor.DevTools.Testing
             if (GUI.Button(absoluteRect, restartIcon, _bigIconStyle)) 
                 manager.RestartTests();
         }
+
+        #region UTILS
+
+        private enum Corner { TopLeft, TopRight, BottomLeft, BottomRight }
+        private Rect GetCornerRect(Vector2 size, float margin, Corner corner = Corner.TopLeft)
+        {
+            Vector3 pos = corner switch
+            {
+                Corner.TopLeft => new Vector3(margin, margin),
+                Corner.TopRight => new Vector3(Screen.width - size.x - margin, margin),
+                Corner.BottomLeft => new Vector3(margin, Screen.height - size.y - margin),
+                Corner.BottomRight => new Vector3(Screen.width - size.x - margin, Screen.height - size.y - margin),
+                _ => new(0,0)
+            };
+            return new Rect(pos.x, pos.y, size.x, size.y);
+        }
+
+        private Texture2D GetIcon(TRunner test, int index)
+        {
+            bool isCurrent = index == manager.currentTestIndex;
+            bool isPlaying = isCurrent && test.IsPlaying;
+            bool isPaused = isCurrent && !test.IsPlaying;
+            bool isEnded = test.HasEndedAtLeastOnce;
+            
+            bool allSuccess = isEnded && test.successList[index].Values.All(ok => ok);
+                    
+            return isEnded
+                ? allSuccess
+                    ? checkIcon
+                    : crossIcon
+                : isPlaying
+                    ? playIcon
+                    : isPaused 
+                        ? pauseIcon
+                        : circleIcon;
+        }
+
+        #endregion
+
+        
     }
 }
