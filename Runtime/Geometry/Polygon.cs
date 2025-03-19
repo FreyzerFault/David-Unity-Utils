@@ -24,7 +24,7 @@ namespace DavidUtils.Geometry
 		
 		public AABB_2D AABB
 		{
-			get => new(Min, Max);
+			get => aabb;
 			set
 			{
 				vertices = NormalizeVertices();
