@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.DevTools.Testing
 {
@@ -12,6 +14,7 @@ namespace DavidUtils.DevTools.Testing
     ///     You can Select a single TestRunner and run it
     ///     or Run ALL of them automaticaly
     /// </summary>
+    [ExecuteAlways]
     public class TestManager : Singleton<TestManager>
     {
         public bool runOnStart = true;
@@ -31,7 +34,20 @@ namespace DavidUtils.DevTools.Testing
         public TestRunner[] testRunners;
         public int currentTestIndex = 0;
 
-        public int[] iterations;
+        public Dictionary<TestRunner, int> iterationsByTest = new();
+        [SerializeField] private List<int> iterationsList = new();
+
+        public int[] Iterations
+        {
+            get => iterationsList.ToArray();
+            set
+            {
+                iterationsList = value.ToList();
+                for (var i = 0; i < testRunners.Length; i++)
+                    if (!iterationsByTest.TryAdd(testRunners[i], iterationsList[i]))
+                        iterationsByTest[testRunners[i]] = iterationsList[i];
+            }
+        }
 
         public Action onEnd; 
         
@@ -52,34 +68,67 @@ namespace DavidUtils.DevTools.Testing
         public void LoadTestRunners()
         {
             // Get all TestRunners in children
-            testRunners = GetComponentsInChildren<TestRunner>(true);
+            testRunners = GetComponentsInChildren<TestRunner>(false);
             
             // Don't run ANY test on start, the Manager already start them
-            testRunners.ForEach(r =>
-            {
-                r.runOnStart = false;
-                r.gameObject.SetActive(false);
-            });
+            testRunners.ForEach(r => r.runOnStart = false);
             
-            // Default iteration to 1
-            if (iterations.IsNullOrEmpty())
-                iterations = 1.ToFilledArray(testRunners.Length).ToArray();
+            // Default iteration to 1 (TryAdd to avoid overwriting)
+            for (var i = 0; i < iterationsList.Count; i++)
+                iterationsByTest.TryAdd(testRunners[i], iterationsList[i]);
         }
 
         private void Start()
         {
+            // Only in Play Mode
+            if (!Application.isPlaying) return;
+
+            if (testRunners.IsNullOrEmpty()) return;
+            
+            // Deactivate before starting tests
+            testRunners.ForEach(t => t.gameObject.SetActive(false));
+
             if (!runOnStart) return;
+            
             SelectTest(0);
             StartCoroutine(AutoTestingCoroutine());
         }
 
+        // Actualiza los Test Runners para usar solo los ACTIVOS
+        // Así si desactivas uno desaparece y cuando activas uno se añade
+        // Cuando cambian los TestRunners activos ejecuta LoadTestRunners
+        private void Update()
+        {
+            if (Application.isPlaying) return;
+            TestRunner[] activeTestRunners = GetComponentsInChildren<TestRunner>(false);
+            if (!activeTestRunners.ContentsMatch(testRunners))
+                LoadTestRunners();
+        }
         
+        public void SetIteration(TestRunner test, int iterations)
+        {
+            // Save in the Dictionary<TestRunner, int>
+            if (!iterationsByTest.TryAdd(test, iterations))
+                iterationsByTest[test] = iterations;
+            
+            // Save in the List<int> keeping the test Order
+            iterationsList = iterationsByTest.Values.ToList();
+        }
+
+
         private IEnumerator AutoTestingCoroutine()
         {
             playing = true;
             while (playing)
             {
-                yield return CurrentTestRunner.RunTests_Repeated(iterations[currentTestIndex]);
+                if (CurrentTestRunner == null)
+                    SelectTest(0);
+                
+                if (iterationsByTest.TryGetValue(CurrentTestRunner, out int iters))
+                    yield return CurrentTestRunner.RunTests_Repeated(iters);
+                else
+                    yield return CurrentTestRunner.RunTests_Single();
+                    
                 yield return new WaitForSeconds(waitSecondsBetweenTests);
                 yield return new WaitUntil(() => playing);
                 
@@ -134,8 +183,13 @@ namespace DavidUtils.DevTools.Testing
 
         public void ResumeTest()
         {
-            CurrentTestRunner?.ResumeTests();
-            playing = true;
+            if (testRunners.All(t => t.ended))
+                RestartTests();
+            else
+            {
+                CurrentTestRunner?.ResumeTests();
+                playing = true;
+            }
         }
 
         public void RestartTests()

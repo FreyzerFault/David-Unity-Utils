@@ -9,11 +9,10 @@ using Object = UnityEngine.Object;
 
 namespace DavidUtils.DevTools.Testing
 {
-	public abstract class TestRunner : MonoBehaviour
+	public abstract class TestRunner : MonoBehaviour, IEquatable<TestRunner>
 	{
 		public struct TestInfo : IEquatable<TestInfo>
 		{
-
 			public string name;
 			public Func<bool> successCondition;
 			public Action onSuccess;
@@ -49,6 +48,7 @@ namespace DavidUtils.DevTools.Testing
 		public bool runOnStart = true;
 		public bool autoRun = true;
 		public bool logTestInfo = true;
+		public bool ended = false;
 		
 		protected int iteration;
 		public int Iteration => iteration;
@@ -189,6 +189,7 @@ namespace DavidUtils.DevTools.Testing
 			onEndAllTests?.Invoke();
 			iteration++;
 			playing = false;
+			ended = true;
 		}
 		
 		public IEnumerator RunTests_Repeated(int numIterations, Action before = null, Action after = null)
@@ -204,6 +205,7 @@ namespace DavidUtils.DevTools.Testing
 					yield return new WaitUntil(() => playing);
 			}
 
+			ended = true;
 			iteration -= 1;
 		}
 
@@ -217,6 +219,8 @@ namespace DavidUtils.DevTools.Testing
 				(after ?? onEndAllTests)?.Invoke();
 				iteration++;
 			}
+
+			ended = true;
 			iteration -= 1;
 		}
 
@@ -278,5 +282,16 @@ namespace DavidUtils.DevTools.Testing
 			string iterations = this.iteration > 0 ? $"[{this.iteration} iterations run]" : "";
 			return $"{name}: <color={color}>{state}</color> {currentTest} {iterations}";
 		}
+
+		public bool Equals(TestRunner other) => other != null && gameObject.name.Equals(other.gameObject.name);
+
+		public override bool Equals(object obj)
+		{
+			if (obj is null) return false;
+			if (ReferenceEquals(this, obj)) return true;
+			return obj.GetType() == GetType() && Equals((TestRunner)obj);
+		}
+
+		public override int GetHashCode() => gameObject.name.GetHashCode();
 	}
 }

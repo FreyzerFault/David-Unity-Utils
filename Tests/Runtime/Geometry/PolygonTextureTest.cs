@@ -39,6 +39,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
             
             AddTest(GenerateTextureTest, "GenerateTexture With SCANLINES");
             AddTest(GenerateTextureUsingRaycastTest, "GenerateTexture With RAYCAST");
+            AddTest(GenerateTextureWithPolygonWithVerticesRepeatedTest, "Now with Repeated Vertices");
             
             onEndAllTests += RandomizeSeed;
         }
@@ -67,12 +68,24 @@ namespace DavidUtils.Tests.Runtime.Geometry
             ShowOnImg();
             yield return null;
         }
+        
+        // Genera una Textura rasterizando un poligono que tiene vertices repetidos
+        private IEnumerator GenerateTextureWithPolygonWithVerticesRepeatedTest()
+        {
+            RandomizePolygon();
+            _polygon.Vertices[1] = _polygon.Vertices[0];
+            texture = GenerateTexture();
+            RenderPolygon();
+            ShowOnImg();
+            yield return null;
+        }
 
         private Texture2D GenerateTexture() =>
-            _polygon.ToTexture(resolution, Color.blue, Color.grey, transparent: transparent);
+            _polygon.ToTexture_ScanlineRaster(resolution, Color.blue, Color.grey, transparent: transparent, debugInfo: true);
         
         private Texture2D GenerateTextureUsingRaycast() =>
-            _polygon.ToTextureContainsRaycast(resolution, Color.blue, Color.grey, transparent: transparent);
+            _polygon.ToTexture_ContainsRaycastPerPixel(resolution, Color.blue, Color.grey, transparent: transparent);
+        
         
         
 

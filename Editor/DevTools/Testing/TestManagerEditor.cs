@@ -100,10 +100,6 @@ namespace DavidUtils.Editor.DevTools.Testing
                 
                     EditorGUILayout.Space();
                 
-                    // No Test Loaded
-                    if (Manager.testRunners.IsNullOrEmpty() && GUILayout.Button("Load Child Test Runners"))
-                        Manager.LoadTestRunners();
-                    
                     // Colored blue
                     Manager.testRunners.ForEach(RunnerUI);
                 }
@@ -124,26 +120,47 @@ namespace DavidUtils.Editor.DevTools.Testing
                     
                     // NUM ITERATION FIELD
                     const float numWidth = 30;
-                    Manager.testRunners.ForEach((test, index) =>
+                    foreach (TRunner testRunner in Manager.testRunners)
                     {
+                        if (!Manager.iterationsByTest.TryGetValue(testRunner, out int iterations))
+                            iterations = 1;
+                        
                         GUILayout.BeginHorizontal();
                         {
                             GUILayout.FlexibleSpace(); // To align right
                             if (Application.isPlaying)
                             {
-                                if (Manager.iterations[index] > 1) 
-                                    GUILayout.Label($"{test.Iteration + 1}", GUILayout.Width(numWidth));
+                                if (iterations > 1) // Show Current Iteration if there's more than 1
+                                    GUILayout.Label($"{testRunner.Iteration + 1}", GUILayout.Width(numWidth));
                             }
-                            else // INPUT Field while not Playing
-                                Manager.iterations[index] =
-                                    EditorGUILayout.IntField(Manager.iterations[index], GUILayout.Width(numWidth));
+                            else 
+                                Manager.SetIteration(testRunner,
+                                    EditorGUILayout.IntField(iterations, GUILayout.Width(numWidth)));
                         }
                         GUILayout.EndHorizontal();
-                    });
+                    }
                 }
                 GUILayout.EndVertical();
             }
             GUILayout.EndHorizontal();
+            
+            
+            // No Test Loaded Message and buttons
+            if (Manager.testRunners.NotNullOrEmpty()) return;
+            // Check Children Test Runners
+            TRunner[] testRunners = Manager.GetComponentsInChildren<TRunner>(true);
+            EditorGUILayout.LabelField(testRunners.IsNullOrEmpty()
+                    ? "No Tests Found\nAdd Test Runners under this Object in the hierarchy"
+                    : "No Active Tests.\nYou can activate tests individualy.\nOnly Active Tests are executed",
+                EditorStyles.wordWrappedLabel);
+                        
+            // Button to ACTIVATE children if exists and ALL are INACTIVE
+            if (testRunners.NotNullOrEmpty() && GUILayout.Button("Activate ALL Child Tests")) 
+                testRunners.ForEach(t =>
+                {
+                    t.gameObject.SetActive(true);
+                    Manager.LoadTestRunners();
+                });
         }
 
         private void RunnerUI(TRunner testRunner, int index)
@@ -203,8 +220,16 @@ namespace DavidUtils.Editor.DevTools.Testing
 
         private void PlayPauseUI()
         {
-            if (GUI.Button(GetCornerRect(new Vector2(30,30), 10), Manager.IsPlaying ? _pauseIcon : _playIcon, _bigIconStyle)) 
-                Manager.TogglePlay();
+            if (GUI.Button(GetCornerRect(new Vector2(30,30), 10), Manager.IsPlaying ? _pauseIcon : _playIcon, _bigIconStyle))
+            {
+                if (Application.isPlaying)
+                    Manager.TogglePlay();
+                else // Execute in Editor Play Mode
+                {
+                    Manager.runOnStart = true;
+                    EditorApplication.EnterPlaymode();
+                }
+            }
         }
 
         private void RestartUI()

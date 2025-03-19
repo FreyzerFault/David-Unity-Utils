@@ -980,14 +980,14 @@ namespace DavidUtils.Geometry
 		/// </summary>
 		public Texture2D ToTexture(Color fillColor = default, Color backgroundColor = default
 			, bool transparent = false, bool optimizationTest = true)
-			=> ToTexture(Vector2Int.CeilToInt(AABB.Size), fillColor, backgroundColor, transparent, optimizationTest);
+			=> ToTexture_ScanlineRaster(Vector2Int.CeilToInt(AABB.Size), fillColor, backgroundColor, transparent, optimizationTest);
 
 		/// <summary>
 		/// 	Render on Texture with dimension = texSize.
 		/// 	To test if a point is INSIDE => Raycast Test.
 		/// 	If pixel is contained, it is painted with fillColor, otherwise with backgroundColor
 		/// </summary>
-		public Texture2D ToTextureContainsRaycast(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
+		public Texture2D ToTexture_ContainsRaycastPerPixel(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
 			, bool transparent = false, bool optimizationTest = true, bool debug = false)
 		{
 			if (transparent) backgroundColor = Color.clear; // Transparent background
@@ -1039,7 +1039,7 @@ namespace DavidUtils.Geometry
 		///		sort them by X and group by pairs to check if a pixel fall between a pair.
 		/// 	If it is, it is painted with fillColor, otherwise with backgroundColor
 		/// </summary>
-		public Texture2D ToTexture(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
+		public Texture2D ToTexture_ScanlineRaster(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default
 			, bool transparent = false, bool debugInfo = false)
 		{
 			if (transparent) backgroundColor = Color.clear; // Transparent background
@@ -1063,6 +1063,9 @@ namespace DavidUtils.Geometry
 				// Scanline from left to right
 				Edge scanLine = new(new Vector2(0, scanHeight), new Vector2(1, scanHeight)); // Don't need X
 				bool intersects = Intersects(scanLine, out Vector2[] intersections, true);
+
+				// Delete repeated intersections
+				intersections = intersections.Distinct().ToArray();
 				
 				if (!intersects) // No Intersections
 				{
