@@ -126,6 +126,15 @@ namespace DavidUtils.Tests.Runtime.Geometry
             if (_polygon.VertexCount > 10)
                 _polygon.Vertices[8] = _polygon.Vertices[10];
             
+            // CLOSE as fuck Vertices
+            if (_polygon.VertexCount > 12)
+                _polygon.Vertices[11] = _polygon.Vertices[12] + Vector2.up * 0.00001f;
+            
+            // Colinear vertices
+            if (_polygon.VertexCount > 14)
+                _polygon.Vertices[13] = _polygon.Vertices[14] + Vector2.right * 0.00001f;
+
+            
             texture = GenerateTexture();
             RenderPolygon();
             ShowOnImg();
