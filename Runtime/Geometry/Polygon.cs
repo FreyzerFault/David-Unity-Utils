@@ -1029,7 +1029,7 @@ namespace DavidUtils.Geometry
 
 		// When using the scanline algorithm, if UseScalineBreakpointsGeneration is TRUE:
 		// generate line pixels by the breakpoints, not iterating pixel by pixel 
-		private const bool UseScalineBreakpointsGeneration = true;
+		private const bool UseScalineBreakpointsGeneration = false;
 
 		public Dictionary<float, Vector2[]> intersectionsByScanline = new(); 
 		
