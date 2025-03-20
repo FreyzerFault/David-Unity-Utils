@@ -1,9 +1,14 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using DavidUtils.DevTools.Testing;
+using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 namespace DavidUtils.Tests.Runtime.Geometry
 {
@@ -37,9 +42,41 @@ namespace DavidUtils.Tests.Runtime.Geometry
         {
             onStartAllTests += RandomizePolygon;
             
-            AddTest(GenerateTextureTest, "GenerateTexture With SCANLINES");
-            AddTest(GenerateTextureUsingRaycastTest, "GenerateTexture With RAYCAST");
-            AddTest(GenerateTextureWithPolygonWithVerticesRepeatedTest, "Now with Repeated Vertices");
+            // AddTest(GenerateTextureTest, "GenerateTexture With SCANLINES");
+            // AddTest(GenerateTextureUsingRaycastTest, "GenerateTexture With RAYCAST");
+            AddTest(GenerateTextureWithPolygonWithVerticesRepeatedTest, 
+                new TestInfo("Now with Repeated Vertices", 
+                    () => _polygon.intersectionsByScanline.Count > 0,
+                    () =>
+                    {
+                        KeyValuePair<float, Vector2[]>[] oddIntersections = _polygon.intersectionsByScanline
+                            .Where(pair => pair.Value.Length % 2 == 1).ToArray();
+                        
+                        KeyValuePair<float, Vector2[]>[] oddIntersectionsMoreThanOne = oddIntersections
+                            .Where(pair => pair.Value.Length > 1).ToArray();
+                        
+                        string oddIntersectionsStr =
+                            oddIntersectionsMoreThanOne.IsNullOrEmpty()
+                                ? $"No Odd Intersections (I >= 3) ✔\n" 
+                                : $"ODD INTERSECTIONS (I >= 3)\n" +
+                                string.Join("\n",
+                                    oddIntersections
+                                    .Select(pair => $"<color=red>H {pair.Key:f2} ({pair.Value.Length} inters.):</color> " +
+                                                    $"{string.Join(", ", pair.Value)}"));
+                        string intersectionsByScanline =
+                            $"INTERSECTIONS\n" +
+                            string.Join('\n',
+                            _polygon.intersectionsByScanline.Select(pair =>
+                                $"{(pair.Value.Length % 2 == 0 ? "<color=green>" : "<color=red>")}" +
+                                $"H {pair.Key:f2} ({pair.Value.Length} inters.):</color> " +
+                                $"{string.Join(", ", pair.Value)}"));
+                        
+                        if (oddIntersectionsMoreThanOne.IsNullOrEmpty())
+                            Debug.Log(oddIntersectionsStr + "\n\n" + intersectionsByScanline);
+                        else
+                            Debug.LogWarning("ODD Intersections ( >= 3 ) FOUND:\n" +
+                                oddIntersectionsStr + "\n\n" + intersectionsByScanline);
+                    }));
             
             onEndAllTests += RandomizeSeed;
         }
@@ -73,7 +110,22 @@ namespace DavidUtils.Tests.Runtime.Geometry
         private IEnumerator GenerateTextureWithPolygonWithVerticesRepeatedTest()
         {
             RandomizePolygon();
+            
+            // 2 Duplicated
             _polygon.Vertices[1] = _polygon.Vertices[0];
+            
+            // 3 Duplicated
+            if (_polygon.VertexCount > 4)
+                _polygon.Vertices[4] = _polygon.Vertices[3] = _polygon.Vertices[2];
+            
+            // No adyacent duplicated
+            if (_polygon.VertexCount > 8)
+                _polygon.Vertices[5] = _polygon.Vertices[8];
+            
+            // Return Vertex
+            if (_polygon.VertexCount > 10)
+                _polygon.Vertices[8] = _polygon.Vertices[10];
+            
             texture = GenerateTexture();
             RenderPolygon();
             ShowOnImg();
@@ -81,7 +133,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
         }
 
         private Texture2D GenerateTexture() =>
-            _polygon.ToTexture_ScanlineRaster(resolution, Color.blue, Color.grey, transparent: transparent, debugInfo: true);
+            _polygon.ToTexture_ScanlineRaster(resolution, Color.blue, Color.grey, transparent: transparent, debugInfo: false);
         
         private Texture2D GenerateTextureUsingRaycast() =>
             _polygon.ToTexture_ContainsRaycastPerPixel(resolution, Color.blue, Color.grey, transparent: transparent);

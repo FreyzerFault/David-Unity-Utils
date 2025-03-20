@@ -133,9 +133,13 @@ namespace DavidUtils.Editor.DevTools.Testing
                                 if (iterations > 1) // Show Current Iteration if there's more than 1
                                     GUILayout.Label($"{testRunner.Iteration + 1}", GUILayout.Width(numWidth));
                             }
-                            else 
-                                Manager.SetIteration(testRunner,
-                                    EditorGUILayout.IntField(iterations, GUILayout.Width(numWidth)));
+                            else
+                            {
+                                EditorGUI.BeginChangeCheck();
+                                int newIterations = EditorGUILayout.IntField(iterations, GUILayout.Width(numWidth));
+                                if (EditorGUI.EndChangeCheck())
+                                    Manager.SetIteration(testRunner, newIterations);
+                            }
                         }
                         GUILayout.EndHorizontal();
                     }

@@ -1030,6 +1030,8 @@ namespace DavidUtils.Geometry
 		// When using the scanline algorithm, if UseScalineBreakpointsGeneration is TRUE:
 		// generate line pixels by the breakpoints, not iterating pixel by pixel 
 		private const bool UseScalineBreakpointsGeneration = true;
+
+		public Dictionary<float, Vector2[]> intersectionsByScanline = new(); 
 		
 		/// <summary>
 		/// 	Render on Texture with dimension = texSize.
@@ -1074,6 +1076,9 @@ namespace DavidUtils.Geometry
 					
 					continue;
 				}
+				
+				// Save Intersections for Debug Info
+				intersectionsByScanline.TryAdd(scanHeight, intersections);
 				
 				if (intersections.Length == 1) // 1 Intersection => Add 1 pixel
 				{
