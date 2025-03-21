@@ -986,8 +986,8 @@ namespace DavidUtils.Geometry
 		/// 	Or use ToTexture(Vector2 texSize) to render on a texture with a different size
 		/// </summary>
 		public Texture2D ToTexture(Color fillColor = default, Color backgroundColor = default
-			, bool transparent = false, bool optimizationTest = true)
-			=> ToTexture_ScanlineRaster(Vector2Int.CeilToInt(AABB.Size), fillColor, backgroundColor, transparent, optimizationTest);
+			, bool transparent = false, bool debugInfo = false)
+			=> ToTexture_ScanlineRaster(Vector2Int.CeilToInt(AABB.Size), fillColor, backgroundColor, transparent, debugInfo);
 
 		/// <summary>
 		/// 	Render on Texture with dimension = texSize.
