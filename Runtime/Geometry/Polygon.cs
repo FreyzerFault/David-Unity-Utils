@@ -1133,7 +1133,7 @@ namespace DavidUtils.Geometry
 							}
 
 							// END Vertex (test it if it is not the last intersection)
-							if (endIndex < intersections.Length - 1)
+							if (endIndex != -1 && endIndex < intersections.Length - 1)
 							{
 								// Calculate Middle Points between end and next Intersection
 								Vector2 middleNextPoint = (intersections[endIndex - 1] + end) / 2;
