@@ -1117,17 +1117,29 @@ namespace DavidUtils.Geometry
 							
 							int beginIndex = intersections.FirstIndex(v => Vector2.Distance(v, begin) < 0.001f);
 							int endIndex = intersections.FirstIndex(v => Vector2.Distance(v, end) < 0.001f);
+
+							// Begin or End are not middle Intersections => Can't ignore them
+							bool beginIsFirstIntersection = beginIndex == 0;
+							bool endIsLastIntersection = endIndex == intersections.Length - 1;
 							
 							int prevIndex = beginIndex - 1;
 							int nextIndex = endIndex + 1;
 
-							Vector2 middlePrevPoint = (intersections[prevIndex] + begin) / 2;
-							Vector2 middleNextPoint = (intersections[nextIndex] + end) / 2;
+							// Calculate Middle Points before and after, but only if begin or end are middle Intersections
+							Vector2 middlePrevPoint = 
+								beginIsFirstIntersection 
+									? default
+									: (intersections[prevIndex] + begin) / 2;
+							
+							Vector2 middleNextPoint =
+								endIsLastIntersection 
+									? default
+									: (intersections[nextIndex] + end) / 2;
 							
 							// If the Middle Point (from Begin to Previous Inters. and from End to Next Inters.)
 							// is inside the Polygon => Ignore Colinear Vertex
-							bool canIgnoreBegin = prevIndex >= 0 && Contains_RayCast(middlePrevPoint);
-							bool canIgnoreEnd = nextIndex < intersections.Length && Contains_RayCast(middleNextPoint);
+							bool canIgnoreBegin = !beginIsFirstIntersection && Contains_RayCast(middlePrevPoint);
+							bool canIgnoreEnd = !endIsLastIntersection && Contains_RayCast(middleNextPoint);
 							
 							if (!canIgnoreBegin && !canIgnoreEnd) continue;
 							

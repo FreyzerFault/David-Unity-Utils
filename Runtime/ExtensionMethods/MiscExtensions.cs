@@ -328,6 +328,9 @@ namespace DavidUtils.ExtensionMethods
 		/// <summary>
 		///     First index of an item that matches a predicate.
 		/// </summary>
+		/// <returns>
+		///		-1 if not found
+		/// </returns>
 		public static int FirstIndex<T>(this IEnumerable<T> source, Predicate<T> predicate)
 		{
 			var index = 0;
