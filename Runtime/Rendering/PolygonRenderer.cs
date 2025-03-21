@@ -206,12 +206,13 @@ namespace DavidUtils.Rendering
 
 			if (generateSubPolygons)
 			{
-				if (Application.isPlaying)
+				if (generateSubsOnCoroutine)
 				{
 					IEnumerator subPolygonCoroutine = _meshFilter.sharedMesh.SetPolygonConcaveCoroutine(
 						sp => { subPolygons = sp; },
 						UpdateSubPolygonRenderers,
-						ScaledPolygon, color, maxSubPolygonsPerFrame, maxSubPolygonCount / maxSubPolygonsPerFrame);
+						ScaledPolygon, color, maxSubPolygonsPerFrame, maxSubPolygonCount / maxSubPolygonsPerFrame,
+						delayinSeconds_SubpolygonCoroutine);
 					StartCoroutine(subPolygonCoroutine);
 				}
 				else
@@ -360,9 +361,12 @@ namespace DavidUtils.Rendering
 		[Space]
 		
 		public bool generateSubPolygons;
+		public bool generateSubsOnCoroutine = true;
 		
-		[Range(1,100)] public int maxSubPolygonsPerFrame = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
-		[FormerlySerializedAs("maxSubPolygonsCount")] [Range(1,1000)] public int maxSubPolygonCount = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
+		[Range(2,100)] public int maxSubPolygonsPerFrame = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
+		[Range(1,1000)] public int maxSubPolygonCount = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
+
+		public float delayinSeconds_SubpolygonCoroutine = 0;
 		
 		[HideInInspector] public List<Polygon> subPolygons = new();
 		public int SubPolygonCount => subPolygons.Count;

@@ -951,15 +951,22 @@ namespace DavidUtils.Geometry
 		/// <param name="autointersected">
 		/// FALSE => Polygon will be sorted by CCW.
 		/// </param>
-		public void SetRandomVertices(int numVertices, float radius = 10, bool autointersected = false)
+		public void SetRandomVertices(int numVertices, float radius = 10, bool convex = false, bool autointersected = false)
 		{
 			if (numVertices < 3) 
 				Debug.LogError("Random Polygon must have at least 3 vertices");
 
-			vertices = new Vector2[numVertices];
+			List<Vector2> verticesList = new List<Vector2>();
 			
-			for (var i = 0; i < numVertices; i++) 
-				vertices[i] = Random.insideUnitCircle * radius;
+			for (var i = 0; i < numVertices; i++)
+			{
+				if (convex)
+					verticesList.Add(Random.insideUnitCircle.normalized * radius);
+				else
+					verticesList.Add(Random.insideUnitCircle * radius);
+			}
+
+			vertices = verticesList.ToArray();
 			
 			OnUpdateVertices();
 			
@@ -1065,7 +1072,7 @@ namespace DavidUtils.Geometry
 				// Scanline from left to right
 				Edge scanLine = new(new Vector2(0, scanHeight), new Vector2(1, scanHeight)); // Don't need X
 				bool intersects = Intersects(scanLine, out Vector2[] intersections, true);
-
+				
 				// Delete repeated intersections
 				intersections = intersections.Distinct().ToArray();
 				
@@ -1077,9 +1084,7 @@ namespace DavidUtils.Geometry
 					continue;
 				}
 				
-				// Save Intersections for Debug Info
-				intersectionsByScanline.TryAdd(scanHeight, intersections);
-				
+				// 1 Intersection (Pointy Vertex)
 				if (intersections.Length == 1) // 1 Intersection => Add 1 pixel
 				{
 					if (debugInfo)
@@ -1094,6 +1099,53 @@ namespace DavidUtils.Geometry
 					continue;
 				}
 				
+				// ODD Intersections (Collinear edges) => Ignore intersections
+				// that are the begin or end of Colinear Edges if before begin or after end, respectively 
+				// enters inside the Polygon (the middle point with the previous or next Intersection is INSIDE the Polygon)
+				if (intersections.Length % 2 == 1)
+				{
+					Edge[] collinearEdges = Edges.Where(scanLine.Collinear).ToArray();
+					if (collinearEdges.NotNullOrEmpty())
+					{
+						// Sort by X
+						intersections = intersections.OrderBy(v => v.x).ToArray();
+
+						foreach (Edge collinearEdge in collinearEdges)
+						{
+							Vector2 begin = collinearEdge.begin;
+							Vector2 end = collinearEdge.end;
+							
+							int beginIndex = intersections.FirstIndex(v => Vector2.Distance(v, begin) < 0.001f);
+							int endIndex = intersections.FirstIndex(v => Vector2.Distance(v, end) < 0.001f);
+							
+							int prevIndex = beginIndex - 1;
+							int nextIndex = endIndex + 1;
+
+							Vector2 middlePrevPoint = (intersections[prevIndex] + begin) / 2;
+							Vector2 middleNextPoint = (intersections[nextIndex] + end) / 2;
+							
+							// If the Middle Point (from Begin to Previous Inters. and from End to Next Inters.)
+							// is inside the Polygon => Ignore Colinear Vertex
+							bool canIgnoreBegin = prevIndex >= 0 && Contains_RayCast(middlePrevPoint);
+							bool canIgnoreEnd = nextIndex < intersections.Length && Contains_RayCast(middleNextPoint);
+							
+							if (!canIgnoreBegin && !canIgnoreEnd) continue;
+							
+							// Remove Begin and/or End
+							List<Vector2> intersList = intersections.ToList();
+							intersList.RemoveRange(
+								canIgnoreBegin ? beginIndex : endIndex,
+								canIgnoreBegin && canIgnoreEnd ? 2 : 1);
+							intersections = intersList.ToArray();
+						}
+					}
+					else
+					{
+						Debug.LogError($"Polygon-Line Intersection: Odd number ({intersections.Length})" +
+						               $" of intersections while NO Collinear edge (horizontal) at Height {scanHeight}");
+					}
+				}
+				
 				// It can't have ODD Intersections.
 				// Intersections on a Vertex must count as 2 because both adyacent edges may count as intersected 
 				if (intersections.Length % 2 == 1) 
@@ -1101,6 +1153,9 @@ namespace DavidUtils.Geometry
 				
 				// Sort by X
 				intersections = intersections.OrderBy(v => v.x).ToArray();
+				
+				// Save Intersections for Debug Info
+				intersectionsByScanline.TryAdd(scanHeight, intersections);
 
 				if (UseScalineBreakpointsGeneration)
 				{

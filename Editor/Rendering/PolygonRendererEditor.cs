@@ -105,12 +105,26 @@ namespace DavidUtils.Editor.Rendering
             PropertyField("generateSubPolygons", "Generate SubPolygons",
                 r => { r.UpdatePolygon(); r.UpdateSubPolygonRenderers(); });
             
+            
             if (!serializedObject.targetObjects.Cast<PolygonRenderer>().All(pr => pr.generateSubPolygons)) return;
             
-            PropertyField("maxSubPolygonsPerFrame", $"Per Frame");
+            // Generate on Coroutine Toggle
+            PropertyField("generateSubsOnCoroutine", "Do it on Coroutine");
             
+            // Max subpolygons that can be generated
+            PropertyField("maxSubPolygonCount", "Max SubPolygons", r => r.UpdatePolygon());
+            
+            // How many Subpolygons per frame
+            if (_polyRenderer.generateSubsOnCoroutine)
+            {
+                PropertyField("maxSubPolygonsPerFrame", $"Subpolys Per Frame");
+                PropertyField("delayinSeconds_SubpolygonCoroutine", $"Seconds Delay");
+            }
+            
+            // Show Sub Polygons with different colors
             PropertyField("showSubPolygons", "Show SubPolygons", r => r.UpdateSubPolygonRenderers());
             
+            // Info of Subpolygon Segmentation
             if (!serializedObject.isEditingMultipleObjects && _polyRenderer.ShowSubPolygons)
                 EditorGUILayout.LabelField(
                     $"Polygon has been segmented in {_polyRenderer.SubPolygonCount} polygons");

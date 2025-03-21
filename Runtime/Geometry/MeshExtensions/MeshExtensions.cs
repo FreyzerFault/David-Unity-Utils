@@ -86,7 +86,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 		///		Genera una subrutina para generar los subpoligonos de forma asincrona
 		/// </summary>
 		public static IEnumerator SetPolygonConcaveCoroutine(this Mesh mesh, Action<List<Polygon>> onSubPolygonsGenerated, Action onEnd, Polygon polygon, Color? color = null,
-			int maxSubPolygonsPerFrame = 10, int maxIterations = 100)
+			int maxSubPolygonsPerFrame = 10, int maxIterations = 100, float delayInSeconds = 0)
 		{
 			if (polygon.IsEmpty)
 			{
@@ -135,6 +135,8 @@ namespace DavidUtils.Geometry.MeshExtensions
 				onSubPolygonsGenerated?.Invoke(subPolygons);
 				
 				yield return subPolygons.ToArray();
+				if (delayInSeconds > 0)
+					yield return new WaitForSeconds(delayInSeconds);
 			} while (subPolygons.NotNullOrEmpty() && subPolygons.Last().IsConcave() && ++iterations < maxIterations);
 			
 			onEnd?.Invoke();

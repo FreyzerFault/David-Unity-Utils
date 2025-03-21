@@ -15,8 +15,10 @@ namespace DavidUtils.Tests.Runtime.Geometry
         public int seed = 1234;
         public int numVertices = 5;
         public float maxSize = 1;
+        public bool convex = true;
+        public bool autoIntersected = true;
         
-        private bool autointersected;
+        private bool IsAutoIntersected =>  _polygon.HasAutoIntersections();
         
         private Polygon _polygon = new Polygon();
 
@@ -35,15 +37,14 @@ namespace DavidUtils.Tests.Runtime.Geometry
         protected override void InitializeTests()
         {
             AddTest(GeneratePolygon,
-                new TestInfo("SetRandomVertices", () => !autointersected));
+                new TestInfo("SetRandomVertices", () => !IsAutoIntersected));
         }
 
         private void GeneratePolygon()
         {
-            _polygon.SetRandomVertices(numVertices, maxSize / 2);
+            _polygon.SetRandomVertices(numVertices, maxSize / 2, convex, autoIntersected);
             UpdateRenderer();
             FocusCameraInCentroid();
-            autointersected = _polygon.HasAutoIntersections();
         }
 
         public new PolygonRenderer renderer;
