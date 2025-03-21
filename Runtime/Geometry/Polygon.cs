@@ -1117,6 +1117,9 @@ namespace DavidUtils.Geometry
 							
 							int beginIndex = intersections.FirstIndex(v => Vector2.Distance(v, begin) < 0.001f);
 							int endIndex = intersections.FirstIndex(v => Vector2.Distance(v, end) < 0.001f);
+							
+							// Colinear edge not even count as intersections
+							if (beginIndex == -1 && endIndex == -1) continue;
 
 							// Begin or End are not middle Intersections => Can't ignore them
 							bool beginIsFirstIntersection = beginIndex == 0;
