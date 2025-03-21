@@ -987,15 +987,15 @@ namespace DavidUtils.Geometry
 		/// 	You can reproject the Polygon to the Texture dimension you want before this
 		/// 	Or use ToTexture(Vector2 texSize) to render on a texture with a different size
 		/// </summary>
-		public Texture2D ToTexture(Color fillColor = default, Color backgroundColor = default,
+		public Texture2D ToTexture(Vector2Int texSize, Color fillColor = default, Color backgroundColor = default,
 			bool transparent = false, RasterAlgorithm usedAlgorithm = RasterAlgorithm.ScanlineRaster,
 			bool debugInfo = false)
 		{
 			return usedAlgorithm switch
 			{
-				RasterAlgorithm.ContainsRaycast => ToTexture_ContainsRaycastPerPixel(Vector2Int.CeilToInt(AABB.Size),
+				RasterAlgorithm.ContainsRaycast => ToTexture_ContainsRaycastPerPixel(texSize,
 					fillColor, backgroundColor, transparent, debugInfo),
-				RasterAlgorithm.ScanlineRaster => ToTexture_ScanlineRaster(Vector2Int.CeilToInt(AABB.Size), fillColor,
+				RasterAlgorithm.ScanlineRaster => ToTexture_ScanlineRaster(texSize, fillColor,
 					backgroundColor, transparent, debugInfo),
 				_ => null
 			};
