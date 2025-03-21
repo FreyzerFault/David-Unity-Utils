@@ -7,6 +7,7 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Rendering;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -29,7 +30,8 @@ namespace DavidUtils.Tests.Runtime.Geometry
         public Texture2D texture;
 
         public PolygonRenderer polyRenderer;
-        private Polygon _polygon = new();
+        public bool generateRandomPolygon = false;
+        public Polygon polygon = new();
 
         protected override void Awake()
         {
@@ -46,10 +48,10 @@ namespace DavidUtils.Tests.Runtime.Geometry
             // AddTest(GenerateTextureUsingRaycastTest, "GenerateTexture With RAYCAST");
             AddTest(GenerateTextureWithPolygonWithVerticesRepeatedTest, 
                 new TestInfo("Now with Repeated Vertices", 
-                    () => _polygon.intersectionsByScanline.Count > 0,
+                    () => polygon.intersectionsByScanline.Count > 0,
                     () =>
                     {
-                        KeyValuePair<float, Vector2[]>[] oddIntersections = _polygon.intersectionsByScanline
+                        KeyValuePair<float, Vector2[]>[] oddIntersections = polygon.intersectionsByScanline
                             .Where(pair => pair.Value.Length % 2 == 1).ToArray();
                         
                         KeyValuePair<float, Vector2[]>[] oddIntersectionsMoreThanOne = oddIntersections
@@ -66,7 +68,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
                         string intersectionsByScanline =
                             $"INTERSECTIONS\n" +
                             string.Join('\n',
-                            _polygon.intersectionsByScanline.Select(pair =>
+                            polygon.intersectionsByScanline.Select(pair =>
                                 $"{(pair.Value.Length % 2 == 0 ? "<color=green>" : "<color=red>")}" +
                                 $"H {pair.Key:f2} ({pair.Value.Length} inters.):</color> " +
                                 $"{string.Join(", ", pair.Value)}"));
@@ -87,7 +89,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
             Random.InitState(seed);
         }
 
-        private void RandomizePolygon() => _polygon.SetRandomVertices(numVertices);
+        private void RandomizePolygon() => polygon.SetRandomVertices(numVertices);
 
         
         private IEnumerator GenerateTextureTest()
@@ -112,27 +114,27 @@ namespace DavidUtils.Tests.Runtime.Geometry
             RandomizePolygon();
             
             // 2 Duplicated
-            _polygon.Vertices[1] = _polygon.Vertices[0];
+            polygon.Vertices[1] = polygon.Vertices[0];
             
             // 3 Duplicated
-            if (_polygon.VertexCount > 4)
-                _polygon.Vertices[4] = _polygon.Vertices[3] = _polygon.Vertices[2];
+            if (polygon.VertexCount > 4)
+                polygon.Vertices[4] = polygon.Vertices[3] = polygon.Vertices[2];
             
             // No adyacent duplicated
-            if (_polygon.VertexCount > 8)
-                _polygon.Vertices[5] = _polygon.Vertices[8];
+            if (polygon.VertexCount > 8)
+                polygon.Vertices[5] = polygon.Vertices[8];
             
             // Return Vertex
-            if (_polygon.VertexCount > 10)
-                _polygon.Vertices[8] = _polygon.Vertices[10];
+            if (polygon.VertexCount > 10)
+                polygon.Vertices[8] = polygon.Vertices[10];
             
             // CLOSE as fuck Vertices
-            if (_polygon.VertexCount > 12)
-                _polygon.Vertices[11] = _polygon.Vertices[12] + Vector2.up * 0.00001f;
+            if (polygon.VertexCount > 12)
+                polygon.Vertices[11] = polygon.Vertices[12] + Vector2.up * 0.00001f;
             
             // Colinear vertices
-            if (_polygon.VertexCount > 14)
-                _polygon.Vertices[13] = _polygon.Vertices[14] + Vector2.right * 0.00001f;
+            if (polygon.VertexCount > 14)
+                polygon.Vertices[13] = polygon.Vertices[14] + Vector2.right * 0.00001f;
 
             
             texture = GenerateTexture();
@@ -142,15 +144,15 @@ namespace DavidUtils.Tests.Runtime.Geometry
         }
 
         private Texture2D GenerateTexture() =>
-            _polygon.ToTexture_ScanlineRaster(resolution, Color.blue, Color.grey, transparent: transparent, debugInfo: false);
+            polygon.ToTexture_ScanlineRaster(resolution, Color.blue, Color.grey, transparent: transparent, debugInfo: false);
         
         private Texture2D GenerateTextureUsingRaycast() =>
-            _polygon.ToTexture_ContainsRaycastPerPixel(resolution, Color.blue, Color.grey, transparent: transparent);
+            polygon.ToTexture_ContainsRaycastPerPixel(resolution, Color.blue, Color.grey, transparent: transparent);
         
         
         
 
-        private void RenderPolygon() => polyRenderer.Polygon = _polygon;
+        private void RenderPolygon() => polyRenderer.Polygon = polygon;
         private void ShowOnImg() => img.sprite = CreateSprite();
         
         private Sprite CreateSprite()

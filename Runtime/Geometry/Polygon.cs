@@ -1136,7 +1136,7 @@ namespace DavidUtils.Geometry
 							if (endIndex != -1 && endIndex < intersections.Length - 1)
 							{
 								// Calculate Middle Points between end and next Intersection
-								Vector2 middleNextPoint = (intersections[endIndex - 1] + end) / 2;
+								Vector2 middleNextPoint = (intersections[endIndex + 1] + end) / 2;
 							
 								// If the Middle Point (from End to Next Inters)
 								// is inside the Polygon => Ignore End Vertex
