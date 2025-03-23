@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+﻿
 using System;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
@@ -11,7 +11,8 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 	{
 		private const int DEFAULT_THICKNESS = 5;
 
-
+#if UNITY_EDITOR
+		
 		#region ARROWS
 
 		public enum ArrowCap { Line, Triangle, Cone, None }
@@ -519,6 +520,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		}
 
 		#endregion
+
+#endif
 	}
 }
-#endif

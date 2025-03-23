@@ -31,7 +31,9 @@ namespace DavidUtils.UI.Text
 		public void HandleValueChange(MemberInfo info)
 		{
 			UpdateText();
+            #if UNITY_EDITOR
 			SceneUtilities.RepaintAll();
+			#endif
 		}
 
 		private void UpdateText() => TextLabel?.SetText(textExposer.StringValue != null ? $"{prefix}{textExposer.StringValue}{suffix}" : TextLabel.text);
