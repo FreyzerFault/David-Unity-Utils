@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.DevTools.Logging
+namespace DavidUtils.Editor.DevTools.Logging
 {
 	/// <summary>
 	///     This pool is used to prevent warning message spamming.

@@ -1,16 +1,16 @@
-﻿#if UNITY_EDITOR
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using DavidUtils.DevTools.Logging;
+using DavidUtils.Editor.DevTools.Logging;
+using DavidUtils.Editor.DevTools.Serialization;
 using DavidUtils.ExtensionMethods;
 using UnityEditor;
 
-namespace DavidUtils.DevTools.CustomAttributes
+namespace DavidUtils.Editor.DevTools.CustomAttributes
 {
-	public static class CustomDrawerUtility
-	{
+    public static class CustomDrawerUtility
+    {
 		/// <summary>
 		///     Key is Associated with drawer type (the T in [CustomPropertyDrawer(typeof(T))])
 		///     Value is PropertyDrawer Type
@@ -54,7 +54,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 		{
 			try
 			{
-				var drawerInstance = (PropertyDrawer)Activator.CreateInstance(drawerType);
+				PropertyDrawer drawerInstance = (PropertyDrawer)Activator.CreateInstance(drawerType);
 
 				// Reassign the attribute and fieldInfo fields in the drawer so it can access the argument values
 				FieldInfo fieldInfoField = drawerType.GetField(
@@ -71,9 +71,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 				return drawerInstance;
 			}
 			catch (Exception)
-			{
-				return null;
-			}
+			{ return null; }
 		}
 
 		/// <summary>
@@ -122,14 +120,11 @@ namespace DavidUtils.DevTools.CustomAttributes
 			{
 				CustomAttributeData propertyDrawerAttribute =
 					CustomAttributeData.GetCustomAttributes(drawerType).FirstOrDefault();
-				if (propertyDrawerAttribute == null) continue;
-				var drawerTargetType = propertyDrawerAttribute.ConstructorArguments.FirstOrDefault().Value as Type;
-				if (drawerTargetType == null) continue;
+				
+				if (propertyDrawerAttribute?.ConstructorArguments.FirstOrDefault().Value is not Type drawerTargetType) continue;
 
-				if (PropertyDrawersInAssembly.ContainsKey(drawerTargetType)) continue;
-				PropertyDrawersInAssembly.Add(drawerTargetType, drawerType);
+				PropertyDrawersInAssembly.TryAdd(drawerTargetType, drawerType);
 			}
 		}
-	}
+    }
 }
-#endif

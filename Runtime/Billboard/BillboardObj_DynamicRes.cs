@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace DavidUtils.Billboard
@@ -30,15 +31,13 @@ namespace DavidUtils.Billboard
 		private void Start() => Player.OnPlayerMove += HandlePlayerMove;
 
 		private void HandlePlayerMove(Vector2 moveInput) =>
-			Sprite = GetSpriteByDist(DistanceToPlayer);
+			Sprite = GetSpriteByDistance(DistanceToPlayer);
 
-		private Sprite GetSpriteByDist(float dist)
+		private Sprite GetSpriteByDistance(float distance)
 		{
-			foreach (KeyValuePair<float, Sprite> keyValue in _spritesDic)
-			{
-				if (dist > keyValue.Key) continue;
-				return keyValue.Value;
-			}
+			Sprite[] spritesInDistance = _spritesDic.Where(keyValue => distance <= keyValue.Key).Select(pair => pair.Value).ToArray();
+			
+			foreach (Sprite sprite in spritesInDistance) return sprite;
 
 			return sprites[^1].sprite;
 		}

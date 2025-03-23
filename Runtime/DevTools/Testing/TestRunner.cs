@@ -13,10 +13,10 @@ namespace DavidUtils.DevTools.Testing
 	{
 		public struct TestInfo : IEquatable<TestInfo>
 		{
-			public string name;
-			public Func<bool> successCondition;
-			public Action onSuccess;
-			public Action onFailure;
+			public readonly string name;
+			public readonly Func<bool> successCondition;
+			public readonly Action onSuccess;
+			public readonly Action onFailure;
 
 			public TestInfo(
 				string name, Func<bool> successCondition = null, Action onSuccess = null, Action onFailure = null
@@ -48,7 +48,7 @@ namespace DavidUtils.DevTools.Testing
 		public bool runOnStart = true;
 		public bool autoRun = true;
 		public bool logTestInfo = true;
-		public bool ended = false;
+		public bool ended;
 		
 		protected int iteration;
 		public int Iteration => iteration;
@@ -98,12 +98,12 @@ namespace DavidUtils.DevTools.Testing
 		public TestInfo currentTestInfo;
 
 		// RESULTADOS => [Iteration1: {"TestA", True, "TestB", False}, Iteration2: {...}]
-		public List<Dictionary<string, bool>> successList = new();
+		public readonly List<Dictionary<string, bool>> successList = new();
 		public Dictionary<string, bool> CurrentSuccessDict => iteration < successList.Count ? successList[iteration] : null;
 		public bool AnyTestFailed => CurrentSuccessDict != null && CurrentSuccessDict.Values.Any(b => !b);
 		
 		protected Coroutine testsCoroutine;
-		protected bool playing = false;
+		protected bool playing;
 		[ExposedField] public bool IsPlaying => playing;
 		[ExposedField] public bool HasEndedAtLeastOnce => !playing && successList.NotNullOrEmpty() && successList[0].Count == tests.Count;
 		[ExposedField] public string PlayingStr => playing ? "PLAYING" : "PAUSED";
@@ -134,14 +134,14 @@ namespace DavidUtils.DevTools.Testing
 		public void AddTest(Func<IEnumerator> test, Func<bool> condition = null) =>
 			tests.Add(test, new TestInfo(condition));
 
-		public void AddTest(Func<IEnumerator> test, string name) => tests.Add(test, new TestInfo(name));
+		public void AddTest(Func<IEnumerator> test, string testName) => tests.Add(test, new TestInfo(testName));
 
 		public void AddTest(Action test, TestInfo info) => AddTest(ActionToCoroutine(test), info);
 
 		public void AddTest(Action test, Func<bool> condition = null) =>
 			AddTest(ActionToCoroutine(test), new TestInfo(condition));
 
-		public void AddTest(Action test, string name) => AddTest(ActionToCoroutine(test), new TestInfo(name));
+		public void AddTest(Action test, string testName) => AddTest(ActionToCoroutine(test), new TestInfo(testName));
 
 		private Func<IEnumerator> ActionToCoroutine(Action action) => () =>
 		{
@@ -237,10 +237,7 @@ namespace DavidUtils.DevTools.Testing
 				float endTime = Time.realtimeSinceStartup;
 				float time = (endTime - iniTime) * 1000;
 
-				if (_testTimes.TryGetValue(info.name, out _))
-					_testTimes[info.name].Add(time);
-				else
-					_testTimes.Add(info.name, new List<float> {time});
+				RegisterTime(info.name, time);
 
 				bool success = info.successCondition?.Invoke() ?? true;
 				
@@ -260,13 +257,21 @@ namespace DavidUtils.DevTools.Testing
 			}
 		}
 
-		private const string red = "#ff3633";
-		private const string cyan = "#54faff";
-		private const string green = "#47ff3a";
+		private void RegisterTime(string testName, float time)
+		{
+			if (_testTimes.TryGetValue(testName, out List<float> testTime))
+				testTime.Add(time);
+			else
+				_testTimes.Add(testName, new List<float> {time});
+		}
+
+		private const string Red = "#ff3633";
+		private const string Cyan = "#54faff";
+		private const string Green = "#47ff3a";
 
 		private void LogTest(string testName, bool success, float time, string msg = null)
 		{
-			string color = success ? green : red;
+			string color = success ? Green : Red;
 			string symbol = success ? "\u2714" : "\u2716";
 			string numTests = autoRun ? $"#{iteration}" : "";
 			msg ??= success ? "Success" : "Failed";
@@ -276,7 +281,7 @@ namespace DavidUtils.DevTools.Testing
 
 		public override string ToString()
 		{
-			string color = IsPlaying ? cyan : HasEndedAtLeastOnce ? green : red;
+			string color = IsPlaying ? Cyan : HasEndedAtLeastOnce ? Green : Red;
 			string state = IsPlaying ? "Running" : HasEndedAtLeastOnce ? "Ended" : "Paused";
 			string currentTest = IsPlaying ? currentTestInfo.ToString() : "";
 			string iterations = this.iteration > 0 ? $"[{this.iteration} iterations run]" : "";

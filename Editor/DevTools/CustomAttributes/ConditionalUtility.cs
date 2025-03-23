@@ -1,20 +1,22 @@
-﻿#if UNITY_EDITOR
-using System;
+﻿using System;
+using System.Linq;
 using System.Reflection;
-using DavidUtils.DevTools.Logging;
+using DavidUtils.DevTools.CustomAttributes;
+using DavidUtils.Editor.DevTools.Logging;
+using DavidUtils.Editor.DevTools.Serialization;
 using DavidUtils.ExtensionMethods;
 using UnityEditor;
 using Object = UnityEngine.Object;
 
-namespace DavidUtils.DevTools.CustomAttributes
+namespace DavidUtils.Editor.DevTools.CustomAttributes
 {
-	public static class ConditionalUtility
-	{
-		public static bool IsConditionMatch(Object owner, ConditionalData condition)
+    public static class ConditionalUtility
+    {
+        public static bool IsConditionMatch(Object owner, ConditionalData condition)
 		{
 			if (!condition.IsSet) return true;
 
-			var so = new SerializedObject(owner);
+			SerializedObject so = new(owner);
 			foreach ((string Field, bool Inverse, string[] CompareAgainst) fieldCondition in condition)
 			{
 				if (fieldCondition.Field.IsNullOrEmpty()) continue;
@@ -47,19 +49,19 @@ namespace DavidUtils.DevTools.CustomAttributes
 
 		private static void LogFieldNotFound(SerializedProperty property, string field) => WarningsPool.LogWarning(
 			property,
-			$"Conditional Attribute is trying to check field {field.Colored(Colors.brown)} which is not present",
+			$"Conditional Attribute is trying to check field {field.Colored(DebugColor.Brown)} which is not present",
 			property.serializedObject.targetObject
 		);
 
 		private static void LogFieldNotFound(Object owner, string field) => WarningsPool.LogWarning(
 			owner,
-			$"Conditional Attribute is trying to check field {field.Colored(Colors.brown)} which is not present",
+			$"Conditional Attribute is trying to check field {field.Colored(DebugColor.Brown)} which is not present",
 			owner
 		);
 
 		public static void LogMethodNotFound(Object owner, string method) => WarningsPool.LogWarning(
 			owner,
-			$"Conditional Attribute is trying to invoke method {method.Colored(Colors.brown)} " +
+			$"Conditional Attribute is trying to invoke method {method.Colored(DebugColor.Brown)} " +
 			"which is missing or not with a bool return type",
 			owner
 		);
@@ -70,7 +72,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 
 			string asString = property.AsStringValue().ToUpper();
 
-			if (compareAgainst != null && compareAgainst.Length > 0)
+			if (compareAgainst is { Length: > 0 })
 			{
 				bool matchAny = CompareAgainstValues(asString, compareAgainst, IsFlagsEnum());
 				if (inverse) matchAny = !matchAny;
@@ -87,8 +89,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 			{
 				if (property.propertyType != SerializedPropertyType.Enum) return false;
 				object value = property.GetValue();
-				if (value == null) return false;
-				return value.GetType().GetCustomAttribute<FlagsAttribute>() != null;
+				return value?.GetType().GetCustomAttribute<FlagsAttribute>() != null;
 			}
 		}
 
@@ -102,26 +103,22 @@ namespace DavidUtils.DevTools.CustomAttributes
 		{
 			if (!handleFlags) return ValueMatches(propertyValueAsString);
 
-			if (propertyValueAsString == "-1") //Handle Everything
-				return true;
-			if (propertyValueAsString == "0") //Handle Nothing
-				return false;
+			switch (propertyValueAsString)
+			{
+				//Handle Everything
+				case "-1":
+					return true;
+				//Handle Nothing
+				case "0":
+					return false;
+			}
 
 			string[] separateFlags = propertyValueAsString.Split(',');
-			foreach (string flag in separateFlags)
-				if (ValueMatches(flag.Trim()))
-					return true;
-
-			return false;
+			return separateFlags.Any(flag => ValueMatches(flag.Trim()));
 
 
-			bool ValueMatches(string value)
-			{
-				foreach (string compare in compareAgainst)
-					if (value == compare)
-						return true;
-				return false;
-			}
+			bool ValueMatches(string value) => 
+				compareAgainst.Any(compare => value == compare);
 		}
 
 		/// <summary>
@@ -139,7 +136,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 			// if nested property is null = we hit an array property
 			if (nestedProperty == null)
 			{
-				string cleanPath = path.Substring(0, path.IndexOf('['));
+				string cleanPath = path[..path.IndexOf('[')];
 				SerializedProperty arrayProp = property.serializedObject.FindProperty(cleanPath);
 				WarningsPool.LogCollectionsNotSupportedWarning(arrayProp, nameof(ConditionalFieldAttribute));
 
@@ -161,24 +158,59 @@ namespace DavidUtils.DevTools.CustomAttributes
 				if (element.Contains("["))
 				{
 					index = Convert.ToInt32(
-						element.Substring(element.IndexOf("[", StringComparison.Ordinal))
+						element[element.IndexOf("[", StringComparison.Ordinal)..]
 							.Replace("[", "")
 							.Replace("]", "")
 					);
-					element = element.Substring(0, element.IndexOf("[", StringComparison.Ordinal));
+					element = element[..element.IndexOf("[", StringComparison.Ordinal)];
 				}
 
 				parent = i == 0
 					? property.serializedObject.FindProperty(element)
-					: parent != null
-						? parent.FindPropertyRelative(element)
-						: null;
+					: parent?.FindPropertyRelative(element);
 
 				if (index >= 0 && parent != null) parent = parent.GetArrayElementAtIndex(index);
 			}
 
 			return parent;
 		}
-	}
+		
+
+		///     Call and check Method Condition, if any
+		public static bool IsMethodConditionMatch(this ConditionalData data, object owner)
+		{
+			if (data.predicateMethod.IsNullOrEmpty()) return true;
+
+			MethodInfo ownerPredicateMethod = GetMethodCondition(owner, data.predicateMethod, ref data.initializedMethodInfo, ref data.cachedMethodInfo);
+			if (ownerPredicateMethod == null) return true;
+
+			var match = (bool)ownerPredicateMethod.Invoke(owner, null);
+			if (data.inverse) match = !match;
+			return match;
+		}
+
+		///    Get the Method Info to check the condition
+		private static MethodInfo GetMethodCondition(object owner, string predicateMethod, ref bool initializedMethodInfo, ref MethodInfo cachedMethodInfo)
+		{
+			if (predicateMethod.IsNullOrEmpty()) return null;
+			if (initializedMethodInfo) return cachedMethodInfo;
+			initializedMethodInfo = true;
+
+			Type ownerType = owner.GetType();
+			const BindingFlags bindings = 
+				BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+			
+			MethodInfo method = ownerType.GetMethods(bindings).SingleOrDefault(m => m.Name == predicateMethod);
+
+			if (method == null || method.ReturnType != typeof(bool))
+			{
+				LogMethodNotFound((Object)owner, predicateMethod);
+				cachedMethodInfo = null;
+			}
+			else
+				cachedMethodInfo = method;
+
+			return cachedMethodInfo;
+		}
+    }
 }
-#endif

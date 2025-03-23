@@ -52,7 +52,7 @@ namespace DavidUtils.Rendering
 		public override void UpdateColor() => 
 			renderObjs.ForEach((r,i) => r.color = GetColor(i));
 
-		public void SetSize(int i, float size) => renderObjs[i].transform.SetGlobalScale(Vector3.one * size);
+		public void SetSize(int i, float newSize) => renderObjs[i].transform.SetGlobalScale(Vector3.one * newSize);
 
 		#endregion
 		

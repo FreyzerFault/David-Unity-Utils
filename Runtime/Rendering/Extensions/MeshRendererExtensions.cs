@@ -22,7 +22,7 @@ namespace DavidUtils.Rendering.Extensions
 		)
 		{
 			// LINE RENDERER
-			var mObj = new GameObject($"{name} [Mesh]");
+			GameObject mObj = new($"{name} [Mesh]");
 			mObj.transform.parent = parent;
 			mObj.transform.localPosition = Vector3.zero;
 			mObj.transform.localRotation = Quaternion.identity;
@@ -40,7 +40,7 @@ namespace DavidUtils.Rendering.Extensions
 		public static void InstantiateMeshRenderer(
 			out MeshRenderer mr,
 			out MeshFilter mf,
-			Mesh mesh = default,
+			Mesh mesh = null,
 			Transform parent = null,
 			string name = ""
 		) => mesh.InstantiateMeshRenderer(out mr, out mf, parent, name);
@@ -67,7 +67,7 @@ namespace DavidUtils.Rendering.Extensions
 			out MeshFilter mf,
 			Transform parent = null,
 			string name = "Triangle Mesh",
-			Color[] colors = default
+			Color[] colors = null
 		) => InstantiateMeshRenderer(out mr, out mf, triangles.CreateMesh(colors), parent, name);
 
 		// POLYGON
@@ -109,7 +109,7 @@ namespace DavidUtils.Rendering.Extensions
 			Material material = null
 		)
 		{
-			var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 			sphere.name = $"{name} [Sphere]";
 			sphere.transform.parent = parent;
 

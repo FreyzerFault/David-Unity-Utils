@@ -24,6 +24,7 @@ namespace DavidUtils.DevTools.Testing
 			return (endTime - iniTime) * 1000;
 		}
 
+		// TODO Sacar time
 		public static IEnumerator RunTimerInMs(Func<IEnumerator> action, float time)
 		{
 			float iniTime = Time.realtimeSinceStartup;

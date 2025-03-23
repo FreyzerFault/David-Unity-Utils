@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
-namespace DavidUtils.Editor.Rendering
+namespace DavidUtils.Editor.Rendering.Editor.Rendering
 {
     [CanEditMultipleObjects]
     [CustomEditor(typeof(PolygonRenderer), true)]
@@ -135,8 +135,8 @@ namespace DavidUtils.Editor.Rendering
         
         private void PropertyField(string propName, string label, bool includeChildren = true) =>
             EditorGUILayout.PropertyField(serializedObject.FindProperty(propName), new GUIContent(label), includeChildren);
-        
-        private bool PropertyField(string propName, string label, Action<PolygonRenderer> onChange, bool includeChildren = true)
+
+        public bool PropertyField(string propName, string label, Action<PolygonRenderer> onChange, bool includeChildren = true)
         {
             PropertyField(propName, label, includeChildren);
             if (!serializedObject.ApplyModifiedProperties()) return false;

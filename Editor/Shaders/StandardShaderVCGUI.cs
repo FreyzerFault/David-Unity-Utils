@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Editor.Shaders
+namespace DavidUtils.Editor.Shaders.Editor.Shaders
 {
 	public class StandardShaderVCGUI : ShaderGUI
 	{

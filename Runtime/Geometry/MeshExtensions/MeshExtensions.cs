@@ -173,24 +173,26 @@ namespace DavidUtils.Geometry.MeshExtensions
 		public static void TranslateAsGroup(this IEnumerable<Mesh> mesh, Vector3 translation) => 
 			mesh.ForEach(m => m.Translate(translation));
 		
-		public static void TranslateToOrigin(this IEnumerable<Mesh> mesh)
+		public static void TranslateToOrigin(this IEnumerable<Mesh> meshes)
 		{
 			// Busca la posicion minima de todos los bounds
-			var minPositions = mesh.Select(m => m.bounds.min).ToArray();
-			var min = new Vector3(minPositions.Min(v => v.x), minPositions.Min(v => v.y), minPositions.Min(v => v.z));
+			IEnumerable<Mesh> meshArray = meshes as Mesh[] ?? meshes.ToArray();
+			Vector3[] minPositions = meshArray.Select(m => m.bounds.min).ToArray();
+			Vector3 min = new(minPositions.Min(v => v.x), minPositions.Min(v => v.y), minPositions.Min(v => v.z));
 			
-			mesh.TranslateAsGroup(-min);
+			meshArray.TranslateAsGroup(-min);
 		}
 		
-		public static void TranslateToOriginCentered(this IEnumerable<Mesh> mesh)
+		public static void TranslateToOriginCentered(this IEnumerable<Mesh> meshes)
 		{
 			// Busca la posicion minima de todos los bounds
-			var minPositions = mesh.Select(m => m.bounds.min).ToArray();
-			var maxPositions = mesh.Select(m => m.bounds.max).ToArray();
-			var min = new Vector3(minPositions.Min(v => v.x), minPositions.Min(v => v.y), minPositions.Min(v => v.z));
-			var max = new Vector3(maxPositions.Max(v => v.x), maxPositions.Max(v => v.y), maxPositions.Max(v => v.z));
+			IEnumerable<Mesh> meshArray = meshes as Mesh[] ?? meshes.ToArray();
+			var minPositions = meshArray.Select(m => m.bounds.min).ToArray();
+			var maxPositions = meshArray.Select(m => m.bounds.max).ToArray();
+			Vector3 min = new(minPositions.Min(v => v.x), minPositions.Min(v => v.y), minPositions.Min(v => v.z));
+			Vector3 max = new(maxPositions.Max(v => v.x), maxPositions.Max(v => v.y), maxPositions.Max(v => v.z));
 			
-			mesh.TranslateAsGroup(-(max + min) / 2);
+			meshArray.TranslateAsGroup(-(max + min) / 2);
 		}
 		
 		// ROTATION

@@ -57,13 +57,13 @@ namespace DavidUtils.ExtensionMethods
 			=> transform.localToWorldMatrix.MultiplyPoint(localPoint);
 		
 		public static Vector3 ToWorld(this Transform transform, Vector2 localPoint) 
-			=> transform.localToWorldMatrix.MultiplyPoint(localPoint.ToV3xy());
+			=> transform.localToWorldMatrix.MultiplyPoint(localPoint.ToV3XY());
 		
 		public static Vector3 ToLocal(this Transform transform, Vector3 worldPoint) 
 			=> transform.worldToLocalMatrix.MultiplyPoint(worldPoint);
 		
 		public static Vector3 ToLocal(this Transform transform, Vector2 worldPoint) 
-			=> transform.worldToLocalMatrix.MultiplyPoint(worldPoint.ToV3xy());
+			=> transform.worldToLocalMatrix.MultiplyPoint(worldPoint.ToV3XY());
 
 		#endregion
 	}

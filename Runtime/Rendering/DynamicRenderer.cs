@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.DevTools.CustomAttributes;
-using DavidUtils.ExtensionMethods;
 using UnityEngine;
 using UnityEngine.Serialization;
+using DavidUtils.ExtensionMethods;
 
 namespace DavidUtils.Rendering
 {
@@ -46,7 +45,7 @@ namespace DavidUtils.Rendering
 
 		public virtual T InstantiateObj(Vector3? localPos = null, string objName = null, int i = -1)
 		{
-			var renderObj = UnityUtils.InstantiateObject<T>(transform, objName ?? DefaultChildName, localPos);
+			T renderObj = UnityUtils.InstantiateObject<T>(transform, objName ?? DefaultChildName, localPos);
 			UpdateCommonProperties(renderObj);
 			if (ProjectedOnTerrain) ProjectOnTerrain();
 			return renderObj;
@@ -55,7 +54,7 @@ namespace DavidUtils.Rendering
 		public virtual T InstantiateObj<Tobj>(Vector3? localPos = null, string objName = null, int i = -1)
 			where Tobj : T
 		{
-			var renderObj = UnityUtils.InstantiateObject<Tobj>(transform, objName ?? DefaultChildName, localPos);
+			Tobj renderObj = UnityUtils.InstantiateObject<Tobj>(transform, objName ?? DefaultChildName, localPos);
 			UpdateCommonProperties(renderObj);
 			if (ProjectedOnTerrain) ProjectOnTerrain();
 			return renderObj;
@@ -139,7 +138,7 @@ namespace DavidUtils.Rendering
 
 		#region COLOR
 
-		protected static readonly Color DefaultColor = Color.white;
+		protected static Color DefaultColor => Color.white;
 
 		public bool singleColor;
 

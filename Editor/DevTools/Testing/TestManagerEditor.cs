@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.Testing;
 using DavidUtils.ExtensionMethods;
@@ -17,7 +18,7 @@ namespace DavidUtils.Editor.DevTools.Testing
         private Texture2D _crossIcon;
         private Texture2D _restartIcon;
         private Texture2D _arrowRightIcon;
-        private Texture2D _arrowLeftIcon;
+        // private Texture2D _arrowLeftIcon;
         
         private GUIStyle _selectedTestStyle;
         private GUIStyle _iconStyle;
@@ -122,8 +123,7 @@ namespace DavidUtils.Editor.DevTools.Testing
                     const float numWidth = 30;
                     foreach (TRunner testRunner in Manager.testRunners)
                     {
-                        if (!Manager.iterationsByTest.TryGetValue(testRunner, out int iterations))
-                            iterations = 1;
+                        int iterations = Manager.iterationsByTest.GetValueOrDefault(testRunner, 1);
                         
                         GUILayout.BeginHorizontal();
                         {
@@ -256,7 +256,7 @@ namespace DavidUtils.Editor.DevTools.Testing
             _crossIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/cross");
             _restartIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/restart");
             _arrowRightIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow right");
-            _arrowLeftIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow left");
+            // _arrowLeftIcon = Resources.Load<Texture2D>("Textures/Icons/Editor Icons/arrow left");
         }
 
         private void InitializeStyles()

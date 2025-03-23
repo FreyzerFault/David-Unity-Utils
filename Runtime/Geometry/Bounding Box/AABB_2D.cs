@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.MouseInputs;
+using DavidUtils.MouseInput;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.Bounding_Box
@@ -59,23 +59,23 @@ namespace DavidUtils.Geometry.Bounding_Box
 		{
 		}
 
-		public AABB_2D(Bounds bounds3D, bool XZplane = true)
+		public AABB_2D(Bounds bounds3D, bool isXZplane = true)
 			: this(
-				XZplane ? bounds3D.min.ToV2xz() : bounds3D.min.ToV2xy(),
-				XZplane ? bounds3D.max.ToV2xz() : bounds3D.max.ToV2xy()
+				isXZplane ? bounds3D.min.ToV2XZ() : bounds3D.min.ToV2XY(),
+				isXZplane ? bounds3D.max.ToV2XZ() : bounds3D.max.ToV2XY()
 			)
 		{
 		}
 
 		#region To 3D
 
-		public Bounds To3D(bool XZplane = true)
+		public Bounds To3D(bool isXZplane = true)
 		{
 			Vector3 center = Center.ToV3();
 			Vector3 size = new Vector3( 
 				Size.x,
-				XZplane ? 1 : Size.y,
-				XZplane ? Size.y : 1
+				isXZplane ? 1 : Size.y,
+				isXZplane ? Size.y : 1
 			);
 			return new Bounds(center, size);
 		}
@@ -123,14 +123,14 @@ namespace DavidUtils.Geometry.Bounding_Box
 		///     Convierte un punto local [0,1] a un punto en el espacio de la Bounding Box
 		///     Traslada el punto al Min. Y escala al tamaño de la Bounding Box
 		/// </summary>
-		public Matrix4x4 LocalToBoundsMatrix(bool XZplane = true) =>
-			Matrix4x4.TRS(min, XZplane ? RotationToXZplane : Quaternion.identity, Size.ToV3xy().WithZ(1));
+		public Matrix4x4 LocalToBoundsMatrix(bool isXZplane = true) =>
+			Matrix4x4.TRS(min, isXZplane ? RotationToXZplane : Quaternion.identity, Size.ToV3XY().WithZ(1));
 
-		public Matrix4x4 BoundsToLocalMatrix(bool XZplane = true) =>
+		public Matrix4x4 BoundsToLocalMatrix(bool isXZplane = true) =>
 			Matrix4x4.Scale(
-				Vector2.Max(Vector2.one * 0.1f, Size).Inverse().ToV3(XZplane) + (XZplane ? Vector3.up : Vector3.forward)
+				Vector2.Max(Vector2.one * 0.1f, Size).Inverse().ToV3(isXZplane) + (isXZplane ? Vector3.up : Vector3.forward)
 			)
-			* Matrix4x4.Translate(-min.ToV3(XZplane));
+			* Matrix4x4.Translate(-min.ToV3(isXZplane));
 
 		#endregion
 
@@ -253,7 +253,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			List<Vector2> croppedVertices = new();
 
 			// Añadimos las esquinas que esten dentro del poligono
-			Vector2[] cornersInside = Corners.Where(c => polygon.Contains_RayCast(c)).ToArray();
+			Vector2[] cornersInside = Corners.Where(polygon.Contains_RayCast).ToArray();
 			croppedVertices.AddRange(cornersInside);
 
 			// Cortamos las aristas del poligono con la Bounding Box
@@ -283,10 +283,10 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		#region MOUSE PICKING
 
-		public bool MouseInBounds_XY() => Contains(MouseInputUtils.MouseWorldPosition.ToV2xy());
-		public bool MouseInBounds_XZ() => Contains(MouseInputUtils.MouseWorldPosition.ToV2xz());
-		public Vector2 NormalizeMousePosition_XY() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2xy());
-		public Vector2 NormalizeMousePosition_XZ() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2xz());
+		public bool MouseInBounds_XY() => Contains(MouseInputUtils.MouseWorldPosition.ToV2XY());
+		public bool MouseInBounds_XZ() => Contains(MouseInputUtils.MouseWorldPosition.ToV2XZ());
+		public Vector2 NormalizeMousePosition_XY() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2XY());
+		public Vector2 NormalizeMousePosition_XZ() => Normalize(MouseInputUtils.MouseWorldPosition.ToV2XZ());
 
 		// Posicion del Mouse en el Editor de Escena
 		#if UNITY_EDITOR
@@ -301,21 +301,21 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		// CONVERSION OPERATOR Bounds <--> Bounds2D
 		public static implicit operator AABB_2D(Bounds bounds) =>
-			new(bounds.min.ToV2xz(), bounds.max.ToV2xz());
+			new(bounds.min.ToV2XZ(), bounds.max.ToV2XZ());
 
 		public static implicit operator Bounds(AABB_2D aabb) =>
-			new(aabb.Center.ToV3xz(), aabb.Extent.ToV3xz());
+			new(aabb.Center.ToV3XZ(), aabb.Extent.ToV3XZ());
 
 		public AABB_2D ApplyTransform_XY(Matrix4x4 matrix) =>
 			new(
-				matrix.MultiplyPoint3x4(min.ToV3xy()).ToV2xy(),
-				matrix.MultiplyPoint3x4(max.ToV3xy()).ToV2xy()
+				matrix.MultiplyPoint3x4(min.ToV3XY()).ToV2XY(),
+				matrix.MultiplyPoint3x4(max.ToV3XY()).ToV2XY()
 			);
 
 		public AABB_2D ApplyTransform_XZ(Matrix4x4 matrix) =>
 			new(
-				matrix.MultiplyPoint3x4(min.ToV3xz()).ToV2xz(),
-				matrix.MultiplyPoint3x4(max.ToV3xz()).ToV2xz()
+				matrix.MultiplyPoint3x4(min.ToV3XZ()).ToV2XZ(),
+				matrix.MultiplyPoint3x4(max.ToV3XZ()).ToV2XZ()
 			);
 
 		#endregion

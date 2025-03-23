@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace DavidUtils
@@ -14,7 +13,7 @@ namespace DavidUtils
 
 		protected virtual void Awake()
 		{
-			var thisInstance = gameObject.GetComponent<T>();
+			T thisInstance = gameObject.GetComponent<T>();
 
 			if (Instance != null && Instance != thisInstance)
 			{

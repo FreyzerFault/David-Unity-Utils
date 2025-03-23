@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry;
 using DavidUtils.Geometry.Bounding_Box;
 using UnityEngine;
 
-namespace Geometry.Algorithms
+namespace DavidUtils.Geometry.Algorithms
 {
 	[Serializable]
 	public class Delaunay
@@ -52,16 +51,16 @@ namespace Geometry.Algorithms
 		{
 			Seeds = points ?? _seeds;
 
-			foreach (Vector2 p in points)
+			foreach (Vector2 p in Seeds)
 				Triangulate(p);
 
 			RemoveBoundingBox();
 
 			ended = true;
 
-			removedTris = new List<Triangle>();
-			addedTris = new List<Triangle>();
-			holePolygon = new List<Edge>();
+			_removedTris = new List<Triangle>();
+			_addedTris = new List<Triangle>();
+			_holePolygon = new List<Edge>();
 
 			return triangles;
 		}
@@ -88,7 +87,7 @@ namespace Geometry.Algorithms
 				triangles.Add(bb[1]);
 			}
 
-			holePolygon = new List<Edge>();
+			_holePolygon = new List<Edge>();
 			var neighbours = new List<Triangle>();
 
 			// Triangulos que se deben eliminar
@@ -104,7 +103,7 @@ namespace Geometry.Algorithms
 					if (neighbour != null && badTris.Contains(neighbour)) continue;
 
 					neighbours.Add(neighbour);
-					holePolygon.Add(e);
+					_holePolygon.Add(e);
 				}
 
 
@@ -114,10 +113,10 @@ namespace Geometry.Algorithms
 
 			// Rellenamos el poligono con nuevos triangulos validos por cada arista del poligono
 			// Le asignamos t0 como vecino a la arista
-			var newTris = new Triangle[holePolygon.Count];
-			for (var i = 0; i < holePolygon.Count; i++)
+			var newTris = new Triangle[_holePolygon.Count];
+			for (var i = 0; i < _holePolygon.Count; i++)
 			{
-				Edge e = holePolygon[i];
+				Edge e = _holePolygon[i];
 				Triangle neighbour = neighbours[i];
 				newTris[i] = new Triangle(e.begin, e.end, point);
 				if (neighbour != null)
@@ -149,8 +148,8 @@ namespace Geometry.Algorithms
 
 			// Añadimos los nuevos triangulos
 			triangles.AddRange(newTris);
-			removedTris = badTris;
-			addedTris = newTris.ToList();
+			_removedTris = badTris;
+			_addedTris = newTris.ToList();
 		}
 
 		#endregion
@@ -202,7 +201,7 @@ namespace Geometry.Algorithms
 				Edge edge = tri.Edges[i];
 				Triangle neighbour = tri.neighbours[i];
 				if (neighbour == null) continue;
-				if (GeometryUtils.PointInCirle(neighbour.GetOppositeVertex(edge, out int side), tri.v1, tri.v2, tri.v3))
+				if (GeometryUtils.PointInCirle(neighbour.GetOppositeVertex(edge, out int _), tri.v1, tri.v2, tri.v3))
 					illegalSides.Add(i);
 			}
 
@@ -219,11 +218,11 @@ namespace Geometry.Algorithms
 			Edge edge = tri.Edges[side];
 			Triangle neighbour = tri.neighbours[side];
 
-			Vector2 opposite1 = tri.GetOppositeVertex(edge, out int opSide1);
+			Vector2 opposite1 = tri.GetOppositeVertex(edge, out int _);
 			Vector2 opposite2 = neighbour.GetOppositeVertex(edge, out int opSide2);
 
-			var newTri1 = new Triangle(opposite1, opposite2, edge.end);
-			var newTri2 = new Triangle(opposite2, opposite1, edge.begin);
+			Triangle newTri1 = new(opposite1, opposite2, edge.end);
+			Triangle newTri2 = new(opposite2, opposite1, edge.begin);
 
 			// NEIGHBOURS
 			newTri1.SetAllNeightbours(new[] { newTri2, neighbour.neighbours[opSide2], tri.neighbours[(side + 1) % 3] });
@@ -231,13 +230,13 @@ namespace Geometry.Algorithms
 				new[] { newTri1, tri.neighbours[(side + 2) % 3], neighbour.neighbours[(opSide2 + 2) % 3] }
 			);
 
-			addedTris = new List<Triangle>(new[] { newTri1, newTri2 });
-			removedTris = new List<Triangle>(new[] { tri, neighbour });
+			_addedTris = new List<Triangle>(new[] { newTri1, newTri2 });
+			_removedTris = new List<Triangle>(new[] { tri, neighbour });
 
 			triangles.Remove(tri);
 			triangles.Remove(neighbour);
 
-			triangles.AddRange(addedTris);
+			triangles.AddRange(_addedTris);
 
 			flippedTris = new[] { newTri1, newTri2 };
 		}
@@ -303,18 +302,18 @@ namespace Geometry.Algorithms
 
 		[HideInInspector] public int iterations;
 		[HideInInspector] public bool ended;
-		private List<Triangle> removedTris = new();
-		private List<Triangle> addedTris = new();
-		private List<Edge> holePolygon = new();
+		private List<Triangle> _removedTris = new();
+		private List<Triangle> _addedTris = new();
+		private List<Edge> _holePolygon = new();
 
 		public void Run_OnePoint()
 		{
 			if (iterations > SeedCount)
 				return;
 
-			removedTris.Clear();
-			addedTris.Clear();
-			holePolygon.Clear();
+			_removedTris.Clear();
+			_addedTris.Clear();
+			_holePolygon.Clear();
 
 			if (iterations == SeedCount)
 				RemoveBoundingBox();
@@ -332,9 +331,9 @@ namespace Geometry.Algorithms
 			ended = false;
 			triangles = new List<Triangle>(SeedCount);
 			vertices = new List<Vector2>(SeedCount);
-			removedTris = new List<Triangle>();
-			addedTris = new List<Triangle>();
-			holePolygon = new List<Edge>();
+			_removedTris = new List<Triangle>();
+			_addedTris = new List<Triangle>();
+			_holePolygon = new List<Edge>();
 		}
 
 		#endregion
@@ -347,9 +346,9 @@ namespace Geometry.Algorithms
 
 		public Triangle[] GetBoundingBoxTriangles()
 		{
-			var bounds = new AABB_2D(Vector2.one * -.1f, Vector2.one * 1.1f);
-			var t1 = new Triangle(bounds.BR, bounds.TL, bounds.BL);
-			var t2 = new Triangle(bounds.TL, bounds.BR, bounds.TR);
+			AABB_2D bounds = new(Vector2.one * -.1f, Vector2.one * 1.1f);
+			Triangle t1 = new(bounds.BR, bounds.TL, bounds.BL);
+			Triangle t2 = new(bounds.TL, bounds.BR, bounds.TR);
 
 			t1.neighbours[0] = t2;
 			t2.neighbours[0] = t1;
@@ -361,7 +360,7 @@ namespace Geometry.Algorithms
 
 		public void InitializeSuperTriangle()
 		{
-			var superTri = Triangle.SuperTriangle;
+			Triangle superTri = Triangle.SuperTriangle;
 			triangles.Add(superTri);
 			_boundingVertices = superTri.Vertices;
 		}
@@ -412,7 +411,7 @@ namespace Geometry.Algorithms
 
 					// Creamos el triangulo exterior para hacerlo convexo
 					Vector2 v1 = border.edge.begin, v2 = border.edge.end, v3 = nextBorder.edge.end;
-					var tri = new Triangle(v3, v2, v1);
+					Triangle tri = new(v3, v2, v1);
 					tri.SetNeighbour(nextBorder.tri, 0);
 					tri.SetNeighbour(border.tri, 1);
 					triangles.Add(tri);
@@ -493,7 +492,7 @@ namespace Geometry.Algorithms
 			);
 
 			// ADDED TRIANGLES
-			addedTris.ForEach(
+			_addedTris.ForEach(
 				(t, i) =>
 				{
 					t.GizmosDrawWire(localToWorldMatrix, 3, Color.white, projectOnTerrain);
@@ -502,10 +501,10 @@ namespace Geometry.Algorithms
 			);
 
 			// DELETED TRIANGLES
-			removedTris.ForEach(t => t.GizmosDrawWire(localToWorldMatrix, 3, Color.red, projectOnTerrain));
+			_removedTris.ForEach(t => t.GizmosDrawWire(localToWorldMatrix, 3, Color.red, projectOnTerrain));
 
 			// Hole POLYGON
-			holePolygon.ForEach(e => e.DrawGizmos(localToWorldMatrix, 3, Color.green, projectOnTerrain));
+			_holePolygon.ForEach(e => e.DrawGizmos(localToWorldMatrix, 3, Color.green, projectOnTerrain));
 
 			// Highlight Border
 			GizmosBorder_Highlighted(localToWorldMatrix);

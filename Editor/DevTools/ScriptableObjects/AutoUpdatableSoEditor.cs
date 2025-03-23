@@ -11,7 +11,7 @@ namespace DavidUtils.Editor.DevTools.ScriptableObjects
 
 		public override void OnInspectorGUI()
 		{
-			var data = (AutoUpdatableSo)target;
+			AutoUpdatableSo data = (AutoUpdatableSo)target;
 
 			if (DrawDefaultInspector() && _autoUpdate) data.NotifyUpdate();
 

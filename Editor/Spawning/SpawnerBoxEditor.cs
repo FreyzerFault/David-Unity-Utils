@@ -2,19 +2,19 @@ using DavidUtils.Spawning;
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.Spawning
+namespace DavidUtils.Editor.Spawning.Editor.Spawning
 {
 	[CustomEditor(typeof(SpawnerBox), true)]
 	public class SpawnerBoxEditor : UnityEditor.Editor
 	{
-		private int numItemsSpawned = 1;
+		private int _numItemsSpawned = 1;
 
 		private void OnEnable() =>
 			Selection.selectionChanged += () => Tools.hidden = false;
 
 		public override void OnInspectorGUI()
 		{
-			var spawner = (SpawnerBox)target;
+			SpawnerBox spawner = (SpawnerBox)target;
 
 			DrawDefaultInspector();
 
@@ -23,7 +23,7 @@ namespace DavidUtils.Editor.Spawning
 			GUILayout.BeginHorizontal();
 
 			if (GUILayout.Button("Spawn", GUILayout.ExpandWidth(true)))
-				for (var i = 0; i < numItemsSpawned; i++)
+				for (var i = 0; i < _numItemsSpawned; i++)
 					if (spawner is SpawnerBoxInTerrain boxInTerrain)
 						boxInTerrain.SpawnRandom();
 					else
@@ -31,7 +31,7 @@ namespace DavidUtils.Editor.Spawning
 
 			GUILayout.Space(20);
 
-			numItemsSpawned = EditorGUILayout.IntSlider("", numItemsSpawned, 1, 100, GUILayout.MaxWidth(300));
+			_numItemsSpawned = EditorGUILayout.IntSlider("", _numItemsSpawned, 1, 100, GUILayout.MaxWidth(300));
 
 			GUILayout.EndHorizontal();
 
@@ -42,7 +42,7 @@ namespace DavidUtils.Editor.Spawning
 
 		protected virtual void OnSceneGUI()
 		{
-			var spawner = (SpawnerBox)target;
+			SpawnerBox spawner = (SpawnerBox)target;
 
 			Handles.color = Color.green;
 			Handles.DrawWireCube(spawner.transform.position + spawner.Center, spawner.Size);

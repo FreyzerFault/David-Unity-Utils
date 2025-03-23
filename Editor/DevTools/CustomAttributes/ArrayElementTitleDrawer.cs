@@ -25,8 +25,8 @@ namespace DavidUtils.Editor.DevTools.CustomAttributes
                     label = new GUIContent(label) { text = titled.Name };
                 else
                 {
-                    string fullPathName = property.propertyPath + "." + Attribute.VarName;
-                    SerializedProperty nameProp = property.serializedObject.FindProperty(fullPathName);
+                    string fullPathName = property?.propertyPath + "." + Attribute.VarName;
+                    SerializedProperty nameProp = property?.serializedObject.FindProperty(fullPathName);
                     if (nameProp != null)
                         label = new GUIContent(label) { text = GetTitle(nameProp) };
                     else
@@ -37,8 +37,8 @@ namespace DavidUtils.Editor.DevTools.CustomAttributes
             }
             catch
             {
-                string fullPathName = property.propertyPath + "." + Attribute.VarName;
-                SerializedProperty nameProp = property.serializedObject.FindProperty(fullPathName);
+                string fullPathName = property?.propertyPath + "." + Attribute.VarName;
+                SerializedProperty nameProp = property?.serializedObject.FindProperty(fullPathName);
                 if (nameProp != null)
                     label = new GUIContent(label) { text = GetTitle(nameProp) };
                 else

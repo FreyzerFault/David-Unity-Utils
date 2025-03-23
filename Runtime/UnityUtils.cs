@@ -67,7 +67,7 @@ namespace DavidUtils
 			Vector3? localScale = null
 		) where T : Component
 		{
-			var obj = new GameObject(name)
+			GameObject obj = new(name)
 			{
 				transform =
 				{

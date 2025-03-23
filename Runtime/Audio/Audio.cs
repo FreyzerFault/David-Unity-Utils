@@ -22,10 +22,10 @@ namespace DavidUtils.Audio
 
         public bool IsPlaying => source.isPlaying;
 
-        public Action OnPlay;
-        public Action OnEnd;
-        public Action OnPause;
-        public Action OnUnpause;
+        public Action onPlay;
+        public Action onEnd;
+        public Action onPause;
+        public Action onUnpause;
 
         public void SetSource(AudioSource newSource)
         {
@@ -47,26 +47,26 @@ namespace DavidUtils.Audio
             else
             {
                 source.Play();
-                OnPlay?.Invoke();
+                onPlay?.Invoke();
             }
         }
 
         public void Stop()
         {
             source.Stop();
-            OnEnd?.Invoke();
+            onEnd?.Invoke();
         }
 
         public void Pause()
         {
             source.Pause();
-            OnPause?.Invoke();
+            onPause?.Invoke();
         }
 
         public void Unpause()
         {
             source.UnPause();
-            OnUnpause?.Invoke();
+            onUnpause?.Invoke();
         }
 
         private IEnumerator PlayDelayedCoroutine(float delaySeconds)
@@ -74,11 +74,11 @@ namespace DavidUtils.Audio
             if (delaySeconds > 0) yield return new WaitForSeconds(delaySeconds);
 
             Play();
-            OnPlay?.Invoke();
+            onPlay?.Invoke();
 
             yield return new WaitUntil(() => !IsPlaying);
 
-            OnEnd?.Invoke();
+            onEnd?.Invoke();
         }
     }
 }

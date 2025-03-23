@@ -20,7 +20,7 @@ namespace DavidUtils.DevTools.Reflection
 
 		public string label;
 
-		public Action<MemberInfo> OnFieldSelected;
+		public Action<MemberInfo> onFieldSelected;
 
 		public MemberInfo SelectedField => HasFields && fieldIndex < targetFieldOptions.Length
 			? targetFieldOptions[fieldIndex]
@@ -39,7 +39,7 @@ namespace DavidUtils.DevTools.Reflection
 		public void SelectField(int i = 0)
 		{
 			fieldIndex = i;
-			OnFieldSelected?.Invoke(SelectedField);
+			onFieldSelected?.Invoke(SelectedField);
 		}
 
 		public void LoadExposedFields(Object target = null)

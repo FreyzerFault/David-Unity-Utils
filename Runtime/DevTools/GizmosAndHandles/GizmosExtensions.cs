@@ -1,8 +1,9 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+using System;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 
 namespace DavidUtils.DevTools.GizmosAndHandles
 {
@@ -10,7 +11,6 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 	{
 		private const int DEFAULT_THICKNESS = 5;
 
-#if UNITY_EDITOR
 
 		#region ARROWS
 
@@ -167,7 +167,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 
 
 		public static void DrawPolygon(
-			Vector3[] vertices, Color? color = null, Color? outlineColor = default,
+			Vector3[] vertices, Color? color = null, Color? outlineColor = null,
 			float outlineThickness = DEFAULT_THICKNESS
 		)
 		{
@@ -183,7 +183,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		public static void DrawTriWire(Vector3[] vertices, float thickness = 1, Color? color = null) =>
 			DrawLineThick(vertices, thickness, color, true);
 
-		public static void DrawTri(Vector3[] vertices, Color? color = null, Color? outlineColor = default) =>
+		public static void DrawTri(Vector3[] vertices, Color? color = null, Color? outlineColor = null) =>
 			Handles.DrawSolidRectangleWithOutline(
 				vertices.Append(vertices[2]).ToArray(),
 				color ?? Color.white,
@@ -263,8 +263,8 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			Color color = default
 		)
 		{
-			var center = new Vector3(0, 0, 0);
-			var size = new Vector3(radius * 2, height, radius * 2);
+			Vector3 center = new(0, 0, 0);
+			Vector3 size = new(radius * 2, height, radius * 2);
 
 			// BASE
 			Vector3 baseCenter = center - Vector3.up * height / 2;
@@ -286,8 +286,8 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			float radius, float height, Matrix4x4 matrix = default, int sections = 1, Color color = default
 		)
 		{
-			var center = new Vector3(0, 0, 0);
-			var size = new Vector3(radius * 2, height, radius * 2);
+			Vector3 center = new(0, 0, 0);
+			Vector3 size = new(radius * 2, height, radius * 2);
 
 			// BASE
 			Vector3 baseCenter = center - Vector3.up * height / 2;
@@ -372,7 +372,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 			Camera cam = SceneView.lastActiveSceneView.camera;
 			Matrix4x4 triMatrix = BillboardMatrix(baseWorld, triUp, triForward, cam) * localToWorldM;
 
-			Vector3[] worldTri = triMatrix.MultiplyPoint3x4(tri).ToArray();
+			Vector3[] worldTri = triMatrix.MultiplyPoint3X4(tri).ToArray();
 			DrawTri(worldTri, color);
 			DrawLineThick(worldTri, 3, color?.Invert());
 		}
@@ -484,7 +484,7 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		)
 		{
 			Vector2 cellSize = Vector2.one / new Vector2(cellRows, cellCols);
-			Matrix4x4 cellScaleMatrix = Matrix4x4.Scale(cellSize.ToV3xz().WithY(1));
+			Matrix4x4 cellScaleMatrix = Matrix4x4.Scale(cellSize.ToV3XZ().WithY(1));
 
 			for (var y = 0; y < cellRows; y++)
 			for (var x = 0; x < cellRows; x++)
@@ -519,7 +519,6 @@ namespace DavidUtils.DevTools.GizmosAndHandles
 		}
 
 		#endregion
-
-#endif
 	}
 }
+#endif

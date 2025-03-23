@@ -6,12 +6,13 @@ namespace DavidUtils.DevTools.Table
 {
     public static class TableFormatting
     {
+        private const string VALID_COLOR = "white";
+        private const string INVALID_COLOR = "red";
+        
         public static string ToTableLine(this IEnumerable<string> values, int[] colLengths) =>
             string.Join(" | ", values.Select((v, i) =>
                 i < colLengths.Length ? v.TruncateFixedSize(colLengths[i]) : v));
-
-        private const string VALID_COLOR = "white";
-        private const string INVALID_COLOR = "red";
+        
         public static string ToTableLine_ColoredByValidation(this string[] values, int[] colLengths, bool[] badFlags) =>
             string.Join(" | ", values.Select((v, i) => 
                     badFlags[i]

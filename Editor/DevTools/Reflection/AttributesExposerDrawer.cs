@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Reflection;
-using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.DevTools.Reflection;
+using DavidUtils.Editor.DevTools.Serialization;
 using DavidUtils.ExtensionMethods;
 using UnityEditor;
 using UnityEngine;
@@ -21,7 +21,7 @@ namespace DavidUtils.Editor.DevTools.Reflection
 			int indent = EditorGUI.indentLevel;
 			EditorGUI.indentLevel = 0;
 
-			var exposer = (AttributesExposer)property.GetValue();
+			AttributesExposer exposer = (AttributesExposer)property.GetValue();
 
 			GUILayout.BeginHorizontal(GUILayout.ExpandWidth(true));
 

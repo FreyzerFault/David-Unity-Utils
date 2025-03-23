@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net.NetworkInformation;
 using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
+using DavidUtils.Geometry.Algorithms;
 using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
-using Geometry.Algorithms;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -18,7 +16,7 @@ namespace DavidUtils.Rendering
     {
         private MeshRenderer _meshRenderer;
         private MeshFilter _meshFilter;
-        private List<LineRenderer> _lineRenderers = new();
+        private readonly List<LineRenderer> _lineRenderers = new();
 
         public Color color = Color.white;
 
@@ -31,7 +29,7 @@ namespace DavidUtils.Rendering
         private void OnEnable()
         {
             SetCommonProperties();
-            if (delaunay != null && delaunay.TriangleCount > 0)
+            if (delaunay is { TriangleCount: > 0 })
                 UpdateDelaunay();
         }
 
@@ -169,12 +167,12 @@ namespace DavidUtils.Rendering
             _lineRenderers.RemoveRange(triCount, lineCount - triCount);
         }
 
-        private LineRenderer GenLine(Color color)
+        private LineRenderer GenLine(Color lineColor)
         {
             LineRenderer lr = UnityUtils.InstantiateObject<LineRenderer>(transform, $"Line {_lineRenderers.Count}");
             lr.useWorldSpace = false;
             lr.widthMultiplier = _thickness * 0.01f * transform.lossyScale.x;
-            lr.startColor = lr.endColor = color;
+            lr.startColor = lr.endColor = lineColor;
             lr.material = Resources.Load<Material>("UI/Materials/Line Material");
             // lr.numCapVertices = lr.numCornerVertices = 3;
             return lr;

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.DevTools.Testing
 {
@@ -32,7 +31,7 @@ namespace DavidUtils.DevTools.Testing
         }
 
         public TestRunner[] testRunners;
-        public int currentTestIndex = 0;
+        public int currentTestIndex;
 
         public Dictionary<TestRunner, int> iterationsByTest = new();
         [SerializeField] private List<int> iterationsList = new();
@@ -56,8 +55,8 @@ namespace DavidUtils.DevTools.Testing
                 ? null
                 : testRunners[currentTestIndex];
         
-        private bool playing = false;
-        public bool IsPlaying => playing;
+        private bool _playing;
+        public bool IsPlaying => _playing;
 
         protected override void Awake()
         {
@@ -118,8 +117,8 @@ namespace DavidUtils.DevTools.Testing
 
         private IEnumerator AutoTestingCoroutine()
         {
-            playing = true;
-            while (playing)
+            _playing = true;
+            while (_playing)
             {
                 if (CurrentTestRunner == null)
                     SelectTest(0);
@@ -130,10 +129,10 @@ namespace DavidUtils.DevTools.Testing
                     yield return CurrentTestRunner.RunTests_Single();
                     
                 yield return new WaitForSeconds(waitSecondsBetweenTests);
-                yield return new WaitUntil(() => playing);
+                yield return new WaitUntil(() => _playing);
                 
                 if (currentTestIndex == testRunners.Length - 1)
-                    playing = false;
+                    _playing = false;
 
                 SelectTest(currentTestIndex + 1);
             }
@@ -158,24 +157,24 @@ namespace DavidUtils.DevTools.Testing
         public void StartTest()
         {
             CurrentTestRunner?.StartTests();
-            playing = true;
+            _playing = true;
         }
 
         public void EndTests()
         {
             CurrentTestRunner?.EndTests();
-            playing = false;
+            _playing = false;
         }
 
         public void PauseTest()
         {
             CurrentTestRunner?.PauseTests();
-            playing = false;
+            _playing = false;
         }
         
         public void TogglePlay()
         {
-            if (playing)
+            if (_playing)
                 PauseTest();
             else
                 ResumeTest();
@@ -188,7 +187,7 @@ namespace DavidUtils.DevTools.Testing
             else
             {
                 CurrentTestRunner?.ResumeTests();
-                playing = true;
+                _playing = true;
             }
         }
 

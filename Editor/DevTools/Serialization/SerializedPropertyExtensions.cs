@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,7 +6,7 @@ using System.Reflection;
 using UnityEditor;
 using Object = UnityEngine.Object;
 
-namespace DavidUtils.DevTools.CustomAttributes
+namespace DavidUtils.Editor.DevTools.Serialization
 {
 	public static class SerializedPropertyExtensions
 	{
@@ -163,9 +162,9 @@ namespace DavidUtils.DevTools.CustomAttributes
 			foreach (string element in elements)
 				if (element.Contains("["))
 				{
-					string elementName = element.Substring(0, element.IndexOf("[", StringComparison.Ordinal));
+					string elementName = element[..element.IndexOf("[", StringComparison.Ordinal)];
 					var index = Convert.ToInt32(
-						element.Substring(element.IndexOf("[", StringComparison.Ordinal))
+						element[element.IndexOf("[", StringComparison.Ordinal)..]
 							.Replace("[", "")
 							.Replace("]", "")
 					);
@@ -237,8 +236,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 		public static bool IsAttributeDefined<T>(this SerializedProperty property) where T : Attribute
 		{
 			FieldInfo fieldInfo = property.GetFieldInfo();
-			if (fieldInfo == null) return false;
-			return Attribute.IsDefined(fieldInfo, typeof(T));
+			return fieldInfo != null && Attribute.IsDefined(fieldInfo, typeof(T));
 		}
 
 		/// <summary>
@@ -270,9 +268,9 @@ namespace DavidUtils.DevTools.CustomAttributes
 			foreach (string element in elements.Take(elements.Length - 1))
 				if (element.Contains("["))
 				{
-					string elementName = element.Substring(0, element.IndexOf("[", StringComparison.Ordinal));
+					string elementName = element[..element.IndexOf("[", StringComparison.Ordinal)];
 					var index = Convert.ToInt32(
-						element.Substring(element.IndexOf("[", StringComparison.Ordinal))
+						element[element.IndexOf("[", StringComparison.Ordinal)..]
 							.Replace("[", "")
 							.Replace("]", "")
 					);
@@ -288,8 +286,7 @@ namespace DavidUtils.DevTools.CustomAttributes
 
 			object GetValueAt(object source, string name, int index)
 			{
-				var enumerable = GetFieldValue(source, name) as IEnumerable;
-				if (enumerable == null) return null;
+				if (GetFieldValue(source, name) is not IEnumerable enumerable) return null;
 
 				IEnumerator enm = enumerable.GetEnumerator();
 				while (index-- >= 0)
@@ -337,4 +334,3 @@ namespace DavidUtils.DevTools.CustomAttributes
 		#endregion
 	}
 }
-#endif

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.DevTools.Table;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.UI.Fonts;
+using Editor.UI;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,7 +11,7 @@ namespace DavidUtils.Editor.DevTools.Table
 {
     public static class TableFields
     {
-        private static GUIStyle DefaultTextStyle => MyFonts.SmallMonoStyle;
+        private static GUIStyle DefaultTextStyle => MyGUIFonts.SmallMonoStyle;
         
         
         private static float CalcHeight(this GUIStyle style, int rows = 1) =>
@@ -28,7 +28,7 @@ namespace DavidUtils.Editor.DevTools.Table
         /// </summary>
         public static void Table(IEnumerable<string> lines, ref Vector2 scrollPos, string header = null, int maxRowsVisible = 20)
         {
-            var tableContent = new GUIContent(string.Join("\n", lines));
+            GUIContent tableContent = new(string.Join("\n", lines));
             Vector2 tableSize = DefaultTextStyle.CalcSize(tableContent);
 
             if (header != null)
@@ -67,7 +67,9 @@ namespace DavidUtils.Editor.DevTools.Table
             EditorGUILayout.BeginHorizontal(new GUIStyle { alignment = TextAnchor.MiddleLeft },
                 GUILayout.ExpandWidth(false), GUILayout.MinWidth(0));
 
-            int newNumVisible = CounterField(numVisible, increment, lines.Count());
+            IEnumerable<string> lineArray = lines as string[] ?? lines.ToArray();
+            
+            int newNumVisible = CounterField(numVisible, increment, lineArray.Count());
             if (newNumVisible != numVisible) onExpand?.Invoke();
             numVisible = newNumVisible;
             
@@ -75,7 +77,7 @@ namespace DavidUtils.Editor.DevTools.Table
 
             EditorGUILayout.Separator();
             
-            Table(lines.Take(numVisible), ref scrollPos, header, maxRowsVisible);
+            Table(lineArray.Take(numVisible), ref scrollPos, header, maxRowsVisible);
         }
 
         #endregion

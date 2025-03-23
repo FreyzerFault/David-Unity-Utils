@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using UnityEditor.Graphs;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -118,7 +117,7 @@ namespace DavidUtils.ExtensionMethods
 		/// <summary>
 		///     Surround string with "color" tag
 		/// </summary>
-		public static string Colored(this string message, Colors color) => $"<color={color}>{message}</color>";
+		public static string Colored(this string message, DebugColor debugColor) => $"<color={debugColor}>{message}</color>";
 
 		/// <summary>
 		///     Surround string with "color" tag

@@ -1,11 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.DevTools.Reflection;
 using DavidUtils.ExtensionMethods;
-using DavidUtils.Geometry.MeshExtensions;
+using DavidUtils.Geometry.Algorithms;
 using DavidUtils.Rendering;
-using Geometry.Algorithms;
 using UnityEngine;
 using RenderMode = DavidUtils.Rendering.DelaunayRenderer.DelaunayRenderMode;
 

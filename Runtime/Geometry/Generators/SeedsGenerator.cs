@@ -6,7 +6,6 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
 using DavidUtils.Rendering;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace DavidUtils.Geometry.Generators
@@ -50,8 +49,8 @@ namespace DavidUtils.Geometry.Generators
 
 		#region BOUNDS
 
-		[Space] private BoundsComponent boundsComp;
-		public BoundsComponent BoundsComp => boundsComp ??= GetComponent<BoundsComponent>();
+		[Space] private BoundsComponent _boundsComp;
+		public BoundsComponent BoundsComp => _boundsComp ??= GetComponent<BoundsComponent>();
 		public AABB_2D AABB => BoundsComp.aabb2D;
 
 		public Matrix4x4 WorldToLocalMatrix => BoundsComp.WorldToLocalMatrix;
@@ -68,7 +67,7 @@ namespace DavidUtils.Geometry.Generators
 			GenerateSeeds();
 			InitializeRenderer();
 
-			BoundsComp.OnChanged += PositionRenderer;
+			BoundsComp.onChanged += PositionRenderer;
 		}
 
 		protected virtual void Start() => InstantiateRenderer();
@@ -252,7 +251,7 @@ namespace DavidUtils.Geometry.Generators
 
 			for (var i = 0; i < numSeeds; i++)
 			{
-				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
+				Vector2 cellOrigin = new(cellRow * cellSize, cellCol * cellSize);
 				seeds[i] = new Vector2(Random.value * cellSize, Random.value * cellSize) + cellOrigin;
 
 				// Next Row
@@ -280,7 +279,7 @@ namespace DavidUtils.Geometry.Generators
 
 			for (var i = 0; i < numSeeds; i++)
 			{
-				var cellOrigin = new Vector2(cellRow * cellSize, cellCol * cellSize);
+				Vector2 cellOrigin = new(cellRow * cellSize, cellCol * cellSize);
 				seeds[i] = new Vector2(.5f * cellSize, (Mathf.Sin(i) + 1) / 2 * cellSize) + cellOrigin;
 
 				// Next Row

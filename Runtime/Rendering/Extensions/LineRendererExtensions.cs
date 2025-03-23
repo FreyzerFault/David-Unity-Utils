@@ -16,7 +16,7 @@ namespace DavidUtils.Rendering.Extensions
 
 		public static bool IsInXY(this LineRenderer lr) => lr.GetPoints().Select(p => p.z).Distinct().Count() == 1;
 		public static bool IsInXZ(this LineRenderer lr) => lr.GetPoints().Select(p => p.y).Distinct().Count() == 1;
-		public static bool is2D(this LineRenderer lr) => lr.IsInXY() || lr.IsInXZ();
+		public static bool Is2D(this LineRenderer lr) => lr.IsInXY() || lr.IsInXZ();
 
 		public static Vector3 GetNormal2D(this LineRenderer lr) => lr.IsInXY() ? Vector3.back : Vector3.up;
 
@@ -48,7 +48,7 @@ namespace DavidUtils.Rendering.Extensions
 		}
 
 		public static Vector2[] GetPoints2D(this LineRenderer lr) =>
-			lr.GetPoints().Select(p => lr.IsInXY() ? p.ToV2() : p.ToV2xz()).ToArray();
+			lr.GetPoints().Select(p => lr.IsInXY() ? p.ToV2() : p.ToV2XZ()).ToArray();
 
 		public static void SetPoints(this LineRenderer lr, IEnumerable<Vector3> points)
 		{
@@ -82,7 +82,7 @@ namespace DavidUtils.Rendering.Extensions
 		)
 		{
 			GameObject obj = UnityUtils.InstantiateEmptyObject(parent, name);
-			var lr = obj.AddComponent<LineRenderer>();
+			LineRenderer lr = obj.AddComponent<LineRenderer>();
 
 			colors ??= Array.Empty<Color>();
 			if (colors.Length > 1)

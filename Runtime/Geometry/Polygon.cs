@@ -28,7 +28,6 @@ namespace DavidUtils.Geometry
 			set
 			{
 				vertices = NormalizeVertices();
-				// TODO To new AABB
 				aabb = value;
 			}
 		}
@@ -91,10 +90,13 @@ namespace DavidUtils.Geometry
 			}
 		}
 
-		private static Edge[] VerticesToEdges(IEnumerable<Vector2> verts) =>
-			verts.IsNullOrEmpty()
+		private static Edge[] VerticesToEdges(IEnumerable<Vector2> verts)
+		{
+			IEnumerable<Vector2> vertsArray = verts as Vector2[] ?? verts.ToArray();
+			return vertsArray.IsNullOrEmpty()
 				? Array.Empty<Edge>()
-				: verts.IterateByPairs_InLoop((a, b) => new Edge(a, b), false).ToArray();
+				: vertsArray.IterateByPairs_InLoop((a, b) => new Edge(a, b), false).ToArray();
+		}
 
 		private static Vector2[] EdgesToVertices(Edge[] edges) =>
 			edges.IsNullOrEmpty()
@@ -263,8 +265,10 @@ namespace DavidUtils.Geometry
 
 				// Sustituimos sus adyacentes conectandolos con la interseccion
 				// Con cuidado si estan en los extremos
-				interiorEdges[i == interiorEdges.Count ? 0 : i].begin = intersection;
-				interiorEdges[i == 0 ? ^1 : i - 1].end = intersection;
+				int index = i == interiorEdges.Count ? 0 : i;
+				int prevIndex = i == 0 ? interiorEdges.Count - 1 : i - 1;
+				interiorEdges[index] = new Edge(intersection, interiorEdges[index].end);
+				interiorEdges[prevIndex] = new Edge(interiorEdges[prevIndex].begin, intersection);
 
 				// Reiniciamos la busqueda desde 0 porque puede generar aristas invalidas de nuevo
 				i = -1;
@@ -334,7 +338,7 @@ namespace DavidUtils.Geometry
 			
 			const int maxRestarts = 20;
 			var restartCount = 0;
-			for (var i = 0; i < edgeList.Count && restartCount < maxRestarts; i++)
+			for (var i = 0; i < edgeList.Count; i++)
 			for (int j = i + 2; j < edgeList.Count && restartCount < maxRestarts; j++)
 			{
 				// No need to compare with the previous edge in the case i = 0 and j = n-1
@@ -499,7 +503,7 @@ namespace DavidUtils.Geometry
 				int a = i, b = (i + 1) % VertexCount, c = (i + 2) % VertexCount;
 				
 				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
-				var tri = new Triangle(vertices[a], vertices[b], vertices[c]);
+				Triangle tri = new Triangle(vertices[a], vertices[b], vertices[c]);
 				
 				List<Vector2> outOfConvexPolyVertices =
 					c > i
@@ -543,7 +547,7 @@ namespace DavidUtils.Geometry
 						// Basta con comprobar si hay punto solo en la region nueva
 						// que se añade al poligono al añadir el vertice c
 						// Esta region es el Triangulo [b,c,i]
-						var newTri = new Triangle(vertices[b], vertices[c], vertices[i]);
+						Triangle newTri = new Triangle(vertices[b], vertices[c], vertices[i]);
 						
 						// Si hay algun punto dentro o colinear con un Eje, no es Válido
 						hasAnyPointInside = outOfConvexPolyVertices.Any(v =>
@@ -570,9 +574,9 @@ namespace DavidUtils.Geometry
 				} while ((c + 1) % VertexCount != i && !isConcave && !hasAnyPointInside);
 		        
 				outOfConvexPolyVertices.InsertRange(0, new []{vertices[i], vertices[c]});
-				var croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
+				Polygon croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
 				
-				var convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
+				Polygon convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
 				
 				return (convexPolygon, croppedPolygon);
 			}
@@ -598,15 +602,15 @@ namespace DavidUtils.Geometry
 				int a = i, b = (i + 1) % VertexCount, c = (i + 2) % VertexCount;
 				
 				// El Triangulo [a,b,c] debe ser CCW para ser CONVEXO
-				var tri = new Triangle(vertices[a], vertices[b], vertices[c]);
+				Triangle tri = new Triangle(vertices[a], vertices[b], vertices[c]);
 				List<Vector2> outOfConvexPolyVertices =
 					c > i
 						? vertices.Skip(c + 1).Concat(vertices.Take(a)).ToList()
 						: vertices.Take(a).Skip(c + 1).ToList();
 
 				bool hasPointsOnTri = outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v) || tri.IsPointOnEdge(v));
-				bool hasPointsOnEdge = outOfConvexPolyVertices.Any(v => tri.IsPointOnEdge(v));
-				bool hasPointsInsideTri = outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v));
+				// bool hasPointsOnEdge = outOfConvexPolyVertices.Any(v => tri.IsPointOnEdge(v));
+				// bool hasPointsInsideTri = outOfConvexPolyVertices.Any(v => tri.Contains_CrossProd(v));
 				
 				PointTest[] hasPointsOnTriTests = outOfConvexPolyVertices.Select((v, index) => 
 					new PointTest
@@ -658,7 +662,7 @@ namespace DavidUtils.Geometry
 						// Basta con comprobar si hay punto solo en la region nueva
 						// que se añade al poligono al añadir el vertice c
 						// Esta region es el Triangulo [b,c,i]
-						var newTri = new Triangle(vertices[b], vertices[c], vertices[i]);
+						Triangle newTri = new Triangle(vertices[b], vertices[c], vertices[i]);
 						
 						// Si hay algun punto dentro o colinear con un Eje, no es Válido
 						hasAnyPointInside = outOfConvexPolyVertices.Any(v =>
@@ -685,9 +689,9 @@ namespace DavidUtils.Geometry
 				} while ((c + 1) % VertexCount != i && !isConcave && !hasAnyPointInside);
 		        
 				outOfConvexPolyVertices.InsertRange(0, new []{vertices[i], vertices[c]});
-				var croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
+				Polygon croppedPolygon = new Polygon(outOfConvexPolyVertices.ToArray(), false);
 				
-				var convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
+				Polygon convexPolygon = new Polygon(convexPolyVertices.ToArray(), false);
 				
 				Debug.Log($"Polygon splited from {i} to {c} => {vertices[i]} to {vertices[c]}\n" +
 				          $"Convex Poly: {convexPolygon}\n" +
@@ -893,7 +897,7 @@ namespace DavidUtils.Geometry
 		{
 			if (vertices.IsNullOrEmpty()) return;
 
-			Vector3[] verticesInWorld = mTRS.MultiplyPoint3x4(vertices).ToArray();
+			Vector3[] verticesInWorld = mTRS.MultiplyPoint3X4(vertices).ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygonWire_OnTerrain(verticesInWorld, thickness, color);
@@ -907,7 +911,7 @@ namespace DavidUtils.Geometry
 		{
 			if (vertices.IsNullOrEmpty()) return;
 
-			Vector3[] verticesInWorld = mTRS.MultiplyPoint3x4(vertices).ToArray();
+			Vector3[] verticesInWorld = mTRS.MultiplyPoint3X4(vertices).ToArray();
 
 			if (projectOnTerrain)
 				GizmosExtensions.DrawPolygon_OnTerrain(verticesInWorld, color, outlineColor ?? color);

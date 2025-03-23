@@ -1,15 +1,14 @@
-﻿using System;
-using DavidUtils.Rendering;
+﻿using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
 
-namespace DavidUtils.Editor.Rendering
+namespace DavidUtils.Editor.Rendering.Editor.Rendering
 {
     [CustomEditor(typeof(VoronoiRenderer), true)]
     public class VoronoiRendererEditor: DynamicRendererEditor
     {
-        bool thicknessFoldout = true;
+        private bool _thicknessFoldout = true;
         
         public override void OnInspectorGUI()
         {
@@ -31,7 +30,7 @@ namespace DavidUtils.Editor.Rendering
         private void RenderModeGUI(VoronoiRenderer renderer)
         {
             EditorGUI.BeginChangeCheck();
-            var renderMode = (RenderMode) EditorGUILayout.EnumPopup("Render Mode", renderer.RenderMode);
+            RenderMode renderMode = (RenderMode) EditorGUILayout.EnumPopup("Render Mode", renderer.RenderMode);
             if (EditorGUI.EndChangeCheck()) renderer.RenderMode = renderMode;
         }
         
@@ -50,8 +49,8 @@ namespace DavidUtils.Editor.Rendering
         
         private void ThicknessGUI(VoronoiRenderer renderer)
         {
-            thicknessFoldout = EditorGUILayout.Foldout(thicknessFoldout, "THICKNESS", true, EditorStyles.foldoutHeader);
-            if (!thicknessFoldout) return;
+            _thicknessFoldout = EditorGUILayout.Foldout(_thicknessFoldout, "THICKNESS", true, EditorStyles.foldoutHeader);
+            if (!_thicknessFoldout) return;
 
             EditorGUI.indentLevel++;
             EditorGUI.BeginChangeCheck();

@@ -27,8 +27,6 @@ namespace DavidUtils.DevTools.CustomAttributes
             }
         }
 
-        public PowerOfTwoAttribute()
-        {
-        }
+        public PowerOfTwoAttribute() { }
     }
 }

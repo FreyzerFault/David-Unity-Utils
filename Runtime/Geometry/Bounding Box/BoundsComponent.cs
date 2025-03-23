@@ -20,9 +20,9 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public AABB_2D aabb2D = AABB_2D.NormalizedAABB;
 
 		[ConditionalField("is2D", false)]
-		public bool XZplane = true;
+		public bool isXZplane = true;
 
-		public Action OnChanged;
+		public Action onChanged;
 
 		public Vector3 Center
 		{
@@ -30,18 +30,18 @@ namespace DavidUtils.Geometry.Bounding_Box
 			set
 			{
 				bounds3D.center = value;
-				OnChanged?.Invoke();
+				onChanged?.Invoke();
 				Sincronize3Dto2D();
 			}
 		}
 
 		public Vector3 Size
 		{
-			get => is2D ? aabb2D.Size.ToV3(XZplane) : bounds3D.size;
+			get => is2D ? aabb2D.Size.ToV3(isXZplane) : bounds3D.size;
 			set
 			{
 				bounds3D.size = value;
-				OnChanged?.Invoke();
+				onChanged?.Invoke();
 				Sincronize3Dto2D();
 			}
 		}
@@ -52,27 +52,27 @@ namespace DavidUtils.Geometry.Bounding_Box
 			set
 			{
 				aabb2D.Size = value;
-				OnChanged?.Invoke();
+				onChanged?.Invoke();
 				Sincronize2Dto3D();
 			}
 		}
 
 		public Vector3 Min
 		{
-			get => is2D ? aabb2D.min.ToV3(XZplane) : bounds3D.min;
+			get => is2D ? aabb2D.min.ToV3(isXZplane) : bounds3D.min;
 			set
 			{
 				bounds3D.min = value;
-				aabb2D.min = value.ToV2(XZplane);
+				aabb2D.min = value.ToV2(isXZplane);
 			}
 		}
 		public Vector3 Max
 		{
-			get => is2D ? aabb2D.max.ToV3(XZplane) : bounds3D.max;
+			get => is2D ? aabb2D.max.ToV3(isXZplane) : bounds3D.max;
 			set
 			{
 				bounds3D.max = value;
-				aabb2D.max = value.ToV2(XZplane);
+				aabb2D.max = value.ToV2(isXZplane);
 			}
 		}
 		
@@ -85,12 +85,12 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		public Matrix4x4 BoundsToLocalMatrix =>
 			Matrix4x4.Scale(is2D ? aabb2D.Size.Inverse() : bounds3D.size.Inverse()) *
-			Matrix4x4.Rotate(is2D && XZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) *
+			Matrix4x4.Rotate(is2D && isXZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) *
 			Matrix4x4.Translate(-Min);
 
 		public Matrix4x4 LocalToBoundsMatrix => Matrix4x4.TRS(
 			Min,
-			is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity,
+			is2D && isXZplane ? AABB_2D.RotationToXZplane : Quaternion.identity,
 			is2D ? aabb2D.Size.ToV3().WithZ(1) : bounds3D.size
 		);
 		public Matrix4x4 WorldToLocalMatrix => BoundsToLocalMatrix * transform.worldToLocalMatrix;
@@ -98,9 +98,9 @@ namespace DavidUtils.Geometry.Bounding_Box
 		
 		// Using XZ coords for 2D positions
 		public Matrix4x4 LocalToWorldMatrix_WithXZrotation =>
-			LocalToWorldMatrix * Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity);
+			LocalToWorldMatrix * Matrix4x4.Rotate(!is2D && isXZplane ? AABB_2D.RotationToXZplane : Quaternion.identity);
 		public Matrix4x4 WorldToLocalMatrix_WithXZrotation =>
-			Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) * WorldToLocalMatrix;
+			Matrix4x4.Rotate(!is2D && isXZplane ? AABB_2D.RotationToXYplane : Quaternion.identity) * WorldToLocalMatrix;
 		
 		public Vector3 ToWorld(Vector2 pos) => LocalToWorldMatrix_WithXZrotation.MultiplyPoint3x4(pos);
 		public Vector3 ToWorldVector(Vector2 worldVector) => LocalToWorldMatrix_WithXZrotation.MultiplyVector(worldVector);
@@ -111,7 +111,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		// Convierte un vector en el espacio de mundo a (0,1)
 		public Vector2 VectorToLocalPositive(Vector3 vector) => 
 			Vector2.Max(ToLocalVector(vector).Abs(), Vector2.one * 0.001f);
-		public Vector2 VectorToLocalPositive(Vector2 vector) => VectorToLocalPositive(vector.ToV3xz());
+		public Vector2 VectorToLocalPositive(Vector2 vector) => VectorToLocalPositive(vector.ToV3XZ());
 		public Vector2 MeasureToLocalPositive(float value) => VectorToLocalPositive(Vector3.one * value);
 		
 		#endregion
@@ -125,18 +125,18 @@ namespace DavidUtils.Geometry.Bounding_Box
 			else Sincronize3Dto2D();
 		}
 
-		private void Sincronize3Dto2D() => aabb2D = new AABB_2D(bounds3D, XZplane);
+		private void Sincronize3Dto2D() => aabb2D = new AABB_2D(bounds3D, isXZplane);
 		private void Sincronize2Dto3D()
 		{
 			Vector3 center = new Vector3(
 				aabb2D.Center.x,
-				XZplane ? bounds3D.center.y : aabb2D.Center.y,
-				XZplane ? aabb2D.Center.y : bounds3D.center.z
+				isXZplane ? bounds3D.center.y : aabb2D.Center.y,
+				isXZplane ? aabb2D.Center.y : bounds3D.center.z
 			);
 			Vector3 size = new Vector3( 
 				aabb2D.Size.x,
-				XZplane ? bounds3D.size.y : aabb2D.Size.y,
-				XZplane ? aabb2D.Size.y : bounds3D.size.z
+				isXZplane ? bounds3D.size.y : aabb2D.Size.y,
+				isXZplane ? aabb2D.Size.y : bounds3D.size.z
 			);
 			bounds3D = new Bounds(center, size);
 		}
@@ -166,7 +166,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 
 		public void TransformToBounds_Local(Component obj) => 
 			obj?.transform.ApplyLocalMatrix(
-				LocalToBoundsMatrix * Matrix4x4.Rotate(!is2D && XZplane ? AABB_2D.RotationToXZplane : Quaternion.identity)
+				LocalToBoundsMatrix * Matrix4x4.Rotate(!is2D && isXZplane ? AABB_2D.RotationToXZplane : Quaternion.identity)
 			);
 		public void TransformToBounds_World(Component obj) => obj?.transform.ApplyWorldMatrix(LocalToWorldMatrix);
 
@@ -176,7 +176,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			bounds3D = terrain.terrainData.bounds;
 			is2D = false;
 			Sincronize3Dto2D();
-			OnChanged?.Invoke();
+			onChanged?.Invoke();
 		}
 
 		#endregion

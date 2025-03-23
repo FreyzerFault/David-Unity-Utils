@@ -3,7 +3,6 @@ using DavidUtils.DevTools.CustomAttributes;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Geometry.Algorithms;
-using Geometry.Algorithms;
 using UnityEngine;
 using UnityEngine.Serialization;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
@@ -51,7 +50,7 @@ namespace DavidUtils.Rendering
 			}
 		}
 
-		private bool _isMesh = false;
+		private bool _isMesh;
 
 		[ConditionalField("_isMesh", true)]
 		[SerializeField] private float thickness = PolygonRenderer.DEFAULT_THICKNESS;
@@ -174,7 +173,7 @@ namespace DavidUtils.Rendering
 			float terrainHeightOffset = 0.1f
 		)
 		{
-			var renderer = UnityUtils.InstantiateObject<VoronoiRenderer>(parent, name);
+			VoronoiRenderer renderer = UnityUtils.InstantiateObject<VoronoiRenderer>(parent, name);
 			renderer._voronoi = voronoi;
 			renderer.BaseColor = color ?? Color.white;
 			renderer.outlineColor = outlineColor ?? Color.black;

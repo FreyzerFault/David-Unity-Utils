@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+using System;
 using UnityEditor;
 
 namespace DavidUtils
@@ -15,8 +16,8 @@ namespace DavidUtils
         /// </summary>
         public static void SafeOnValidate(Action onValidateAction)
         {
-#if UNITY_EDITOR
             EditorApplication.delayCall += _OnValidate;
+            return;
 
             // ReSharper disable once InconsistentNaming
             void _OnValidate()
@@ -25,7 +26,7 @@ namespace DavidUtils
 
                 onValidateAction();
             }
-#endif
         }
     }
 }
+#endif

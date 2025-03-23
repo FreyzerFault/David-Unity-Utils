@@ -159,35 +159,35 @@ namespace DavidUtils.ExtensionMethods
 		
 		#region 3D to 2D
 
-		public static Vector2 ToV2(this Vector3 v, bool XZplane = false) => XZplane ? v.ToV2xz() : v.ToV2xy();
-		public static Vector2 ToV2xz(this Vector3 v) => new(v.x, v.z);
-		public static Vector2 ToV2xy(this Vector3 v) => new(v.x, v.y);
+		public static Vector2 ToV2(this Vector3 v, bool isXZplane = false) => isXZplane ? v.ToV2XZ() : v.ToV2XY();
+		public static Vector2 ToV2XZ(this Vector3 v) => new(v.x, v.z);
+		public static Vector2 ToV2XY(this Vector3 v) => new(v.x, v.y);
 
-		public static IEnumerable<Vector2> ToV2(this IEnumerable<Vector3> v, bool XZplane = false) =>
-			XZplane ? v?.ToV2xz() : v?.ToV2xy();
+		public static IEnumerable<Vector2> ToV2(this IEnumerable<Vector3> v, bool isXZplane = false) =>
+			isXZplane ? v?.ToV2XZ() : v?.ToV2XY();
 
-		public static IEnumerable<Vector2> ToV2xz(this IEnumerable<Vector3> v) => v.Select(ToV2xz);
-		public static IEnumerable<Vector2> ToV2xy(this IEnumerable<Vector3> v) => v.Select(ToV2xy);
+		public static IEnumerable<Vector2> ToV2XZ(this IEnumerable<Vector3> v) => v.Select(ToV2XZ);
+		public static IEnumerable<Vector2> ToV2XY(this IEnumerable<Vector3> v) => v.Select(ToV2XY);
 
 		#endregion
 
 
 		#region 2D to 3D
 
-		public static Vector3 ToV3(this Vector2 v, bool XZplane = false) => XZplane ? v.ToV3xz() : v.ToV3xy();
-		public static Vector3 ToV3xz(this Vector2 v) => new(v.x, 0, v.y);
-		public static Vector3 ToV3xy(this Vector2 v) => new(v.x, v.y, 0);
+		public static Vector3 ToV3(this Vector2 v, bool xZplane = false) => xZplane ? v.ToV3XZ() : v.ToV3XY();
+		public static Vector3 ToV3XZ(this Vector2 v) => new(v.x, 0, v.y);
+		public static Vector3 ToV3XY(this Vector2 v) => new(v.x, v.y, 0);
 
-		public static IEnumerable<Vector3> ToV3(this IEnumerable<Vector2> v, bool XZplane = false) =>
-			XZplane ? v?.ToV3xz() : v?.ToV3xy();
+		public static IEnumerable<Vector3> ToV3(this IEnumerable<Vector2> v, bool xZplane = false) =>
+			xZplane ? v?.ToV3XZ() : v?.ToV3XY();
 
-		public static IEnumerable<Vector3> ToV3xz(this IEnumerable<Vector2> v) => v.Select(ToV3xz);
-		public static IEnumerable<Vector3> ToV3xy(this IEnumerable<Vector2> v) => v.Select(ToV3xy);
+		public static IEnumerable<Vector3> ToV3XZ(this IEnumerable<Vector2> v) => v.Select(ToV3XZ);
+		public static IEnumerable<Vector3> ToV3XY(this IEnumerable<Vector2> v) => v.Select(ToV3XY);
 
 
-		public static Vector3 WithX(this Vector3 v, float x) => v = new Vector3(x, v.y, v.z);
-		public static Vector3 WithY(this Vector3 v, float y) => v = new Vector3(v.x, y, v.z);
-		public static Vector3 WithZ(this Vector3 v, float z) => v = new Vector3(v.x, v.y, z);
+		public static Vector3 WithX(this Vector3 v, float x) => new(x, v.y, v.z);
+		public static Vector3 WithY(this Vector3 v, float y) => new(v.x, y, v.z);
+		public static Vector3 WithZ(this Vector3 v, float z) => new(v.x, v.y, z);
 
 		
 		// [X, Y, X, Y, ...] => [(X,Y), (X,Y) ,...]
@@ -213,12 +213,12 @@ namespace DavidUtils.ExtensionMethods
 
 		#region to 4D for Matrix Transformations
 
-		public static Vector4 ToVector4xy(this Vector2 v) => new(v.x, v.y, 0, 0);
-		public static Vector4 ToVector4xz(this Vector2 v) => new(v.x, 0, v.y, 0);
+		public static Vector4 ToVector4XY(this Vector2 v) => new(v.x, v.y, 0, 0);
+		public static Vector4 ToVector4XZ(this Vector2 v) => new(v.x, 0, v.y, 0);
 		public static Vector4 ToVector4(this Vector3 v) => new(v.x, v.y, v.z, 0);
 
-		public static Vector2 ToV2xy(this Vector4 v) => new(v.x, v.y);
-		public static Vector2 ToV2xz(this Vector4 v) => new(v.x, v.z);
+		public static Vector2 ToV2XY(this Vector4 v) => new(v.x, v.y);
+		public static Vector2 ToV2XZ(this Vector4 v) => new(v.x, v.z);
 
 		#endregion
 
@@ -239,10 +239,10 @@ namespace DavidUtils.ExtensionMethods
 		}
 
 		// Apply to Multiple Points
-		public static IEnumerable<Vector3> MultiplyPoint3x4(this Matrix4x4 matrix, IEnumerable<Vector3> points) =>
+		public static IEnumerable<Vector3> MultiplyPoint3X4(this Matrix4x4 matrix, IEnumerable<Vector3> points) =>
 			points.Select(p => matrix.MultiplyPoint3x4(p));
 
-		public static IEnumerable<Vector3> MultiplyPoint3x4(this Matrix4x4 matrix, IEnumerable<Vector2> points) =>
+		public static IEnumerable<Vector3> MultiplyPoint3X4(this Matrix4x4 matrix, IEnumerable<Vector2> points) =>
 			points.Select(p => matrix.MultiplyPoint3x4(p));
 
 		#endregion
@@ -260,7 +260,7 @@ namespace DavidUtils.ExtensionMethods
 			Quaternion.AngleAxis(angle, Vector3.forward) * v;
 
 		public static Vector2 Rotate(this Vector2 v, float angle, Vector2 center) =>
-			Quaternion.AngleAxis(angle, Vector3.forward) * (v - center) + center.ToV3xy();
+			Quaternion.AngleAxis(angle, Vector3.forward) * (v - center) + center.ToV3XY();
 
 		// ARRAY
 		public static IEnumerable<Vector3> Rotate(this IEnumerable<Vector3> points, Quaternion q) =>
@@ -351,7 +351,7 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector3[] SortByAngle(this IEnumerable<Vector3> points, Vector3 centroid, Vector3 axis)
 		{
 			points = points as Vector3[] ?? points?.ToArray();
-			if (points.IsNullOrEmpty()) return null;
+			if (points == null || !points.Any()) return null;
 			Vector3 refPoint = points.First();
 			return points.OrderBy(p => Vector3.SignedAngle(refPoint - centroid, p - centroid, axis)).ToArray();
 		}
@@ -399,7 +399,7 @@ namespace DavidUtils.ExtensionMethods
 		public static Vector3 Center(this IEnumerable<Vector3> points)
 		{
 			IEnumerable<Vector3> pointsEnumerable = points as Vector3[] ?? points?.ToArray();
-			if (pointsEnumerable.IsNullOrEmpty()) return default;
+			if (pointsEnumerable == null) return default;
 			return pointsEnumerable.Aggregate(Vector3.zero, (sum, p) => sum + p) / pointsEnumerable.Count();
 		}
 

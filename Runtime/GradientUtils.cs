@@ -19,12 +19,12 @@ namespace DavidUtils
 
         private static Gradient BuildGradient(Color a, Color b)
         {
-            var gradient = new Gradient();
+            Gradient gradient = new Gradient();
 
-            var colors = new GradientColorKey[2]
+            var colors = new GradientColorKey[]
                 { new(a, 0), new(b, 1) };
 
-            var alphas = new GradientAlphaKey[2]
+            var alphas = new GradientAlphaKey[]
                 { new(1, 0), new(1, 1) };
             gradient.SetKeys(colors, alphas);
 
@@ -37,7 +37,7 @@ namespace DavidUtils
         /// <returns>Copia de un Gradiente</returns>
         public static Gradient GetGradientCopy(this Gradient gradient)
         {
-            var gradCopy = new Gradient();
+            Gradient gradCopy = new Gradient();
             gradCopy.SetKeys(gradient.colorKeys, gradient.alphaKeys);
 
             return gradCopy;

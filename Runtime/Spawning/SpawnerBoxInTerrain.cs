@@ -11,7 +11,7 @@ namespace DavidUtils.Spawning
 
 		protected override void Awake()
 		{
-			XZplane = true; // XZ obligatorio
+			isXZplane = true; // XZ obligatorio
 			base.Awake();
 		}
 

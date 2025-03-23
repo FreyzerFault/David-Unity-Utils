@@ -10,7 +10,7 @@ namespace DavidUtils.Player
         Pause
     }
 
-    // Controla el movimiento en 2D con OnMove
+    /// Controla el movimiento en 2D con OnMove
     public abstract class Player : Singleton<Player>
     {
         public Vector3 Position => transform.position;

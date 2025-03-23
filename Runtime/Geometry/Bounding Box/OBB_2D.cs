@@ -24,7 +24,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 		public Vector2[] Corners => AABB_Rotated.Corners.Rotate(Angle).ToArray();
 
 		// AABB que contiene al OBB
-		public AABB_2D AABB_outer => new(Corners);
+		public AABB_2D AABB_Outer => new(Corners);
 
 		public OBB_2D(Vector2 min, Vector2 max, Vector2 up)
 		{
@@ -39,7 +39,7 @@ namespace DavidUtils.Geometry.Bounding_Box
 			// Calculamos el AABB y lo rotamos de vuelta a su up original
 			this.up = up;
 			Vector2 centroid = points.Center();
-			var aabb = new AABB_2D(points.Rotate(-Angle, centroid));
+			AABB_2D aabb = new(points.Rotate(-Angle, centroid));
 			min = aabb.min.Rotate(Angle, centroid);
 			max = aabb.max.Rotate(Angle, centroid);
 		}

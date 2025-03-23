@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using DavidUtils.DevTools.CustomAttributes;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DavidUtils.Settings
 {
@@ -18,14 +19,14 @@ namespace DavidUtils.Settings
 			Color
 		}
 
-		[SerializeField] public List<Setting> _settings = new();
+		[SerializeField] public List<Setting> settings = new();
 
 		public T GetSetting<T>(string settingName)
 		{
 			settingName = settingName.ToLower();
 			if (!HasSetting(settingName)) throw new Exception($"Setting {settingName} not found");
 
-			return (T)_settings.Find(setting => setting.Name == settingName).Value;
+			return (T)settings.Find(setting => setting.Name == settingName).Value;
 		}
 
 		public void SetSetting<T>(string settingName, T newValue)
@@ -33,24 +34,24 @@ namespace DavidUtils.Settings
 			settingName = settingName.ToLower();
 			if (!HasSetting(settingName)) throw new Exception($"Setting {settingName} not found");
 
-			_settings.Find(setting => setting.Name == settingName).Set(newValue);
+			settings.Find(setting => setting.Name == settingName).Set(newValue);
 		}
 
 		private bool HasSetting(string settingName)
 		{
 			settingName = settingName.ToLower();
-			return _settings.Exists(setting => setting.Name == settingName);
+			return settings.Exists(setting => setting.Name == settingName);
 		}
 
 		// LOAD & SAVE Settings to PlayerPrefs
 		public void LoadSettings()
 		{
-			foreach (Setting setting in _settings) setting.Load();
+			foreach (Setting setting in settings) setting.Load();
 		}
 
 		public void SaveSettings()
 		{
-			foreach (Setting setting in _settings) setting.Save();
+			foreach (Setting setting in settings) setting.Save();
 		}
 
 		[Serializable]

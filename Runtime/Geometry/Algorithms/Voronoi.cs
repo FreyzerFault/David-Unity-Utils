@@ -4,8 +4,7 @@ using System.Linq;
 using DavidUtils.DevTools.GizmosAndHandles;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Bounding_Box;
-using DavidUtils.MouseInputs;
-using Geometry.Algorithms;
+using DavidUtils.MouseInput;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.Algorithms
@@ -18,7 +17,7 @@ namespace DavidUtils.Geometry.Algorithms
 		private const float VERTEX_COLLISION_RADIUS = 0.01f;
 
 		[HideInInspector] public Delaunay delaunay;
-		public List<Polygon> polygons = new();
+		public List<Polygon> polygons;
 
 		private List<Vector2> _seeds;
 		public List<Vector2> Seeds
@@ -74,7 +73,7 @@ namespace DavidUtils.Geometry.Algorithms
 		// Genera los vertices de un poligono a partir de la semilla y los triangulos generados con Delaunay
 		private Polygon GeneratePolygon(Vector2 seed)
 		{
-			var polygon = new Polygon();
+			Polygon polygon = new();
 			Triangle[] tris = delaunay.FindTrianglesAroundVertex(seed).ToArray();
 			Triangle[] borderTris = tris
 				.Where(t => t.IsBorder && t.BorderEdges.Any(e => e.Vertices.Any(v => v == seed)))
@@ -279,7 +278,7 @@ namespace DavidUtils.Geometry.Algorithms
 		///     el vecino)
 		///     Si la semilla es uno de los vertices de ese eje, significa que está en el borde
 		/// </summary>
-		private bool SeedInBorder(
+		public bool SeedInBorder(
 			Vector2 seed, out List<Edge> borderEdges, out List<Vector2> circumcenters,
 			Triangle[] tris = null
 		)
@@ -412,7 +411,7 @@ namespace DavidUtils.Geometry.Algorithms
 					Vector3 a = localToWorldMatrix.MultiplyPoint3x4(borderEdge.Median);
 					Vector3 b = localToWorldMatrix.MultiplyPoint3x4(intersection);
 
-					var terrain = Terrain.activeTerrain;
+					Terrain terrain = Terrain.activeTerrain;
 					if (projectOnTerrain && terrain != null)
 					{
 						a = terrain.Project(a);

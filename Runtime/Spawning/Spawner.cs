@@ -64,7 +64,7 @@ namespace DavidUtils.Spawning
 		}
 
 		protected virtual Spawneable Spawn2D(Vector2 position = default, Quaternion rotation = default) =>
-			Spawn(position.ToV3xz(), rotation);
+			Spawn(position.ToV3XZ(), rotation);
 
 		// MULTIPLES SPAWNS
 		protected virtual Spawneable[] Spawn(Vector3[] positions, Quaternion[] rotations = null) =>
@@ -114,27 +114,29 @@ namespace DavidUtils.Spawning
 		public float spawnFrequency = -1; // Seconds between spawns (-1 = desactivado)
 		public int burstSpawn;
 
-		private IEnumerator spawnCoroutine;
+		private IEnumerator _spawnCoroutine;
 
 		protected virtual IEnumerator SpawnCoroutine()
 		{
-			while (true)
+			while (gameObject.activeSelf)
 			{
 				yield return new WaitForSeconds(spawnFrequency);
 
 				for (var i = 0; i < burstSpawn; i++)
 					Spawn();
+
+				yield return new WaitUntil(() => gameObject.activeSelf);
 			}
 		}
 
 		public void StartSpawnRoutine()
 		{
-			if (spawnCoroutine != null) StopSpawnRoutine();
-			spawnCoroutine = SpawnCoroutine();
-			StartCoroutine(spawnCoroutine);
+			if (_spawnCoroutine != null) StopSpawnRoutine();
+			_spawnCoroutine = SpawnCoroutine();
+			StartCoroutine(_spawnCoroutine);
 		}
 
-		public void StopSpawnRoutine() => StopCoroutine(spawnCoroutine);
+		public void StopSpawnRoutine() => StopCoroutine(_spawnCoroutine);
 
 		#endregion
 

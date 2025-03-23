@@ -90,7 +90,7 @@ namespace DavidUtils.Rendering
 			}
 		});
 
-		private Vector3 RadiusToScale(float radius) => Vector3.one * (radius + (IsCircle ? pointThickness / 2 : 0));
+		private Vector3 RadiusToScale(float pointRadius) => Vector3.one * (pointRadius + (IsCircle ? pointThickness / 2 : 0));
 		public Vector3 Scale => RadiusToScale(radius);
 
 		public void SetRadius(int i, float newRadius)
@@ -201,18 +201,18 @@ namespace DavidUtils.Rendering
 		private Texture2D PointTexture => TextureUtils.GetCircumference();
 		
 		// TODO Cambiar esto por Prefabs. Va a ser mas eficiente
-		private Sprite circleSprite;
-		private Sprite CircleSprite => circleSprite ??= BuildCircleSprite();
+		private Sprite _circleSprite;
+		private Sprite CircleSprite => _circleSprite ??= BuildCircleSprite();
 
 		private Sprite BuildCircleSprite() =>
-			circleSprite = Sprite.Create(
+			_circleSprite = Sprite.Create(
 				CircleTexture,
 				new Rect(0, 0, 1, 1),
 				new Vector2(0.5f, 0.5f)
 			);
 
-		private Sprite pointSprite;
-		private Sprite PointSprite => pointSprite ??= Sprite.Create(
+		private Sprite _pointSprite;
+		private Sprite PointSprite => _pointSprite ??= Sprite.Create(
 			PointTexture,
 			new Rect(0, 0, 1, 1),
 			new Vector2(0.5f, 0.5f)

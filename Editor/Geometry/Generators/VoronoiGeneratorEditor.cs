@@ -2,14 +2,14 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.Geometry.Generators
+namespace DavidUtils.Editor.Geometry.Editor.Geometry.Generators
 {
 	[CustomEditor(typeof(VoronoiGenerator), true)]
 	public class VoronoiGeneratorEditor : UnityEditor.Editor
 	{
 		public override void OnInspectorGUI()
 		{
-			var voronoiGen = (VoronoiGenerator)target;
+			VoronoiGenerator voronoiGen = (VoronoiGenerator)target;
 
 			EditorGUILayout.BeginHorizontal();
 

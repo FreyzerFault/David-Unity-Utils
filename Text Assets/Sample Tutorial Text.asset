@@ -15,6 +15,6 @@ MonoBehaviour:
   text: "Salto doble triple mortal incre\xEDble wap\xEDsimo"
   size: -1
   color: {r: 1, g: 1, b: 1, a: 1}
-  fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  fontAsset: {fileID: 11400000, guid: b80c35399543fb644afb4a34c40f5ec5, type: 2}
   spritePC: {fileID: 21300000, guid: 7e6d562b442e653448edd0f83ac91230, type: 3}
   spriteGampepad: {fileID: 21300000, guid: 513498780423a444c809aa92f283b7f5, type: 3}

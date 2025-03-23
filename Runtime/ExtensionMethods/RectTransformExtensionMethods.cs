@@ -53,7 +53,7 @@ namespace DavidUtils.ExtensionMethods
                 rectT,
                 screenPos,
                 null,
-                out var worldPos
+                out Vector3 worldPos
             );
             return worldPos;
         }

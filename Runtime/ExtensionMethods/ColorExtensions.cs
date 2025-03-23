@@ -8,29 +8,10 @@ namespace DavidUtils.ExtensionMethods
 	/// <summary>
 	///     Represents list of supported by Unity Console color names
 	/// </summary>
-	public enum Colors
+	public enum DebugColor
 	{
-		aqua,
-		black,
-		blue,
-		brown,
-		cyan,
-		darkblue,
-		fuchsia,
-		green,
-		grey,
-		lightblue,
-		lime,
-		magenta,
-		maroon,
-		navy,
-		olive,
-		purple,
-		red,
-		silver,
-		teal,
-		white,
-		yellow
+		Aqua, Black, Blue, Brown, Cyan, Darkblue, Fuchsia, Green, Grey, Lightblue,
+		Lime, Magenta, Maroon, Navy, Olive, Purple, Red, Silver, Teal, White, Yellow
 	}
 
 	public static class ColorExtensions
@@ -52,7 +33,7 @@ namespace DavidUtils.ExtensionMethods
 		/// <param name="range">Rango de colores generados (util para generar una paleta de colores cercanos)</param>
 		/// <returns></returns>
 		public static Color[] GetRainBowColors(this Color initColor, int count, float step = 0.1f, int range = 0) =>
-			new Color[count].Select((value, index) => initColor.RotateHue(step * (range == 0 ? index : index % range)))
+			new Color[count].Select((_, index) => initColor.RotateHue(step * (range == 0 ? index : index % range)))
 				.ToArray();
 
 		#endregion
@@ -144,13 +125,13 @@ namespace DavidUtils.ExtensionMethods
 
 		public static Gradient ToGradient(this IEnumerable<Color> colors)
 		{
-			var gradient = new Gradient();
+			Gradient gradient = new Gradient();
 			IEnumerable<Color> colorsEnumerable = colors as Color[] ?? colors.ToArray();
 			int numColors = colorsEnumerable.Count();
 			GradientColorKey[] colorKeys =
 				colorsEnumerable.Select((c, i) => new GradientColorKey(c, (float)i / numColors)).ToArray();
 			GradientAlphaKey[] alphaKeys =
-				colorsEnumerable.Select((c, i) => new GradientAlphaKey(1f, (float)i / numColors)).ToArray();
+				colorsEnumerable.Select((_, i) => new GradientAlphaKey(1f, (float)i / numColors)).ToArray();
 			gradient.SetKeys(colorKeys, alphaKeys);
 			return gradient;
 		}

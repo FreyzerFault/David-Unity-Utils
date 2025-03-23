@@ -16,7 +16,7 @@ namespace DavidUtils.ExtensionMethods
 		)
 		{
 			// Heightmap to Texture
-			var texture = new Texture2D(texWidth, texHeight);
+			Texture2D texture = new Texture2D(texWidth, texHeight);
 
 			terrain.GetMinMaxHeight(out float minHeight, out float maxHeight);
 
@@ -307,7 +307,7 @@ namespace DavidUtils.ExtensionMethods
 
 			// Dimensiones de la malla
 			float cellSize = terrainData.heightmapScale.x;
-			var sideCellCount = new Vector2Int(
+			Vector2Int sideCellCount = new Vector2Int(
 				heightMap.GetLength(1) - 1,
 				heightMap.GetLength(0) - 1
 			);

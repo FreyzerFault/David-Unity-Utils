@@ -3,9 +3,8 @@ using System.Globalization;
 using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry.Algorithms;
-using DavidUtils.MouseInputs;
+using DavidUtils.MouseInput;
 using DavidUtils.Rendering;
-using Geometry.Algorithms;
 using UnityEngine;
 using UnityEngine.Serialization;
 using RenderMode = DavidUtils.Rendering.PolygonRenderer.PolygonRenderMode;
@@ -286,7 +285,7 @@ namespace DavidUtils.Geometry.Generators
 		#region DRAGGING
 
 		// For dragging a polygon
-		public bool canDragPolygons = false;
+		public bool canDragPolygons;
 		private Vector2 _draggingOffset = Vector2.zero;
 
 		public override bool MoveSeed(int index, Vector2 newPos)

@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.Geometry.Bounding_Box
+namespace DavidUtils.Editor.Geometry.Editor.Geometry.Bounding_Box
 {
 	[CustomEditor(typeof(BoundsComponent))]
 	public class BoundsComponentEditor : UnityEditor.Editor
@@ -18,26 +18,27 @@ namespace DavidUtils.Editor.Geometry.Bounding_Box
 
 		private void SwitchButton()
 		{
-			var boundsComp = (BoundsComponent) target;
+			BoundsComponent boundsComp = (BoundsComponent) target;
 			
 			GUILayout.BeginHorizontal();
 			GUILayout.Label(boundsComp.is2D ? "2D" : "3D", EditorStyles.boldLabel);
-			if (boundsComp.is2D && GUILayout.Button("Switch to 3D"))
+			switch (boundsComp.is2D)
 			{
-				boundsComp.SincronizeBounds();
-				boundsComp.is2D = false;
-			}
-			else if (!boundsComp.is2D && GUILayout.Button("Switch to 2D"))
-			{
-				boundsComp.SincronizeBounds();
-				boundsComp.is2D = true;
+				case true when GUILayout.Button("Switch to 3D"):
+					boundsComp.SincronizeBounds();
+					boundsComp.is2D = false;
+					break;
+				case false when GUILayout.Button("Switch to 2D"):
+					boundsComp.SincronizeBounds();
+					boundsComp.is2D = true;
+					break;
 			}
 			GUILayout.EndHorizontal();
 		}
 
 		protected virtual void OnSceneGUI()
 		{
-			var boundsComp = (BoundsComponent)target;
+			BoundsComponent boundsComp = (BoundsComponent)target;
 
 			Tools.hidden = Tools.current == Tool.Scale;
 
@@ -60,13 +61,13 @@ namespace DavidUtils.Editor.Geometry.Bounding_Box
 
 			float capSize = HandleUtility.GetHandleSize(boundsComp.transform.position);
 
-			Bounds bounds = boundsComp.aabb2D;
-			Vector3 size = boundsComp.Size2D;
+			// Bounds bounds = boundsComp.aabb2D;
+			// Vector3 size = boundsComp.Size2D;
 
-			float x = size.x, y = size.y, z = size.z;
+			// float x = size.x, y = size.y, z = size.z;
 
-			Vector3 center = boundsComp.transform.position + bounds.center;
-			Quaternion rotation = boundsComp.transform.rotation;
+			// Vector3 center = boundsComp.transform.position + bounds.center;
+			// Quaternion rotation = boundsComp.transform.rotation;
 
 			Vector3 newScale = Handles.ScaleHandle(
 				boundsComp.Size,
@@ -97,7 +98,7 @@ namespace DavidUtils.Editor.Geometry.Bounding_Box
 
 			Undo.RecordObject(boundsComp, "Scale Bounds");
 			// boundsComp.Size = new Vector3(x,y,z);
-			boundsComp.Size2D = new Vector2(newScale.x, boundsComp.XZplane ? newScale.z : newScale.y);
+			boundsComp.Size2D = new Vector2(newScale.x, boundsComp.isXZplane ? newScale.z : newScale.y);
 		}
 
 		private void ScaleHandle3D(BoundsComponent boundsComp)

@@ -22,7 +22,7 @@ namespace DavidUtils.Sprites
 			Sprite sprite, Transform parent, string name = "Sprite Renderer"
 		)
 		{
-			var sr = UnityUtils.InstantiateEmptyObject(parent, name).AddComponent<SpriteRenderer>();
+			SpriteRenderer sr = UnityUtils.InstantiateEmptyObject(parent, name).AddComponent<SpriteRenderer>();
 			sr.sprite = sprite;
 
 			return sr;
@@ -68,7 +68,7 @@ namespace DavidUtils.Sprites
 
 		public static Sprite GenerateSprite(Texture2D texture, bool centered)
 		{
-			var size = new Vector2(texture.width, texture.height);
+			Vector2 size = new(texture.width, texture.height);
 			return Sprite.Create(
 				texture,
 				centered ? CenteredRect.ScaleBy(size) : DefaultRect.ScaleBy(size),

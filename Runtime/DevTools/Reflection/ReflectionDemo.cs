@@ -8,8 +8,8 @@ namespace DavidUtils.DevTools.Reflection
 	{
 		public MonoBehaviour targetObj;
 
-		private FieldInfo[] exposedFields;
+		private FieldInfo[] _exposedFields;
 
-		private void Start() => exposedFields = ExposedFieldMethods.GetExposedFields(targetObj);
+		private void Start() => _exposedFields = ExposedFieldMethods.GetExposedFields(targetObj);
 	}
 }

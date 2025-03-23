@@ -3,6 +3,8 @@ using System.Linq;
 using DavidUtils.Settings;
 using UnityEngine;
 using UnityEngine.Audio;
+using static UnityEngine.FindObjectsInactive;
+using static UnityEngine.FindObjectsSortMode;
 
 namespace DavidUtils.Audio
 {
@@ -26,11 +28,11 @@ namespace DavidUtils.Audio
 
         #region Reserved Audios
 
-        [SerializeField] private DavidUtils.Audio.Audio musicAudio;
+        [SerializeField] private Audio musicAudio;
 
-        [SerializeField] private DavidUtils.Audio.Audio ambientAudio;
+        [SerializeField] private Audio ambientAudio;
 
-        [SerializeField] private DavidUtils.Audio.Audio auxAudio;
+        [SerializeField] private Audio auxAudio;
 
         #endregion
 
@@ -42,14 +44,14 @@ namespace DavidUtils.Audio
         }
 
         // List needed to be editable in Inspector, and map to query by name
-        public List<DavidUtils.Audio.Audio> sounds = new();
-        private readonly Dictionary<string, DavidUtils.Audio.Audio> _soundMap = new();
+        public List<Audio> sounds = new();
+        private readonly Dictionary<string, Audio> _soundMap = new();
 
         protected override void Awake()
         {
             base.Awake();
 
-            foreach (var sound in sounds)
+            foreach (Audio sound in sounds)
             {
                 sound.SetSource(gameObject.AddComponent<AudioSource>());
                 _soundMap.Add(sound.name, sound);
@@ -62,8 +64,8 @@ namespace DavidUtils.Audio
 
             PlayMusic();
 
-            Settings.OnLoad += LoadVolumeSettings;
-            Settings.OnSave += SaveVolumeSettings;
+            Settings.onLoad += LoadVolumeSettings;
+            Settings.onSave += SaveVolumeSettings;
         }
 
         #region Volume
@@ -124,9 +126,9 @@ namespace DavidUtils.Audio
 
         #region Play/Stop/Pause Sound
 
-        public static DavidUtils.Audio.Audio Play(string audioName, float delaySeconds = 0)
+        public static Audio Play(string audioName, float delaySeconds = 0)
         {
-            var audio = GetAudio(audioName);
+            Audio audio = GetAudio(audioName);
             if (audio == null) return null;
 
             audio.Play(delaySeconds);
@@ -135,31 +137,31 @@ namespace DavidUtils.Audio
 
         public static void Stop(string soundName)
         {
-            var sound = GetAudio(soundName);
-            if (sound != null && sound.IsPlaying) sound.Stop();
+            Audio sound = GetAudio(soundName);
+            if (sound is { IsPlaying: true }) sound.Stop();
         }
 
         public static void Pause(string soundName)
         {
-            var sound = GetAudio(soundName);
-            if (sound != null) sound.Pause();
+            Audio sound = GetAudio(soundName);
+            sound?.Pause();
         }
 
         public static void UnPause(string soundName)
         {
-            var sound = GetAudio(soundName);
-            if (sound != null) sound.Unpause();
+            Audio sound = GetAudio(soundName);
+            sound?.Unpause();
         }
 
         public static AudioClip GetAudioClip(string audioName)
         {
-            var audio = GetAudio(audioName);
+            Audio audio = GetAudio(audioName);
             return audio?.clip;
         }
 
-        private static DavidUtils.Audio.Audio GetAudio(string audioName)
+        private static Audio GetAudio(string audioName)
         {
-            if (Instance._soundMap.TryGetValue(audioName, out var audio)) return audio;
+            if (Instance._soundMap.TryGetValue(audioName, out Audio audio)) return audio;
 
             Debug.LogWarning("[AudioManager] Clip not found: " + audioName);
             return null;
@@ -184,7 +186,7 @@ namespace DavidUtils.Audio
                 audio =>
                     audio.IsPlaying && audio != Instance.musicAudio
             );
-            foreach (var audio in nonMusicAudioPlaying)
+            foreach (Audio audio in nonMusicAudioPlaying)
             {
                 PausedSources.Add(audio.source);
                 audio.Pause();
@@ -192,7 +194,7 @@ namespace DavidUtils.Audio
 
             // Muteamos los sonidos espaciales
             var spatialSources = FindSpatialAudioSources();
-            foreach (var source in spatialSources)
+            foreach (AudioSource source in spatialSources)
                 if (source.isPlaying)
                 {
                     PausedSources.Add(source);
@@ -203,7 +205,7 @@ namespace DavidUtils.Audio
         private static void OnUnpauseGame()
         {
             // Quita la pausa a todos los sonidos pausados anteriormente, y limpia la lista
-            foreach (var source in PausedSources) source.UnPause();
+            foreach (AudioSource source in PausedSources) source.UnPause();
             PausedSources.Clear();
 
             // Vuelve el volumen de la música a su valor original
@@ -229,7 +231,7 @@ namespace DavidUtils.Audio
         // Audios instanciados por la escena, no asociados al AudioManager
         private static AudioSource[] FindSpatialAudioSources()
         {
-            var spatialSources = FindObjectsOfType<AudioSource>().ToList();
+            var spatialSources = FindObjectsByType<AudioSource>(Include, InstanceID).ToList();
 
             // Quita todos los sonidos que no sean espaciales (Musica, ambiente y aux)
             spatialSources.Remove(Instance.musicAudio.source);
@@ -237,7 +239,7 @@ namespace DavidUtils.Audio
             spatialSources.Remove(Instance.auxAudio.source);
 
             // Y quita también sonidos asociados al AudioManager (no deben ser espaciales)
-            foreach (var audio in Instance.sounds) spatialSources.Remove(audio.source);
+            foreach (Audio audio in Instance.sounds) spatialSources.Remove(audio.source);
 
             return spatialSources.ToArray();
         }

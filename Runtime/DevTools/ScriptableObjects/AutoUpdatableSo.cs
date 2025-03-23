@@ -6,10 +6,10 @@ namespace DavidUtils.DevTools.ScriptableObjects
 	[ExecuteAlways]
 	public abstract class AutoUpdatableSo : ScriptableObject
 	{
-		public Action ValuesUpdated;
+		public Action valuesUpdated;
 
 		// protected virtual void Awake() => ValuesUpdated = null;
 
-		public virtual void NotifyUpdate() => ValuesUpdated?.Invoke();
+		public virtual void NotifyUpdate() => valuesUpdated?.Invoke();
 	}
 }

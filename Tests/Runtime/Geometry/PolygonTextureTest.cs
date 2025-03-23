@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +6,6 @@ using DavidUtils.ExtensionMethods;
 using DavidUtils.Geometry;
 using DavidUtils.Rendering;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -30,7 +28,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
         public Texture2D texture;
 
         public PolygonRenderer polyRenderer;
-        public bool generateRandomPolygon = false;
+        public bool generateRandomPolygon;
         public Polygon polygon = new();
 
         protected override void Awake()

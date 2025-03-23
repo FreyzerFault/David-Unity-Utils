@@ -42,7 +42,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 
         private void GeneratePolygon()
         {
-            _polygon.SetRandomVertices(numVertices, maxSize / 2, convex, autoIntersected);
+            _polygon.SetRandomVertices(numVertices, maxSize / 2);
             UpdateRenderer();
             FocusCameraInCentroid();
         }
@@ -59,7 +59,6 @@ namespace DavidUtils.Tests.Runtime.Geometry
             if (cam == null) return;
 
             AABB_2D aabb = new(_polygon);
-            transform.localToWorldMatrix.MultiplyPoint3x4(aabb.Corners);
 
             cam.orthographicSize = aabb.Size.magnitude * .9f;
 

@@ -291,7 +291,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 			if (cam == null) return;
 
 			AABB_2D aabb = new(_polygon);
-			transform.localToWorldMatrix.MultiplyPoint3x4(aabb.Corners);
+			transform.localToWorldMatrix.MultiplyPoint3X4(aabb.Corners);
 
 			cam.orthographicSize = aabb.Size.magnitude * .5f;
 
@@ -346,7 +346,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 		{
 			_polygon.DrawGizmos(transform.localToWorldMatrix, Color.green.Darken(0.8f), Color.green.Darken(0.4f));
 			_interiorPolygon.DrawGizmos(transform.localToWorldMatrix, Color.yellow.Darken(0.4f), Color.yellow);
-			transform.localToWorldMatrix.MultiplyPoint3x4(_intersectionPoints).ForEach(p => Gizmos.DrawSphere(p, .05f));
+			transform.localToWorldMatrix.MultiplyPoint3X4(_intersectionPoints).ForEach(p => Gizmos.DrawSphere(p, .05f));
 			DrawEdges(_interiorPolygon);
 		}
 

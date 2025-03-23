@@ -1,10 +1,9 @@
-using System.Linq;
 using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.Editor.Rendering
+namespace DavidUtils.Editor.Rendering.Editor.Rendering
 {
     public class DynamicRendererEditor: UnityEditor.Editor
     {
@@ -50,7 +49,7 @@ namespace DavidUtils.Editor.Rendering
                 
             Color baseColor = EditorGUILayout.ColorField("Base Color", renderer.BaseColor);
             
-            var colorPalette = renderer.ColorPalette;
+            DynamicRenderer<T>.ColorPaletteData colorPalette = renderer.ColorPalette;
             
             // PALETTE
             if (!renderer.singleColor)

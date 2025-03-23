@@ -14,8 +14,8 @@ namespace DavidUtils.Geometry
 		// Para vertices superpuestos
 		public const float VertexEpsilon = 0.0001f;
 		
-		public Vector2 begin;
-		public Vector2 end;
+		public readonly Vector2 begin;
+		public readonly Vector2 end;
 
 		public Vector2[] Vertices => new[] { begin, end };
 
@@ -26,6 +26,9 @@ namespace DavidUtils.Geometry
 			end = b;
 		}
 
+		public Edge WithEnd(Vector2 newEnd) => new(begin, newEnd);
+		public Edge WithBegin(Vector2 newBegin) => new(newBegin, end);
+		
 		// Mediana (Punto medio)
 		public Vector2 Median => (begin + end) / 2;
 
@@ -207,7 +210,7 @@ namespace DavidUtils.Geometry
 			Matrix4x4 matrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
 		)
 		{
-			Vector3[] verticesInWorld = matrix.MultiplyPoint3x4(Vertices).ToArray();
+			Vector3[] verticesInWorld = matrix.MultiplyPoint3X4(Vertices).ToArray();
 			GizmosExtensions.DrawLineThick(
 				projectedOnTerrain && Terrain.activeTerrain != null
 					? Terrain.activeTerrain.ProjectPathToTerrain(verticesInWorld) 

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DavidUtils.Player
 {
-    // Utiliza CharacterController para moverse
+    /// Utiliza CharacterController para moverse
     public class SimplePlayer3P : Player
     {
         protected CharacterController controller;

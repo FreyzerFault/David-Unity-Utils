@@ -25,7 +25,7 @@ namespace DavidUtils.Geometry
 
 		public bool IsBorder => neighbours.Length != 3 || neighbours.Any(n => n == null);
 
-		public Edge[] BorderEdges => Edges.Where((e, i) => neighbours[i] == null).ToArray();
+		public Edge[] BorderEdges => Edges.Where((_, i) => neighbours[i] == null).ToArray();
 
 		public Triangle(Vector2[] vertices, Triangle[] neighbours = null)
 		{
@@ -58,20 +58,20 @@ namespace DavidUtils.Geometry
 			if (v1 == vertex)
 			{
 				v1 = newVertex;
-				e3.end = newVertex;
-				e1.begin = newVertex;
+				e3 = e3.WithEnd(newVertex);
+				e1 = e1.WithBegin(newVertex);
 			}
 			else if (v2 == vertex)
 			{
 				v2 = newVertex;
-				e1.end = newVertex;
-				e2.begin = newVertex;
+				e1 = e1.WithEnd(newVertex);
+				e2 = e2.WithBegin(newVertex);
 			}
 			else if (v3 == vertex)
 			{
 				v3 = newVertex;
-				e2.end = newVertex;
-				e3.begin = newVertex;
+				e2 = e2.WithEnd(newVertex);
+				e3 = e3.WithBegin(newVertex);
 			}
 		}
 
@@ -112,10 +112,7 @@ namespace DavidUtils.Geometry
 		public Vector2 GetCircumcenter()
 		{
 			Vector2? c = GeometryUtils.CircleCenter(v1, v2, v3);
-			if (c.HasValue) return c.Value;
-
-			// Son colineares
-			return (v1 + v2 + v3) / 3;
+			return c.Value;
 		}
 
 		/// <summary>
@@ -196,7 +193,7 @@ namespace DavidUtils.Geometry
 			Matrix4x4 localToWorldMatrix, float thickness = 1, Color color = default, bool projectedOnTerrain = false
 		)
 		{
-			Vector3[] verticesInWorld = localToWorldMatrix.MultiplyPoint3x4(Vertices).ToArray();
+			Vector3[] verticesInWorld = localToWorldMatrix.MultiplyPoint3X4(Vertices).ToArray();
 
 			if (projectedOnTerrain && Terrain.activeTerrain != null)
 				GizmosExtensions.DrawPolygonWire(
@@ -210,7 +207,7 @@ namespace DavidUtils.Geometry
 
 		public void GizmosDraw(Matrix4x4 matrix, Color color = default, bool projectedOnTerrain = false)
 		{
-			Vector3[] verticesInWorld = matrix.MultiplyPoint3x4(Vertices).ToArray();
+			Vector3[] verticesInWorld = matrix.MultiplyPoint3X4(Vertices).ToArray();
 
 			if (projectedOnTerrain && Terrain.activeTerrain != null)
 				GizmosExtensions.DrawPolygon(

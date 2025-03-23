@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Codice.Client.Common;
 using DavidUtils.ExtensionMethods;
 using UnityEngine;
 
@@ -18,12 +17,12 @@ namespace DavidUtils.Geometry.MeshExtensions
 			var indices = new int[trisEnum.Count() * 3].FillBy(i => i);
 			
 			var vertices = 
-				trisEnum.SelectMany((t, i) =>
+				trisEnum.SelectMany((t, _) =>
 					t == null
 						? Array.Empty<Vector3>()
 						: new Vector3[] { t.v3, t.v2, t.v1 });
 
-			var mesh = new Mesh
+			Mesh mesh = new Mesh
 			{
 				vertices = vertices.ToArray(),
 				triangles = indices.ToArray()
@@ -32,7 +31,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 			if (colors.NotNullOrEmpty())
 				mesh.SetColors(colors?.SelectMany(c => new[] { c, c, c }).ToArray());
 
-			mesh.normals = mesh.vertices.Select(v => Vector3.back).ToArray();
+			mesh.normals = mesh.vertices.Select(_ => Vector3.back).ToArray();
 
 			mesh.bounds = trisEnum.SelectMany(t => t == null ? Array.Empty<Vector2>() : t.Vertices).GetBoundingBox();
 
@@ -70,7 +69,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 		public static void GenerateMeshPlane(this Mesh mesh, float resolution = 10, Vector2 size = default)
 		{
 			float meshCellSize = 1 / resolution;
-			var sideCellCount = new Vector2Int(
+			Vector2Int sideCellCount = new Vector2Int(
 				Mathf.CeilToInt(size.x / meshCellSize),
 				Mathf.CeilToInt(size.y / meshCellSize)
 			);
@@ -82,7 +81,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 			for (var y = 0; y < sideVerticesCount.y; y++)
 			for (var x = 0; x < sideVerticesCount.x; x++)
 			{
-				var vertex = new Vector3(x * meshCellSize, 0, y * meshCellSize);
+				Vector3 vertex = new Vector3(x * meshCellSize, 0, y * meshCellSize);
 
 				// Center Mesh
 				vertex -= new Vector3(size.x, 0, size.y) / 2;
@@ -114,7 +113,7 @@ namespace DavidUtils.Geometry.MeshExtensions
 
 		public static Mesh GenerateMeshPlane(float resolution = 10, Vector2 size = default)
 		{
-			var mesh = new Mesh();
+			Mesh mesh = new Mesh();
 			mesh.GenerateMeshPlane(resolution, size);
 			return mesh;
 		}

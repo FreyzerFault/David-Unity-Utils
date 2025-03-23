@@ -1,12 +1,9 @@
 using System;
-using System.Linq;
-using DavidUtils.ExtensionMethods;
 using DavidUtils.Rendering;
 using UnityEditor;
-using UnityEngine;
 using Fields = DavidUtils.Editor.DevTools.CustomFields.MyInputFields;
 
-namespace DavidUtils.Editor.Rendering
+namespace DavidUtils.Editor.Rendering.Editor.Rendering
 {
     [CustomEditor(typeof(PointsRenderer))]
     public class PointsRendererEditor: DynamicRendererEditor

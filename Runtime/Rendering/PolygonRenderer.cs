@@ -8,7 +8,6 @@ using DavidUtils.Geometry.MeshExtensions;
 using DavidUtils.Rendering.Extensions;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Rendering
 {
@@ -57,15 +56,14 @@ namespace DavidUtils.Rendering
 			_lineRenderer.material = Resources.Load<Material>("UI/Materials/Line Material");
 			
 			// Check if RenderPipeline is URP or HDRP
-			bool URP = GraphicsSettings.currentRenderPipeline.GetType().Name.Contains("Universal");
-			bool HDRP = GraphicsSettings.currentRenderPipeline.GetType().Name == "HDRenderPipelineAsset";
+			bool hdrp = GraphicsSettings.currentRenderPipeline.GetType().Name == "HDRenderPipelineAsset";
+			// bool urp = GraphicsSettings.currentRenderPipeline.GetType().Name.Contains("Universal");
 			
-			_meshRenderer.material = Resources.Load<Material>($"Materials/Geometry Unlit{(HDRP ? " HDRP" : "")}");
+			_meshRenderer.material = Resources.Load<Material>($"Materials/Geometry Unlit{(hdrp ? " HDRP" : "")}");
 
 			_lineRenderer.shadowCastingMode = ShadowCastingMode.Off;
 			
 			origHeight = transform.localPosition.y;
-			generateSubPolygons = generateSubPolygons && maxSubPolygonsPerFrame > 0;
 			
 			if (_meshFilter.sharedMesh == null) _meshFilter.mesh = new Mesh();
 		}
@@ -73,11 +71,11 @@ namespace DavidUtils.Rendering
 		private void Update()
 		{
 			if (!Application.isPlaying) DestroyQueue();
-			if (showSubPolygons && subPolyRenderers.Length != SubPolygonCount) UpdateSubPolygonRenderers();
+			if (showSubPolygons && _subPolyRenderers.Length != SubPolygonCount) UpdateSubPolygonRenderers();
 		}
 
 		// Check si esta en OnValidate() para encolar mas tarde destrucciones en Update() si se está en Editor
-		private bool isOnValidate = false;
+		// private bool _isOnValidate = false;
 		
 		protected void OnEnable() => UpdateAllProperties();
 
@@ -258,7 +256,7 @@ namespace DavidUtils.Rendering
 				_lineRenderer.SetPoints(Array.Empty<Vector3>());
 				return;
 			}
-			_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3xy().WithZ(-0.2f)));
+			_lineRenderer.SetPoints(ScaledPolygon.Vertices.Select(v => v.ToV3XY().WithZ(-0.2f)));
 		}
 
 		#endregion
@@ -269,7 +267,7 @@ namespace DavidUtils.Rendering
 		private Terrain Terrain => Terrain.activeTerrain;
 		[SerializeField] protected bool projectedOnTerrain;
 		
-		public float origHeight = 0;
+		public float origHeight;
 		public float terrainHeightOffset = 0.1f;
 		public virtual bool ProjectedOnTerrain
 		{
@@ -309,7 +307,7 @@ namespace DavidUtils.Rendering
 				Terrain.ProjectPathToTerrain(
 						scaleToTerrainBounds
 							? ScaledPolygon.Vertices.Select(Terrain.GetWorldPosition).ToArray()
-							: ScaledPolygon.Vertices.ToV3xz().ToArray(),
+							: ScaledPolygon.Vertices.ToV3XZ().ToArray(),
 						true,
 						terrainHeightOffset
 					)
@@ -336,7 +334,7 @@ namespace DavidUtils.Rendering
 			int maxSubPolygonsCount = 0
 		)
 		{
-			var polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
+			PolygonRenderer polygonRenderer = UnityUtils.InstantiateObject<PolygonRenderer>(parent, name);
 			polygonRenderer.polygon = polygon;
 			polygonRenderer.color = color ?? Color.white;
 			polygonRenderer.outlineColor = (renderMode == PolygonRenderMode.Wire ? color : outlineColor) ?? Color.black;
@@ -366,13 +364,13 @@ namespace DavidUtils.Rendering
 		[Range(2,100)] public int maxSubPolygonsPerFrame = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
 		[Range(1,1000)] public int maxSubPolygonCount = DEFAULT_MAX_SUBPOLYGONS_PER_FRAME;
 
-		public float delayinSeconds_SubpolygonCoroutine = 0;
+		public float delayinSeconds_SubpolygonCoroutine;
 		
 		[HideInInspector] public List<Polygon> subPolygons = new();
 		public int SubPolygonCount => subPolygons.Count;
 		
-		PolygonRenderer[] subPolyRenderers = Array.Empty<PolygonRenderer>();
-		[SerializeField] private bool showSubPolygons = false;
+		private PolygonRenderer[] _subPolyRenderers = Array.Empty<PolygonRenderer>();
+		[SerializeField] private bool showSubPolygons;
 
 		public bool ShowSubPolygons
 		{
@@ -390,7 +388,7 @@ namespace DavidUtils.Rendering
 		
 		public void UpdateSubPolygonRenderers()
 		{
-			subPolyRenderers = GetComponentsInChildren<PolygonRenderer>().Where(pr => pr != this).ToArray();
+			_subPolyRenderers = GetComponentsInChildren<PolygonRenderer>().Where(pr => pr != this).ToArray();
 			
 			if (CanShowSubPolygons)
 			{
@@ -398,10 +396,10 @@ namespace DavidUtils.Rendering
 				{
 					_meshRenderer.enabled = false;
 					
-					if (subPolyRenderers.IsNullOrEmpty() || SubPolygonCount != subPolyRenderers.Length)
+					if (_subPolyRenderers.IsNullOrEmpty() || SubPolygonCount != _subPolyRenderers.Length)
 						InstantiateSubPolyRenderers();
 					else
-						subPolyRenderers.ForEach((spr, i) => spr.Polygon = subPolygons[i]);
+						_subPolyRenderers.ForEach((spr, i) => spr.Polygon = subPolygons[i]);
 				}
 				else
 				{
@@ -410,7 +408,7 @@ namespace DavidUtils.Rendering
 			}
 			else
 			{
-				if (subPolyRenderers.NotNullOrEmpty())
+				if (_subPolyRenderers.NotNullOrEmpty())
 					CleanSubPolyRenderers();
 				
 				_meshRenderer.enabled = true;
@@ -423,11 +421,11 @@ namespace DavidUtils.Rendering
 			if (SubPolygonCount == 0) return;
 			
 			// Clean ALL
-			if (subPolyRenderers.NotNullOrEmpty())
+			if (_subPolyRenderers.NotNullOrEmpty())
 				CleanSubPolyRenderers();
 			var colors = Color.red.GetRainBowColors(SubPolygonCount).Reverse().ToArray();
 
-			subPolyRenderers = subPolygons
+			_subPolyRenderers = subPolygons
 				.Select((p, i) => 
 					Instantiate(
 						p,
@@ -446,12 +444,12 @@ namespace DavidUtils.Rendering
 		
 		private void CleanSubPolyRenderers()
 		{
-			if (subPolyRenderers.IsNullOrEmpty()) return;
-			if (isOnValidate && !Application.isPlaying)
-				_destructionQueue = subPolyRenderers.Select(spr => spr.gameObject).ToArray();
-			else
-				UnityUtils.DestroySafe(subPolyRenderers);
-			subPolyRenderers = Array.Empty<PolygonRenderer>();
+			if (_subPolyRenderers.IsNullOrEmpty()) return;
+			// if (_isOnValidate && !Application.isPlaying)
+			// 	_destructionQueue = subPolyRenderers.Select(spr => spr.gameObject).ToArray();
+			// else
+				UnityUtils.DestroySafe(_subPolyRenderers);
+			_subPolyRenderers = Array.Empty<PolygonRenderer>();
 		}
 		
 		#endregion

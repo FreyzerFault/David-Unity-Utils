@@ -9,8 +9,8 @@ namespace DavidUtils.Settings
 		public SettingsData settingsData;
 		public bool saveOnSceneChange = true;
 
-		public Action OnLoad;
-		public Action OnSave;
+		public Action onLoad;
+		public Action onSave;
 
 		protected override void Awake()
 		{
@@ -36,13 +36,13 @@ namespace DavidUtils.Settings
 		public void Save()
 		{
 			settingsData.SaveSettings();
-			OnSave?.Invoke();
+			onSave?.Invoke();
 		}
 
 		public void Load()
 		{
 			settingsData.LoadSettings();
-			OnLoad?.Invoke();
+			onLoad?.Invoke();
 		}
 	}
 }

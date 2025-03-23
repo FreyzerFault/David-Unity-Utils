@@ -11,11 +11,11 @@ namespace DavidUtils.Geometry.Generators.Showcase
 	{
 		public float speed = .1f;
 		public float turnSpeed = 1f;
-		private readonly float collisionMargin = .01f;
+		private const float CollisionMargin = .01f;
+		private const int MaxDirectionTries = 10;
 
-		private readonly int maxDirectionTries = 10;
+		private Vector2[] _seedDirections = Array.Empty<Vector2>();
 
-		private Vector2[] seedDirections = Array.Empty<Vector2>();
 
 		#region UNITY
 
@@ -43,38 +43,37 @@ namespace DavidUtils.Geometry.Generators.Showcase
 		#region SEED MOVING
 
 		private void InitializeDirections() =>
-			seedDirections = seeds.Select(_ => Random.insideUnitCircle).ToArray();
+			_seedDirections = seeds.Select(_ => Random.insideUnitCircle).ToArray();
 
 		public override void OnSeedsUpdated()
 		{
 			base.OnSeedsUpdated();
 
-			if (seedDirections?.Length != seeds.Count)
+			if (_seedDirections?.Length != seeds.Count)
 				InitializeDirections();
 		}
-
-
-		private Vector2 currentVel = Vector2.zero;
 
 		private void MoveSeedsRandom()
 		{
 			for (var i = 0; i < seeds.Count; i++)
 			{
-				var canMove = false;
+				bool canMove;
 				var iterations = 0;
 				do
 				{
-					canMove = MoveSeed(i) || iterations >= maxDirectionTries;
+					canMove = MoveSeed(i) || iterations >= MaxDirectionTries;
 					Random.InitState(Random.Range(1, 9999999));
 					iterations++;
 				} while (!canMove);
 			}
 		}
 
+		private Vector2 _currentVel = Vector2.zero;
+		
 		private bool MoveSeed(int i)
 		{
-			Vector2 newDir = (seedDirections[i] + Random.insideUnitCircle).normalized;
-			newDir = Vector2.SmoothDamp(seedDirections[i], newDir, ref currentVel, Time.deltaTime / turnSpeed)
+			Vector2 newDir = (_seedDirections[i] + Random.insideUnitCircle).normalized;
+			newDir = Vector2.SmoothDamp(_seedDirections[i], newDir, ref _currentVel, Time.deltaTime / turnSpeed)
 				.normalized;
 			Vector2 newPos = seeds[i] + newDir * (speed * Time.deltaTime);
 
@@ -87,7 +86,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 
 			if (!ValidPosition(i, newPos)) return false;
 
-			seedDirections[i] = newDir;
+			_seedDirections[i] = newDir;
 			seeds[i] = newPos;
 
 			return true;
@@ -99,7 +98,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 				   .Take(seedIndex) // Skipea i => [0, ..., i - 1, i + 1, ..., n]
 				   .Concat(seeds.Skip(seedIndex + 1))
 				   // Si alguno de los seeds esta demasiado cerca, no es valida
-				   .Any(s => Vector2.Distance(newPos, s) < collisionMargin);
+				   .Any(s => Vector2.Distance(newPos, s) < CollisionMargin);
 
 		#endregion
 
@@ -130,7 +129,7 @@ namespace DavidUtils.Geometry.Generators.Showcase
 			for (var i = 0; i < seeds.Count; i++)
 			{
 				Vector3 pos = LocalToWorldMatrix.MultiplyPoint3x4(seeds[i]);
-				Vector3 dir = LocalToWorldMatrix.MultiplyVector(seedDirections[i]);
+				Vector3 dir = LocalToWorldMatrix.MultiplyVector(_seedDirections[i]);
 				GizmosExtensions.DrawCircle(pos, Vector3.up, .1f, Color.red);
 				GizmosExtensions.DrawArrow(
 					GizmosExtensions.ArrowCap.Triangle,

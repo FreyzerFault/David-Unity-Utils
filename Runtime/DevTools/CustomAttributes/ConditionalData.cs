@@ -1,103 +1,63 @@
-﻿using System;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DavidUtils.ExtensionMethods;
-using Object = UnityEngine.Object;
 
 namespace DavidUtils.DevTools.CustomAttributes
 {
-	public class ConditionalData
+	public class ConditionalData: IEnumerable<(string Field, bool Inverse, string[] CompareAgainst)>
 	{
-		public bool IsSet => _fieldToCheck.NotNullOrEmpty() || _fieldsToCheckMultiple.NotNullOrEmpty()
-		                                                    || _predicateMethod.NotNullOrEmpty();
-		private readonly string _fieldToCheck;
-		private readonly bool _inverse;
-		private readonly string[] _compareValues;
+		public bool IsSet => fieldToCheck.NotNullOrEmpty() || fieldsToCheckMultiple.NotNullOrEmpty()
+		                                                    || predicateMethod.NotNullOrEmpty();
+		public readonly string fieldToCheck;
+		public readonly bool inverse;
+		public readonly string[] compareValues;
 
-		private readonly string[] _fieldsToCheckMultiple;
-		private readonly bool[] _inverseMultiple;
-		private readonly string[] _compareValuesMultiple;
+		public readonly string[] fieldsToCheckMultiple;
+		public readonly bool[] inverseMultiple;
+		public readonly string[] compareValuesMultiple;
+		
+		public MethodInfo cachedMethodInfo;
+		public bool initializedMethodInfo;
 
-		private readonly string _predicateMethod;
+		public readonly string predicateMethod;
 
 		public ConditionalData(string fieldToCheck, bool inverse = false, params object[] compareValues)
-			=> (_fieldToCheck, _inverse, _compareValues) =
+			=> (this.fieldToCheck, this.inverse, this.compareValues) =
 				(fieldToCheck, inverse, compareValues.Select(c => c.ToString().ToUpper()).ToArray());
 
 		public ConditionalData(string[] fieldToCheck, bool[] inverse = null, params object[] compare) =>
-			(_fieldsToCheckMultiple, _inverseMultiple, _compareValuesMultiple) =
+			(fieldsToCheckMultiple, inverseMultiple, compareValuesMultiple) =
 			(fieldToCheck, inverse, compare.Select(c => c.ToString().ToUpper()).ToArray());
 
-		public ConditionalData(params string[] fieldToCheck) => _fieldsToCheckMultiple = fieldToCheck;
+		public ConditionalData(params string[] fieldToCheck) => fieldsToCheckMultiple = fieldToCheck;
 
 		// ReSharper disable once UnusedParameter.Local
 		public ConditionalData(bool useMethod, string methodName, bool inverse = false)
-			=> (_predicateMethod, _inverse) = (methodName, inverse);
+			=> (predicateMethod, this.inverse) = (methodName, inverse);
 
-
-#if UNITY_EDITOR
-		/// <summary>
+		
 		///     Iterate over Field Conditions
-		/// </summary>
 		public IEnumerator<(string Field, bool Inverse, string[] CompareAgainst)> GetEnumerator()
 		{
-			if (_fieldToCheck.NotNullOrEmpty()) yield return (_fieldToCheck, _inverse, _compareValues);
-			if (_fieldsToCheckMultiple.NotNullOrEmpty())
-				for (var i = 0; i < _fieldsToCheckMultiple.Length; i++)
+			if (fieldToCheck.NotNullOrEmpty()) yield return (fieldToCheck, inverse, compareValues);
+			if (fieldsToCheckMultiple.NotNullOrEmpty())
+				for (var i = 0; i < fieldsToCheckMultiple.Length; i++)
 				{
-					string field = _fieldsToCheckMultiple[i];
-					bool withInverseValue = _inverseMultiple != null && _inverseMultiple.Length - 1 >= i;
-					bool withCompareValue = _compareValuesMultiple != null && _compareValuesMultiple.Length - 1 >= i;
-					bool inverse = withInverseValue && _inverseMultiple[i];
-					string[] compare = withCompareValue ? new[] { _compareValuesMultiple[i] } : null;
+					string field = fieldsToCheckMultiple[i];
+					bool withInverseValue = inverseMultiple != null && inverseMultiple.Length - 1 >= i;
+					bool withCompareValue = compareValuesMultiple != null && compareValuesMultiple.Length - 1 >= i;
+					bool thisInverse = withInverseValue && inverseMultiple[i];
+					string[] compare = withCompareValue ? new[] { compareValuesMultiple[i] } : null;
 
-					yield return (field, inverse, compare);
+					yield return (field, thisInverse, compare);
 				}
 		}
 
-		/// <summary>
-		///     Call and check Method Condition, if any
-		/// </summary>
-		public bool IsMethodConditionMatch(object owner)
+		IEnumerator IEnumerable.GetEnumerator()
 		{
-			if (_predicateMethod.IsNullOrEmpty()) return true;
-
-			MethodInfo predicateMethod = GetMethodCondition(owner);
-			if (predicateMethod == null) return true;
-
-			var match = (bool)predicateMethod.Invoke(owner, null);
-			if (_inverse) match = !match;
-			return match;
+			return GetEnumerator();
 		}
-
-
-		private MethodInfo GetMethodCondition(object owner)
-		{
-			if (_predicateMethod.IsNullOrEmpty()) return null;
-			if (_initializedMethodInfo) return _cachedMethodInfo;
-			_initializedMethodInfo = true;
-
-			Type ownerType = owner.GetType();
-			BindingFlags bindings = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public
-			                        | BindingFlags.NonPublic;
-			MethodInfo method = ownerType.GetMethods(bindings).SingleOrDefault(m => m.Name == _predicateMethod);
-
-			if (method == null || method.ReturnType != typeof(bool))
-			{
-				ConditionalUtility.LogMethodNotFound((Object)owner, _predicateMethod);
-				_cachedMethodInfo = null;
-			}
-			else
-			{
-				_cachedMethodInfo = method;
-			}
-
-			return _cachedMethodInfo;
-		}
-
-		private MethodInfo _cachedMethodInfo;
-		private bool _initializedMethodInfo;
-#endif
 	}
 }

@@ -8,48 +8,48 @@ namespace DavidUtils.UI.Sliders
     {
         public Gradient gradient = new();
 
-        private Slider slider;
-        private Image bar;
-        private UnityEngine.UI.Text text;
+        private Slider _slider;
+        private Image _bar;
+        private UnityEngine.UI.Text _text;
 
         public bool useGradient;
         public bool inverted;
 
         public float MaxValue
         {
-            get => slider.maxValue;
-            set => slider.maxValue = value;
+            get => _slider.maxValue;
+            set => _slider.maxValue = value;
         }
 
         public float Value
         {
-            get => inverted ? slider.maxValue - slider.value : slider.value;
+            get => inverted ? _slider.maxValue - _slider.value : _slider.value;
             set
             {
                 if (inverted)
-                    slider.value = MaxValue - value;
+                    _slider.value = MaxValue - value;
                 else
-                    slider.value = value;
+                    _slider.value = value;
 
                 // Cambia la barra de color con el gradiente
-                if (useGradient) bar.color = gradient.Evaluate(slider.normalizedValue);
+                if (useGradient) _bar.color = gradient.Evaluate(_slider.normalizedValue);
 
                 // Cambia el texto
-                if (text)
+                if (_text)
                 {
-                    text.text = value.ToString(CultureInfo.CurrentCulture);
-                    text.color = Color.Lerp(Color.red, Color.black, slider.normalizedValue);
+                    _text.text = value.ToString(CultureInfo.CurrentCulture);
+                    _text.color = Color.Lerp(Color.red, Color.black, _slider.normalizedValue);
                 }
             }
         }
 
         private void Awake()
         {
-            slider = GetComponent<Slider>();
-            bar = GetComponentInChildren<Image>();
-            text = GetComponentInChildren<UnityEngine.UI.Text>();
+            _slider = GetComponent<Slider>();
+            _bar = GetComponentInChildren<Image>();
+            _text = GetComponentInChildren<UnityEngine.UI.Text>();
 
-            if (inverted) slider.value = 0;
+            if (inverted) _slider.value = 0;
         }
     }
 }

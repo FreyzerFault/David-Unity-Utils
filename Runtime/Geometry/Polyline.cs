@@ -5,13 +5,13 @@ using UnityEngine;
 
 namespace DavidUtils.Geometry
 {
-        public struct Polyline
+        public readonly struct Polyline
         {
             public const float DEFAULT_THICKNESS = .1f;
             public const int DEFAULT_SMOOTHNESS = 5;
             
-            public Vector3[] points;
-            public bool loop;
+            public readonly Vector3[] points;
+            public readonly bool loop;
 
             public int PointsCount => points.Length;
 			
@@ -24,7 +24,7 @@ namespace DavidUtils.Geometry
             }
 			
             // 2D Constructor
-            public Polyline(IEnumerable<Vector2> points, bool loop = false, bool XZplane = true)
-            : this(points.Select(p => XZplane ? p.ToV3xz() : p.ToV3xy()).ToArray(), loop) { }
+            public Polyline(IEnumerable<Vector2> points, bool loop = false, bool isXZplane = true)
+            : this(points.Select(p => isXZplane ? p.ToV3XZ() : p.ToV3XY()).ToArray(), loop) { }
         }
     }

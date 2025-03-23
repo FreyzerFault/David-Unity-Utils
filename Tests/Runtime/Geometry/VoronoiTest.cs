@@ -9,8 +9,8 @@ namespace DavidUtils.Tests.Runtime.Geometry
 {
 	public class VoronoiTest : TestRunner
 	{
-		private VoronoiGenerator generator;
-		public VoronoiGenerator Generator => generator ??= GetComponent<VoronoiGenerator>();
+		private VoronoiGenerator _generator;
+		public VoronoiGenerator Generator => _generator ??= GetComponent<VoronoiGenerator>();
 
 		public int seed = 999;
 
@@ -18,7 +18,7 @@ namespace DavidUtils.Tests.Runtime.Geometry
 		{
 			base.Awake();
 			
-			generator.Init();
+			_generator.Init();
 		}
 
 

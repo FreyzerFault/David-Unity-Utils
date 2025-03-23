@@ -7,10 +7,10 @@ namespace DavidUtils.Billboard
 {
 	public class BillboardObject : MonoBehaviour
 	{
-		private Player.Player player;
-		private Vector3 playerPos = Vector3.zero;
+		private Player.Player _player;
+		private Vector3 _playerPos = Vector3.zero;
 
-		protected static Player.Player Player => DavidUtils.Player.Player.Instance ?? FindObjectOfType<Player.Player>();
+		protected static Player.Player Player => DavidUtils.Player.Player.Instance ?? FindFirstObjectByType<Player.Player>();
 		protected static UnityEngine.Camera Camera => CameraManager.MainCam;
 
 		public bool verticalLock;
@@ -27,11 +27,11 @@ namespace DavidUtils.Billboard
 			set => SpriteRenderer.sprite = value;
 		}
 
-		private void Awake() => player = DavidUtils.Player.Player.Instance ?? FindObjectOfType<Player.Player>();
+		private void Awake() => _player = DavidUtils.Player.Player.Instance ?? FindFirstObjectByType<Player.Player>();
 
 		private void Update()
 		{
-			playerPos = player != null ? player.Position : FindObjectOfType<Player.Player>().transform.position;
+			_playerPos = _player != null ? _player.Position : FindFirstObjectByType<Player.Player>().transform.position;
 			transform.Billboard(Camera.transform, verticalLock);
 		}
 
@@ -44,16 +44,17 @@ namespace DavidUtils.Billboard
 		{
 			if (!showColliderNearPlayer) return;
 
-			if (Vector3.Distance(transform.position, playerPos) > 10) return;
+			if (Vector3.Distance(transform.position, _playerPos) > 10) return;
 
-			var col = GetComponent<Collider>();
+			Collider col = GetComponent<Collider>();
 			if (col == null) return;
 
-			Vector3 pos = col.bounds.center;
+			// Vector3 pos = col.bounds.center;
+			// GizmosExtensions.DrawCilinder(pos, radius, height, transform.rotation, 2, color);
+			
 			float radius = col.bounds.size.x / 2;
 			float height = col.bounds.size.y;
 			Color color = Color.red;
-			// GizmosExtensions.DrawCilinder(pos, radius, height, transform.rotation, 2, color);
 			GizmosExtensions.DrawCilinderWire(radius, height, transform.localToWorldMatrix, 2, 2, color);
 		}
 		

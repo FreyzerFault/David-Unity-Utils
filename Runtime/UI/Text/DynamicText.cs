@@ -1,8 +1,7 @@
 using System.Reflection;
-using DavidUtils.DevTools.Reflection;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
+using DavidUtils.DevTools.Reflection;
 
 namespace DavidUtils.UI.Text
 {
@@ -12,8 +11,8 @@ namespace DavidUtils.UI.Text
 	{
 		[SerializeField] private AttributesExposer textExposer;
 
-		private TMP_Text textLabel;
-		private TMP_Text TextLabel => textLabel ??= GetComponent<TMP_Text>();
+		private TMP_Text _textLabel;
+		private TMP_Text TextLabel => _textLabel ??= GetComponent<TMP_Text>();
 
 		[Header("Wrap Between")]
 		public string prefix = "";
@@ -22,26 +21,20 @@ namespace DavidUtils.UI.Text
 		private void OnEnable()
 		{
 			textExposer.LoadExposedFields();
-			textExposer.OnFieldSelected += HandleValueChange;
+			textExposer.onFieldSelected += HandleValueChange;
 		}
 
-		private void OnDisable() => textExposer.OnFieldSelected -= HandleValueChange;
+		private void OnDisable() => textExposer.onFieldSelected -= HandleValueChange;
 
 		private void Update() => UpdateText();
 
 		public void HandleValueChange(MemberInfo info)
 		{
 			UpdateText();
-			RepaintAll();
+			SceneUtilities.RepaintAll();
 		}
 
 		private void UpdateText() => TextLabel?.SetText(textExposer.StringValue != null ? $"{prefix}{textExposer.StringValue}{suffix}" : TextLabel.text);
 
-		private static void RepaintAll()
-		{
-#if UNITY_EDITOR
-			SceneView.RepaintAll();
-#endif
-		}
 	}
 }

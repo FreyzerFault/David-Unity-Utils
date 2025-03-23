@@ -1,8 +1,7 @@
 ﻿using DavidUtils.ExtensionMethods;
-using UnityEditor;
 using UnityEngine;
 
-namespace DavidUtils.MouseInputs
+namespace DavidUtils.MouseInput
 {
 	public static class MouseInputUtils
 	{
@@ -28,7 +27,7 @@ namespace DavidUtils.MouseInputs
 
 			Vector3 worldMousePos = Camera.main.ScreenToWorldPoint(MousePosition).WithY(0);
 
-			normalizedPos = (worldMousePos - originPos).ToV2xz() / size;
+			normalizedPos = (worldMousePos - originPos).ToV2XZ() / size;
 
 			return normalizedPos.IsIn01();
 		}
@@ -44,7 +43,7 @@ namespace DavidUtils.MouseInputs
 			Vector3 mousePos = MousePosition;
 			Vector3 worldMousePos = Camera.main.ScreenToWorldPoint(mousePos).WithZ(0);
 
-			normalizedPos = (worldMousePos - originPos).ToV2xy() / size;
+			normalizedPos = (worldMousePos - originPos).ToV2XY() / size;
 
 			return normalizedPos.IsIn01();
 		}
@@ -59,16 +58,16 @@ namespace DavidUtils.MouseInputs
 		public static Vector3 mouseWorldPosition_InScene = Vector3.zero;
 
 		public static Vector2 MouseWorldPosition_InScene_XY =>
-			mouseWorldPosition_InScene.ToV2xy();
+			mouseWorldPosition_InScene.ToV2XY();
 		public static Vector2 MouseWorldPosition_InScene_XZ =>
-			mouseWorldPosition_InScene.ToV2xz();
+			mouseWorldPosition_InScene.ToV2XZ();
 
 		// !=======================================================================================
 		// ! USAR ESTO EN ONGUI() de cualquier MonoBehaviour que vaya a estar ACTIVO SIEMPRE
 		// ! para actualizar la posicion del Mouse en la Escena si vas a usarla
 		// !=======================================================================================
 		public static void UpdateMousePositionInScene() =>
-			mouseWorldPosition_InScene = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition).origin;
+			mouseWorldPosition_InScene = UnityEditor.HandleUtility.GUIPointToWorldRay(Event.current.mousePosition).origin;
 
 		#endregion
 

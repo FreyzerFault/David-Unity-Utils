@@ -95,8 +95,8 @@ namespace DavidUtils.Threading
 
 				float dt = nextKey.time - key.time;
 
-				float startWeight = key.outWeight;
-				float endWeight = nextKey.inWeight;
+				// float startWeight = key.outWeight;
+				// float endWeight = nextKey.inWeight;
 
 				float startSlope = key.outTangent * dt;
 				float endSlope = nextKey.inTangent * dt;

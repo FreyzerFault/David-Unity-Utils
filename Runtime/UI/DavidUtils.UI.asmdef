@@ -3,6 +3,7 @@
     "rootNamespace": "DavidUtils",
     "references": [
         "DavidUtils.DevTools",
+        "DavidUtils",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [],

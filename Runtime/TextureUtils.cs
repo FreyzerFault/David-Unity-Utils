@@ -9,7 +9,7 @@ namespace DavidUtils
 	{
 		public static Texture2D ColorDataToTexture2D(IEnumerable<Color> colorData, int width, int height)
 		{
-			var texture = new Texture2D(width, height);
+			Texture2D texture = new(width, height);
 			texture.SetPixels(colorData.ToArray());
 			texture.Apply();
 			return texture;
@@ -17,7 +17,7 @@ namespace DavidUtils
 
 		public static Texture2D ColorDataToTexture2D(IEnumerable<Color32> colorData, int width, int height)
 		{
-			var texture = new Texture2D(width, height);
+			Texture2D texture = new(width, height);
 			texture.SetPixels32(colorData.ToArray());
 			texture.Apply();
 			return texture;
@@ -25,7 +25,7 @@ namespace DavidUtils
 
 		public static Texture2D ColorDataToTexture2D(NativeArray<Color32> colorData, int width, int height)
 		{
-			var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+			Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
 			texture.GetRawTextureData<Color32>().CopyFrom(colorData);
 			texture.Apply();
 			return texture;
@@ -75,9 +75,9 @@ namespace DavidUtils
 		#region TEXTURE STATIC RESOURCES
 
 		// TODO Me da que no va a coger el Circulo como una Textura porque es un Prefab
-		public static Texture2D GetCircle() => Resources.Load<Texture2D>("Prefabs/Circle");
-		public static Texture2D GetCircumference() => Resources.Load<Texture2D>("Prefabs/Circumference");
-		public static Texture2D GetTriangle() => Resources.Load<Texture2D>("Prefabs/Triangle");
+		public static Texture2D GetCircle() => Resources.Load<Texture2D>("Prefabs/Geometry/Circle");
+		public static Texture2D GetCircumference() => Resources.Load<Texture2D>("Prefabs/Geometry/Circumference");
+		public static Texture2D GetTriangle() => Resources.Load<Texture2D>("Prefabs/Geometry/Triangle");
 
 		#endregion
 	}

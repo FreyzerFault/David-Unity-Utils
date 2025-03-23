@@ -12,10 +12,10 @@ namespace DavidUtils.Spawning
 		protected AABB_2D AABB2D => new(bounds);
 
 		public Vector3 offset = new(0, 0, 0);
-		public Vector2 offset2D => offset.ToV2(XZplane);
+		public Vector2 Offset2D => offset.ToV2(isXZplane);
 
 		public bool is2D;
-		public bool XZplane = true;
+		public bool isXZplane = true;
 
 		public Vector3 Center
 		{
@@ -30,12 +30,12 @@ namespace DavidUtils.Spawning
 
 		public Vector2 Center2D
 		{
-			get => bounds.center.ToV2(XZplane);
-			set => bounds.center = value.ToV3(XZplane);
+			get => bounds.center.ToV2(isXZplane);
+			set => bounds.center = value.ToV3(isXZplane);
 		}
 
 		protected Quaternion RandomRotation =>
-			XZplane
+			isXZplane
 				? Quaternion.Euler(0, Random.Range(-180, 180), 0)
 				: Quaternion.Euler(0, 0, Random.Range(-180, 180));
 
@@ -54,18 +54,20 @@ namespace DavidUtils.Spawning
 			Spawn(GetRandomPointInBounds(), setRandomRotation ? RandomRotation : default);
 
 		protected Vector3 GetRandomPointInBounds() => is2D
-			? AABB2D.GetRandomPointInBounds(offset2D).ToV3(XZplane)
+			? AABB2D.GetRandomPointInBounds(Offset2D).ToV3(isXZplane)
 			: bounds.GetRandomPointInBounds(offset);
 
 
 		protected override IEnumerator SpawnCoroutine()
 		{
-			while (true)
+			while (gameObject.activeSelf)
 			{
 				yield return new WaitForSeconds(spawnFrequency);
 
 				for (var i = 0; i < burstSpawn; i++)
 					SpawnRandom();
+				
+				yield return new WaitUntil(() => gameObject.activeSelf);
 			}
 		}
 	}

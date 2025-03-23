@@ -8,14 +8,13 @@ namespace DavidUtils.Editor.DevTools.CustomAttributes
 	[CustomPropertyDrawer(typeof(PowerOfTwoAttribute))]
 	public class PowerOfTwoDrawer : PropertyDrawer
 	{
-		private PowerOfTwoAttribute powerOfTwoAttribute;
+		private PowerOfTwoAttribute _powerOfTwoAttribute;
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
 			EditorGUI.BeginChangeCheck();
 
-			var powAtt = attribute as PowerOfTwoAttribute;
-			if (powAtt == null) return;
+			if (attribute is not PowerOfTwoAttribute powAtt) return;
 
 			int value = property.intValue;
 			int currentIndex = Array.IndexOf(powAtt.options, value);
