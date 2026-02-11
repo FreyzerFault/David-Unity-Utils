@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DavidUtils
+namespace DavidUtils.Utils
 {
 	// Only 1 Instance of object of type T can exist
 	// If second one is created, it will destroy itself

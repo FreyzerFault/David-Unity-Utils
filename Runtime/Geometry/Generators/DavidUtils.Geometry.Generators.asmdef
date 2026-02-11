@@ -3,7 +3,7 @@
     "rootNamespace": "DavidUtils",
     "references": [
         "DavidUtils.Geometry",
-        "DavidUtils.ExtensionMethods",
+        "DavidUtils.Utils",
         "DavidUtils.DevTools",
         "DavidUtils.MouseInputs",
         "DavidUtils.Rendering",

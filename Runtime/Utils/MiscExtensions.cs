@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace DavidUtils.ExtensionMethods
+namespace DavidUtils.Utils
 {
 	public static class MiscExtensions
 	{

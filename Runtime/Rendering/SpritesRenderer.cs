@@ -1,5 +1,5 @@
 ﻿using System;
-using DavidUtils.ExtensionMethods;
+using DavidUtils.Utils;
 using UnityEngine;
 
 namespace DavidUtils.Rendering

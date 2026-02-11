@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DavidUtils.ExtensionMethods
+namespace DavidUtils.Utils
 {
     public static class RectTransformExtensionMethods
     {

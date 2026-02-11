@@ -4,7 +4,8 @@
     "references": [
         "DavidUtils.Camera",
         "DavidUtils",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "DavidUtils.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

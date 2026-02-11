@@ -2,7 +2,7 @@
     "name": "DavidUtils.Geometry",
     "rootNamespace": "DavidUtils",
     "references": [
-        "DavidUtils.ExtensionMethods",
+        "DavidUtils.Utils",
         "DavidUtils.DevTools",
         "DavidUtils.MouseInputs"
     ],

@@ -3,7 +3,7 @@ using System.Linq;
 using Unity.Collections;
 using UnityEngine;
 
-namespace DavidUtils
+namespace DavidUtils.Utils
 {
 	public static class TextureUtils
 	{

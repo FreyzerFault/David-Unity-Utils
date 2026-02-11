@@ -2,7 +2,7 @@
     "name": "DavidUtils.Spawning",
     "rootNamespace": "DavidUtils",
     "references": [
-        "DavidUtils.ExtensionMethods",
+        "DavidUtils.Utils",
         "DavidUtils.Geometry",
         "DavidUtils"
     ],

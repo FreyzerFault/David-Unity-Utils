@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DavidUtils.ExtensionMethods;
+using DavidUtils.Utils;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.MeshExtensions

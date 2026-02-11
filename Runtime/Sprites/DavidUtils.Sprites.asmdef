@@ -2,8 +2,8 @@
     "name": "DavidUtils.Sprites",
     "rootNamespace": "DavidUtils",
     "references": [
-        "DavidUtils",
-        "DavidUtils.ExtensionMethods"
+        "DavidUtils.Utils",
+        "DavidUtils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

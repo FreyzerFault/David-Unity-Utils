@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using DavidUtils.DevTools.CustomAttributes;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DavidUtils.Settings
 {

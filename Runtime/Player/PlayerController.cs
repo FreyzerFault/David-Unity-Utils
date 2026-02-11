@@ -1,4 +1,5 @@
 ﻿using System;
+using DavidUtils.Utils;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,7 +12,7 @@ namespace DavidUtils.Player
     }
 
     /// Controla el movimiento en 2D con OnMove
-    public abstract class Player : Singleton<Player>
+    public abstract class PlayerController : Singleton<PlayerController>
     {
         public Vector3 Position => transform.position;
         public Vector3 Forward => transform.forward;

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using DavidUtils.Editor.DevTools.Logging;
 using DavidUtils.Editor.DevTools.Serialization;
-using DavidUtils.ExtensionMethods;
+using DavidUtils.Utils;
 using UnityEditor;
 
 namespace DavidUtils.Editor.DevTools.CustomAttributes

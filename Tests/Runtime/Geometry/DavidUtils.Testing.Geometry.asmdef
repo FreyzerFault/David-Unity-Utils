@@ -4,7 +4,7 @@
     "references": [
         "DavidUtils.Geometry",
         "DavidUtils.Geometry.Generators",
-        "DavidUtils.ExtensionMethods",
+        "DavidUtils.Utils",
         "DavidUtils.DevTools",
         "DavidUtils.Geometry.Algorithms",
         "DavidUtils.Rendering",

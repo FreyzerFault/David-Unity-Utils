@@ -4,7 +4,8 @@
     "references": [
         "DavidUtils",
         "Unity.Mathematics",
-        "Unity.Burst"
+        "Unity.Burst",
+        "DavidUtils.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

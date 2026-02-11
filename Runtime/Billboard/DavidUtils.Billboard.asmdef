@@ -5,7 +5,7 @@
         "DavidUtils.Camera",
         "DavidUtils.DevTools",
         "DavidUtils.Player",
-        "DavidUtils.ExtensionMethods",
+        "DavidUtils.Utils",
         "DavidUtils"
     ],
     "includePlatforms": [],

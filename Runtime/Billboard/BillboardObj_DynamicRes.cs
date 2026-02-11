@@ -8,7 +8,7 @@ namespace DavidUtils.Billboard
 	// Swap between different sprites dependant on the player distance to Obj
 	public class BillboardObj_DynamicRes : BillboardObject
 	{
-		private float DistanceToPlayer => Vector3.Distance(transform.position, Player.transform.position);
+		private float DistanceToPlayer => Vector3.Distance(transform.position, PlayerController.transform.position);
 
 		[Serializable]
 		public struct SpriteWithRes
@@ -28,9 +28,9 @@ namespace DavidUtils.Billboard
 			)
 		);
 
-		private void Start() => Player.OnPlayerMove += HandlePlayerMove;
+		private void Start() => PlayerController.OnPlayerMove += HandlePlayerControllerMove;
 
-		private void HandlePlayerMove(Vector2 moveInput) =>
+		private void HandlePlayerControllerMove(Vector2 moveInput) =>
 			Sprite = GetSpriteByDistance(DistanceToPlayer);
 
 		private Sprite GetSpriteByDistance(float distance)

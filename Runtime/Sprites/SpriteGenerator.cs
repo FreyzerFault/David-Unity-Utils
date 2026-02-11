@@ -1,5 +1,5 @@
-﻿using DavidUtils.ExtensionMethods;
-using UnityEngine;
+﻿using UnityEngine;
+using DavidUtils.Utils;
 
 namespace DavidUtils.Sprites
 {

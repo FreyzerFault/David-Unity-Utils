@@ -3,7 +3,8 @@
     "rootNamespace": "DavidUtils",
     "references": [
         "Unity.Cinemachine",
-        "DavidUtils"
+        "DavidUtils",
+        "DavidUtils.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

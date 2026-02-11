@@ -3,7 +3,7 @@
     "rootNamespace": "DavidUtils",
     "references": [
         "DavidUtils.DevTools",
-        "DavidUtils"
+        "DavidUtils.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

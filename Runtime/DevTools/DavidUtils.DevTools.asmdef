@@ -1,10 +1,7 @@
 {
     "name": "DavidUtils.DevTools",
     "rootNamespace": "DavidUtils",
-    "references": [
-        "DavidUtils.ExtensionMethods",
-        "DavidUtils"
-    ],
+    "references": ["GUID:a7adaf89cbc238348aa7047394acc30d"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

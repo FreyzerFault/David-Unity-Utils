@@ -9,8 +9,10 @@ namespace DavidUtils.Editor.Spawning.Editor.Spawning
 	{
 		private int _numItemsSpawned = 1;
 
-		private void OnEnable() =>
-			Selection.selectionChanged += () => Tools.hidden = false;
+		private void OnEnable() => Selection.selectionChanged += OnSelectionChanged;
+		private void OnDisable() => Selection.selectionChanged -= OnSelectionChanged;
+
+		private static void OnSelectionChanged() => Tools.hidden = false;
 
 		public override void OnInspectorGUI()
 		{

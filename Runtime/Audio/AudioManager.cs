@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using DavidUtils.Settings;
+using DavidUtils.Utils;
 using UnityEngine;
 using UnityEngine.Audio;
-using static UnityEngine.FindObjectsInactive;
-using static UnityEngine.FindObjectsSortMode;
 
 namespace DavidUtils.Audio
 {
@@ -231,7 +230,7 @@ namespace DavidUtils.Audio
         // Audios instanciados por la escena, no asociados al AudioManager
         private static AudioSource[] FindSpatialAudioSources()
         {
-            var spatialSources = FindObjectsByType<AudioSource>(Include, InstanceID).ToList();
+            var spatialSources = FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID).ToList();
 
             // Quita todos los sonidos que no sean espaciales (Musica, ambiente y aux)
             spatialSources.Remove(Instance.musicAudio.source);

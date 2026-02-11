@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace DavidUtils.ExtensionMethods
+namespace DavidUtils.Utils
 {
 	/// <summary>
 	///     Represents list of supported by Unity Console color names

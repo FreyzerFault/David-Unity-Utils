@@ -2,9 +2,8 @@
     "name": "DavidUtils.Audio",
     "rootNamespace": "DavidUtils",
     "references": [
-        "DavidUtils.Settings",
-        "DavidUtils"
-    ],
+    "GUID:a7adaf89cbc238348aa7047394acc30d",
+    "GUID:70930ce221681c84faff97a580dd4d64"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

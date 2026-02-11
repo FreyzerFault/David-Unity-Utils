@@ -1,4 +1,4 @@
-﻿using DavidUtils.ExtensionMethods;
+﻿using DavidUtils.Utils;
 using UnityEngine;
 
 namespace DavidUtils.Geometry.Bounding_Box

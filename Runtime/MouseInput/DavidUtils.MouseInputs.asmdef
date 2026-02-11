@@ -2,7 +2,7 @@
     "name": "DavidUtils.MouseInputs",
     "rootNamespace": "DavidUtils",
     "references": [
-        "DavidUtils.ExtensionMethods"
+        "DavidUtils.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
